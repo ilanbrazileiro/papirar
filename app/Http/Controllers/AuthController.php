@@ -11,12 +11,13 @@ class AuthController extends Controller
 {
     public function login()
     {
-        return view('login');
+        return view('site/site_login');
     }
 
     public function logout()
     {
-        echo "logout";
+        session()->forget('user');
+        return redirect()->to('/login');
     }
 
     public function loginSubmit(Request $request)
@@ -25,27 +26,27 @@ class AuthController extends Controller
         $request->validate(
         //erros
         [
-            'text_username' => 'required|email',
-            'text_password' => 'required|min:6|max:16'
+            'email' => 'required|email',
+            'senha' => 'required|min:3|max:16'
         ]
         ,
         //mensagens
         [
-            'text_username.required' => "É obrigatório um e-mail",
-            'text_username.email' => "O Username deve ser um e-mail válido",
-            'text_password.required' => "É obrigatório uma senha para acesso",
-            'text_password.min' => "O password deve conter no minimo :min caracteres",
-            'text_password.max' => "O password deve conter no máximo :max caracteres"
+            'email.required' => "É obrigatório ter um e-mail para o logar",
+            'email.email' => "Você deve usar um e-mail válido",
+            'senha.required' => "É obrigatório uma senha para acesso",
+            'senha.min' => "A senha deve conter no minimo :min caracteres",
+            'senha.max' => "A senha deve conter no máximo :max caracteres"
         ]
         );
 
         //pegar os dados
-        $username = $request->input('text_username');
-        $password = $request->input('text_password');
+        $username = $request->input('email');
+        $password = $request->input('senha');
 
         //Checar se o Usuário existe
-        $user = User::where('username', $username)
-                    ->where('delete_at',NULL)
+        $user = User::where('email', $username)
+                    ->where('deleted_at',NULL)
                     ->first();
 
         if(!$user){
@@ -56,7 +57,7 @@ class AuthController extends Controller
         }
 
         //verificar se o password está correto
-        if(!password_verify($password, $user->password)){
+        if(!password_verify($password, $user->senha)){
             return redirect()
             ->back()
             ->withInput()
@@ -71,7 +72,7 @@ class AuthController extends Controller
         session([
             'user' => [
                 'id' => $user->id,
-                'username' => $user->username
+                'username' => $user->email
             ]
         ]);
 
@@ -82,19 +83,17 @@ class AuthController extends Controller
         //*** $userModel = new User();
         //*** $users = $userModel->all()->toArray();
 
-        echo 'login com sucesso';
+        return redirect()->to('/main');
 
-        //teste da base de dados
-        /*
-        try {
-            DB::connection()->getPdo();
-            echo "Connection is successfull";
-        } catch (\PDOException $e) {
-            echo "A conexão falhou:" . $e->getMessage();            
-        }
-        */
-        //VARDUMP
-        //dd($request);
+    }
 
+    public function forgout()
+    {
+        return view('site/site_forgout');
+    }
+
+    public function forgoutSubmit(Request $request)
+    {
+        echo "fougout";
     }
 }
