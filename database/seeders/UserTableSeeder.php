@@ -15,19 +15,25 @@ class UserTableSeeder extends Seeder
         //
         DB::table('users')->insert([
             [
-                'username' => 'user01@gmail.com',
-                'password' => bcrypt('abcd1234'),
-                'created_at' => date('Y-m-d H:i:s')
+                'name' => 'Aluno',
+                'email' => 'aluno@teste.com',
+                'password' => bcrypt('12345678'),
+                'role' => 'student',
+                'is_active' => true
             ],
             [
-                'username' => 'user02@gmail.com',
-                'password' => bcrypt('abcd1234'),
-                'created_at' => date('Y-m-d H:i:s')
+                'name' => 'Admin',
+                'email' => 'admin@teste.com',
+                'password' => bcrypt('12345678'),
+                'role' => 'admin',
+                'is_active' => true
             ],
             [
-                'username' => 'user03@gmail.com',
-                'password' => bcrypt('abcd1234'),
-                'created_at' => date('Y-m-d H:i:s')
+                'name' => 'ilan',
+                'email' => 'ilanbrazileiro@gmail.com',
+                'password' => bcrypt('246135'),
+                'role' => 'admin',
+                'is_active' => true
             ]
         ]);
     }

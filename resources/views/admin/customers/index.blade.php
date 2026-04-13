@@ -1,0 +1,2 @@
+@extends('admin.layout')
+@section('content')<div class="mb-4"><h1 class="page-title">Clientes</h1></div><div class="card-soft p-4"><table class="table"><thead><tr><th>Nome</th><th>E-mail</th><th>CPF</th><th></th></tr></thead><tbody>@foreach($customers as $c)<tr><td>{{ $c->name }}</td><td>{{ $c->email }}</td><td>{{ $c->cpf }}</td><td><a class="btn btn-sm btn-outline-primary" href="{{ route('admin.customers.show',$c) }}">Ver</a></td></tr>@endforeach</tbody></table>{{ $customers->links() }}</div>@endsection

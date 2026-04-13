@@ -16,10 +16,7 @@
               
               <div class="form-group">
                 <input type="text" class="form-control pb_height-50 reverse" placeholder="E-mail" id="email" name="email" value="{{ old('email')}}">
-                {{-- show error--}}
-                @error('email')
-                    <div class="text-danger">{{ $message }}</div>                                    
-                @enderror
+                
               </div>
               <div class="form-group">
                 <input type="password" class="form-control pb_height-50 reverse" placeholder="Sua Senha" id="senha" name="senha" value="{{ old('senha')}}">

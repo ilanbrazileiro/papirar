@@ -1,0 +1,113 @@
+@extends('layouts.student')
+
+@section('title', 'Dashboard do aluno')
+
+@section('content')
+    <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
+        <div>
+            <h1 class="page-title">Olá, {{ auth()->user()->name ?? 'Aluno' }}</h1>
+            <p class="page-subtitle">Resumo rápido da sua conta, do seu desempenho e dos próximos passos.</p>
+        </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('student.study.index') }}" class="btn btn-primary">Continuar estudando</a>
+            <a href="{{ route('student.simulated.index') }}" class="btn btn-outline-primary">Meus simulados</a>
+        </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3">
+            <div class="stats-card">
+                <div class="label">Sessões de estudo</div>
+                <div class="value">{{ $stats['study_sessions_count'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="stats-card">
+                <div class="label">Questões respondidas</div>
+                <div class="value">{{ $stats['answers_count'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="stats-card">
+                <div class="label">Respostas corretas</div>
+                <div class="value">{{ $stats['correct_answers_count'] ?? 0 }}</div>
+            </div>
+        </div>
+        <div class="col-md-6 col-xl-3">
+            <div class="stats-card">
+                <div class="label">Tickets em aberto</div>
+                <div class="value">{{ $stats['open_tickets_count'] ?? 0 }}</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <div class="card-soft p-4 h-100">
+                <div class="section-title">Simulados recentes</div>
+
+                @if(($recentSimulatedExams ?? collect())->count())
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Questões</th>
+                                    <th>Acerto</th>
+                                    <th>Encerrado</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($recentSimulatedExams as $exam)
+                                    <tr>
+                                        <td class="fw-semibold">{{ $exam->title }}</td>
+                                        <td>{{ $exam->total_questions }}</td>
+                                        <td>{{ number_format((float) $exam->accuracy, 2, ',', '.') }}%</td>
+                                        <td>{{ $exam->finished_at ? $exam->finished_at->format('d/m/Y H:i') : 'Em andamento' }}</td>
+                                        <td class="text-end">
+                                            <a href="{{ route('student.simulated.show', $exam) }}" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                @else
+                    <div class="small-muted">Você ainda não criou simulados.</div>
+                @endif
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="card-soft p-4 mb-4">
+                <div class="section-title">Assinatura atual</div>
+
+                @if($currentSubscription)
+                    <div class="mb-2">
+                        <span class="badge text-bg-success text-uppercase">{{ $currentSubscription->status }}</span>
+                    </div>
+                    <div class="fw-semibold">{{ $currentSubscription->plan->name ?? 'Plano sem nome' }}</div>
+                    <div class="small-muted mt-2">
+                        Expira em:
+                        {{ optional($currentSubscription->expires_at)->format('d/m/Y H:i') ?? 'Não definido' }}
+                    </div>
+                @else
+                    <div class="small-muted">Você não possui assinatura ativa.</div>
+                @endif
+
+                <a href="{{ route('student.subscriptions.index') }}" class="btn btn-outline-primary w-100 mt-3">Gerenciar assinatura</a>
+            </div>
+
+            <div class="card-soft p-4">
+                <div class="section-title">Atalhos rápidos</div>
+                <div class="d-grid gap-2">
+                    <a href="{{ route('student.study.index') }}" class="btn btn-light border">Nova sessão de estudo</a>
+                    <a href="{{ route('student.simulated.index') }}" class="btn btn-light border">Novo simulado</a>
+                    <a href="{{ route('student.tickets.create') }}" class="btn btn-light border">Abrir ticket</a>
+                    <a href="{{ route('student.account.edit') }}" class="btn btn-light border">Atualizar meus dados</a>
+                </div>
+            </div>
+        </div>
+    </div>
+@endsection

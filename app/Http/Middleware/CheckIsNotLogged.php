@@ -4,20 +4,19 @@ namespace App\Http\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 class CheckIsNotLogged
 {
-    /**
-     * Handle an incoming request.
-     *
-     * @param  Closure(Request): (Response)  $next
-     */
     public function handle(Request $request, Closure $next): Response
     {
-        if(session('user')){
-            return redirect('/main');
+        if (Auth::check()) {
+            $route = Auth::user()?->isAdmin() ? 'admin.dashboard' : 'student.dashboard';
+
+            return redirect()->route($route);
         }
+
         return $next($request);
     }
 }
