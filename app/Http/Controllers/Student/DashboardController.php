@@ -15,7 +15,8 @@ class DashboardController extends Controller
 {
     public function index(): View
     {
-        $userId = Auth::id();
+        $user = Auth::user();
+        $userId = $user->id;
 
         $currentSubscription = Subscription::query()
             ->with('plan')
@@ -33,7 +34,7 @@ class DashboardController extends Controller
             'answers_count' => UserAnswer::query()->where('user_id', $userId)->count(),
             'correct_answers_count' => UserAnswer::query()->where('user_id', $userId)->where('is_correct', true)->count(),
             'simulated_exams_count' => SimulatedExam::query()->where('user_id', $userId)->count(),
-            'open_tickets_count' => SupportTicket::query()->where('user_id', $userId)->whereIn('status', ['open', 'pending'])->count(),
+            'open_tickets_count' => SupportTicket::query()->where('user_id', $userId)->whereIn('status', ['open', 'in_progress'])->count(),
         ];
 
         $recentSimulatedExams = SimulatedExam::query()
@@ -46,6 +47,8 @@ class DashboardController extends Controller
             'currentSubscription' => $currentSubscription,
             'stats' => $stats,
             'recentSimulatedExams' => $recentSimulatedExams,
+            'needsEmailVerification' => ! $user->hasVerifiedEmail(),
+            'needsSubscription' => ! (bool) $currentSubscription,
         ]);
     }
 }

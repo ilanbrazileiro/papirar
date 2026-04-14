@@ -66,43 +66,92 @@
     </div>
 
     <div class="card-soft p-4 mb-4">
-        <div class="ticket-thread">
-            @foreach($ticket->messages as $message)
-                @php
-                    $isUser = (int) ($message->user_id ?? 0) === (int) auth()->id();
-                    $displayName = $isUser ? 'Você' : ($message->user->name ?? 'Equipe Papirar');
-                    $initial = mb_strtoupper(mb_substr($displayName, 0, 1));
-                @endphp
+        @if($ticket->messages->count())
+            <div class="ticket-thread">
+                @foreach($ticket->messages as $message)
+                    @php
+                        $isUser = $message->sender_type === 'user';
+                        $displayName = $isUser
+                            ? ($message->user->name ?? 'Você')
+                            : ($message->adminUser->name ?? 'Equipe Papirar');
 
-                <div class="ticket-message {{ $isUser ? 'user' : '' }}">
-                    @if(!$isUser)
-                        <div class="ticket-avatar">{{ $initial }}</div>
-                    @endif
+                        if ($isUser && (int) ($message->user_id ?? 0) === (int) auth()->id()) {
+                            $displayName = 'Você';
+                        }
 
-                    <div class="ticket-bubble">
-                        <div class="ticket-meta">
-                            <span class="ticket-name">{{ $displayName }}</span>
-                            <span class="ticket-time">{{ optional($message->created_at)->format('d/m/Y H:i') }}</span>
+                        $initial = mb_strtoupper(mb_substr($displayName, 0, 1));
+                    @endphp
+
+                    <div class="ticket-message {{ $isUser ? 'user' : '' }}">
+                        @if(!$isUser)
+                            <div class="ticket-avatar">{{ $initial }}</div>
+                        @endif
+
+                        <div class="ticket-bubble">
+                            <div class="ticket-meta">
+                                <span class="ticket-name">{{ $displayName }}</span>
+                                <span class="ticket-time">{{ optional($message->created_at)->format('d/m/Y H:i') }}</span>
+                            </div>
+
+                            <div style="white-space: pre-line;">{{ $message->message }}</div>
+
+                            @if($message->attachments->count())
+                                <div class="mt-3">
+                                    <div class="small text-muted mb-2">Anexos:</div>
+                                    <div class="d-flex flex-column gap-2">
+                                        @foreach($message->attachments as $attachment)
+                                            <a
+                                                href="{{ asset('storage/' . $attachment->file_path) }}"
+                                                target="_blank"
+                                                class="btn btn-sm btn-outline-secondary text-start"
+                                            >
+                                                {{ $attachment->original_name }}
+                                            </a>
+                                        @endforeach
+                                    </div>
+                                </div>
+                            @endif
                         </div>
 
-                        <div>{{ $message->message }}</div>
+                        @if($isUser)
+                            <div class="ticket-avatar">{{ $initial }}</div>
+                        @endif
                     </div>
-
-                    @if($isUser)
-                        <div class="ticket-avatar">{{ $initial }}</div>
-                    @endif
-                </div>
-            @endforeach
-        </div>
+                @endforeach
+            </div>
+        @else
+            <div class="small-muted">Ainda não há mensagens neste ticket.</div>
+        @endif
     </div>
 
     @if(!in_array($ticket->status, ['closed'], true))
         <div class="card-soft p-4">
             <div class="section-title">Responder ticket</div>
 
-            <form method="POST" action="{{ route('student.tickets.reply', $ticket) }}">
+            <form method="POST" action="{{ route('student.tickets.reply', $ticket) }}" enctype="multipart/form-data">
                 @csrf
+
                 <textarea name="message" rows="6" class="form-control" required>{{ old('message') }}</textarea>
+                @error('message')
+                    <div class="text-danger small mt-1">{{ $message }}</div>
+                @enderror
+
+                <div class="mt-3">
+                    <label class="form-label">Anexos</label>
+                    <input
+                        type="file"
+                        name="attachments[]"
+                        class="form-control"
+                        accept=".jpg,.jpeg,.png,.pdf"
+                        multiple
+                    >
+                    <div class="form-text">
+                        Você pode enviar imagens JPG/PNG e arquivos PDF. Limite de 5 MB por arquivo.
+                    </div>
+                    @error('attachments.*')
+                        <div class="text-danger small mt-1">{{ $message }}</div>
+                    @enderror
+                </div>
 
                 <div class="d-flex justify-content-end mt-3">
                     <button class="btn btn-primary">Enviar resposta</button>

@@ -14,31 +14,35 @@
         </div>
     </div>
 
+    @if($needsEmailVerification ?? false)
+        <div class="alert alert-warning d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4" role="alert">
+            <div>
+                <strong>Confirme seu e-mail.</strong><br>
+                Enviamos uma mensagem para sua caixa de entrada. Confirme seu endereço de e-mail para validar sua conta.
+            </div>
+
+            <form method="POST" action="{{ route('auth.verification.resend') }}">
+                @csrf
+                <button class="btn btn-outline-warning">Reenviar e-mail</button>
+            </form>
+        </div>
+    @endif
+
+    @if($needsSubscription ?? false)
+        <div class="alert alert-warning mb-4" role="alert">
+            <strong>Assinatura pendente.</strong><br>
+            Seu cadastro já está ativo para login, mas você precisa contratar uma assinatura para começar a responder questões e usar a área de estudo.
+            <div class="mt-3">
+                <a href="{{ route('student.subscriptions.index') }}" class="btn btn-warning">Ver planos</a>
+            </div>
+        </div>
+    @endif
+
     <div class="row g-3 mb-4">
-        <div class="col-md-6 col-xl-3">
-            <div class="stats-card">
-                <div class="label">Sessões de estudo</div>
-                <div class="value">{{ $stats['study_sessions_count'] ?? 0 }}</div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="stats-card">
-                <div class="label">Questões respondidas</div>
-                <div class="value">{{ $stats['answers_count'] ?? 0 }}</div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="stats-card">
-                <div class="label">Respostas corretas</div>
-                <div class="value">{{ $stats['correct_answers_count'] ?? 0 }}</div>
-            </div>
-        </div>
-        <div class="col-md-6 col-xl-3">
-            <div class="stats-card">
-                <div class="label">Tickets em aberto</div>
-                <div class="value">{{ $stats['open_tickets_count'] ?? 0 }}</div>
-            </div>
-        </div>
+        <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Sessões de estudo</div><div class="value">{{ $stats['study_sessions_count'] ?? 0 }}</div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Questões respondidas</div><div class="value">{{ $stats['answers_count'] ?? 0 }}</div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Respostas corretas</div><div class="value">{{ $stats['correct_answers_count'] ?? 0 }}</div></div></div>
+        <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Tickets em aberto</div><div class="value">{{ $stats['open_tickets_count'] ?? 0 }}</div></div></div>
     </div>
 
     <div class="row g-4">
@@ -50,13 +54,7 @@
                     <div class="table-responsive">
                         <table class="table align-middle">
                             <thead>
-                                <tr>
-                                    <th>Título</th>
-                                    <th>Questões</th>
-                                    <th>Acerto</th>
-                                    <th>Encerrado</th>
-                                    <th></th>
-                                </tr>
+                                <tr><th>Título</th><th>Questões</th><th>Acerto</th><th>Encerrado</th><th></th></tr>
                             </thead>
                             <tbody>
                                 @foreach($recentSimulatedExams as $exam)
@@ -65,9 +63,7 @@
                                         <td>{{ $exam->total_questions }}</td>
                                         <td>{{ number_format((float) $exam->accuracy, 2, ',', '.') }}%</td>
                                         <td>{{ $exam->finished_at ? $exam->finished_at->format('d/m/Y H:i') : 'Em andamento' }}</td>
-                                        <td class="text-end">
-                                            <a href="{{ route('student.simulated.show', $exam) }}" class="btn btn-sm btn-outline-primary">Abrir</a>
-                                        </td>
+                                        <td class="text-end"><a href="{{ route('student.simulated.show', $exam) }}" class="btn btn-sm btn-outline-primary">Abrir</a></td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -84,14 +80,9 @@
                 <div class="section-title">Assinatura atual</div>
 
                 @if($currentSubscription)
-                    <div class="mb-2">
-                        <span class="badge text-bg-success text-uppercase">{{ $currentSubscription->status }}</span>
-                    </div>
+                    <div class="mb-2"><span class="badge text-bg-success text-uppercase">{{ $currentSubscription->status }}</span></div>
                     <div class="fw-semibold">{{ $currentSubscription->plan->name ?? 'Plano sem nome' }}</div>
-                    <div class="small-muted mt-2">
-                        Expira em:
-                        {{ optional($currentSubscription->expires_at)->format('d/m/Y H:i') ?? 'Não definido' }}
-                    </div>
+                    <div class="small-muted mt-2">Expira em: {{ optional($currentSubscription->expires_at)->format('d/m/Y H:i') ?? 'Não definido' }}</div>
                 @else
                     <div class="small-muted">Você não possui assinatura ativa.</div>
                 @endif

@@ -7,6 +7,7 @@ use App\Models\SupportTicket;
 use App\Models\SupportTicketMessage;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TicketController extends Controller
 {
@@ -14,7 +15,8 @@ class TicketController extends Controller
     {
         $tickets = SupportTicket::query()
             ->where('user_id', auth()->id())
-            ->latest()
+            ->orderByDesc('last_message_at')
+            ->orderByDesc('id')
             ->paginate(15);
 
         return view('student.tickets.index', compact('tickets'));
@@ -30,22 +32,29 @@ class TicketController extends Controller
         $data = $request->validate([
             'category' => ['required', 'in:suggestion,technical,financial,question_submission'],
             'message' => ['required', 'string', 'min:10', 'max:10000'],
+            'attachments.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
-        $ticket = SupportTicket::query()->create([
-            'user_id' => auth()->id(),
-            'subject' => $this->categoryLabel($data['category']),
-            'category' => $data['category'],
-            'status' => 'open',
-            'last_message_at' => now(),
-        ]);
+        $ticket = null;
 
-        SupportTicketMessage::query()->create([
-            'ticket_id' => $ticket->id,
-            'user_id' => auth()->id(),
-            'message' => $data['message'],
-            'sender_type' => 'user',
-        ]);
+        DB::transaction(function () use ($request, $data, &$ticket) {
+            $ticket = SupportTicket::query()->create([
+                'user_id' => auth()->id(),
+                'subject' => $this->categoryLabel($data['category']),
+                'category' => $data['category'],
+                'status' => 'open',
+                'last_message_at' => now(),
+            ]);
+
+            $message = SupportTicketMessage::query()->create([
+                'ticket_id' => $ticket->id,
+                'user_id' => auth()->id(),
+                'message' => $data['message'],
+                'sender_type' => 'user',
+            ]);
+
+            $this->storeAttachments($request, $message);
+        });
 
         return redirect()
             ->route('student.tickets.show', $ticket)
@@ -59,6 +68,8 @@ class TicketController extends Controller
         $ticket->load([
             'messages' => fn ($q) => $q->orderBy('created_at'),
             'messages.user',
+            'messages.adminUser',
+            'messages.attachments',
         ]);
 
         return view('student.tickets.show', compact('ticket'));
@@ -70,21 +81,26 @@ class TicketController extends Controller
 
         $data = $request->validate([
             'message' => ['required', 'string', 'min:2', 'max:10000'],
+            'attachments.*' => ['nullable', 'file', 'mimes:jpg,jpeg,png,pdf', 'max:5120'],
         ]);
 
-        SupportTicketMessage::query()->create([
-            'ticket_id' => $ticket->id,
-            'user_id' => auth()->id(),
-            'message' => $data['message'],
-            'sender_type' => 'user',
-        ]);
+        DB::transaction(function () use ($request, $data, $ticket) {
+            $message = SupportTicketMessage::query()->create([
+                'ticket_id' => $ticket->id,
+                'user_id' => auth()->id(),
+                'message' => $data['message'],
+                'sender_type' => 'user',
+            ]);
 
-        if (in_array($ticket->status, ['resolved', 'closed'], true)) {
-            $ticket->status = 'open';
-        }
+            $this->storeAttachments($request, $message);
 
-        $ticket->last_message_at = now();
-        $ticket->save();
+            if (in_array($ticket->status, ['resolved', 'closed'], true)) {
+                $ticket->status = 'open';
+            }
+
+            $ticket->last_message_at = now();
+            $ticket->save();
+        });
 
         return redirect()
             ->route('student.tickets.show', $ticket)
@@ -101,8 +117,31 @@ class TicketController extends Controller
         ]);
 
         return redirect()
-            ->route('student.tickets.show', $ticket)
+            ->route('student.tickets.index')
             ->with('success', 'Ticket fechado com sucesso.');
+    }
+
+    private function storeAttachments(Request $request, SupportTicketMessage $message): void
+    {
+        if (!$request->hasFile('attachments')) {
+            return;
+        }
+
+        foreach ($request->file('attachments') as $file) {
+            if (!$file->isValid()) {
+                continue;
+            }
+
+            $path = $file->store('support/tickets', 'public');
+
+            $message->attachments()->create([
+                'original_name' => $file->getClientOriginalName(),
+                'file_path' => $path,
+                'mime_type' => $file->getClientMimeType() ?: 'application/octet-stream',
+                'extension' => $file->getClientOriginalExtension(),
+                'file_size' => (int) $file->getSize(),
+            ]);
+        }
     }
 
     private function categoryLabel(string $category): string

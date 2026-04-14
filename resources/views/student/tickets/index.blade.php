@@ -79,7 +79,24 @@
                                 </td>
                                 <td>{{ optional($ticket->last_message_at ?? $ticket->updated_at)->format('d/m/Y H:i') }}</td>
                                 <td class="text-end">
-                                    <a href="{{ route('student.tickets.show', $ticket) }}" class="btn btn-sm btn-outline-primary">Abrir</a>
+                                    <div class="d-inline-flex gap-2">
+                                        <a href="{{ route('student.tickets.show', $ticket) }}" class="btn btn-sm btn-outline-primary">
+                                            Abrir
+                                        </a>
+
+                                        @if(!in_array($ticket->status, ['closed'], true))
+                                            <form method="POST" action="{{ route('student.tickets.close', $ticket) }}">
+                                                @csrf
+                                                <button
+                                                    type="submit"
+                                                    class="btn btn-sm btn-outline-danger"
+                                                    onclick="return confirm('Deseja fechar este ticket?');"
+                                                >
+                                                    Fechar
+                                                </button>
+                                            </form>
+                                        @endif
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach

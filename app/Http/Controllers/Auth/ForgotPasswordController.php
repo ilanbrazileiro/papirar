@@ -32,6 +32,7 @@ class ForgotPasswordController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
+                    //'email' => 'Não foi possível enviar o link de recuperação agora.',
                     'email' => __($status),
                 ]);
         }
