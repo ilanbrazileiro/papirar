@@ -21,7 +21,7 @@ class SubscriptionController extends Controller
     ) {
     }
 
-    public function index(): View
+    public function index(Request $request): View
     {
         $user = Auth::user();
 
@@ -33,7 +33,9 @@ class SubscriptionController extends Controller
         $currentSubscription = $this->subscriptionService->getActiveSubscriptionForUser($user)
             ?? Subscription::query()->with('plan')->where('user_id', $user->id)->latest('id')->first();
 
-        return view('student.subscriptions.index', compact('plans', 'currentSubscription'));
+        $paymentStatus = $request->query('payment');
+
+        return view('student.subscriptions.index', compact('plans', 'currentSubscription', 'paymentStatus'));
     }
 
     public function checkout(Request $request): RedirectResponse

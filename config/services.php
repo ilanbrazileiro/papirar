@@ -2,18 +2,6 @@
 
 return [
 
-    /*
-    |--------------------------------------------------------------------------
-    | Third Party Services
-    |--------------------------------------------------------------------------
-    |
-    | This file is for storing the credentials for third party services such
-    | as Mailgun, Postmark, AWS and more. This file provides the de facto
-    | location for this type of information, allowing packages to have
-    | a conventional file to locate the various service credentials.
-    |
-    */
-
     'postmark' => [
         'key' => env('POSTMARK_API_KEY'),
     ],
@@ -38,8 +26,9 @@ return [
     'mercadopago' => [
         'base_url' => env('MERCADO_PAGO_BASE_URL', 'https://api.mercadopago.com'),
         'access_token' => env('MERCADO_PAGO_ACCESS_TOKEN'),
+        'public_key' => env('MERCADO_PAGO_PUBLIC_KEY'),
         'webhook_url' => env('MERCADO_PAGO_WEBHOOK_URL'),
+        'webhook_secret' => env('MERCADO_PAGO_WEBHOOK_SECRET'),
     ],
-
 
 ];

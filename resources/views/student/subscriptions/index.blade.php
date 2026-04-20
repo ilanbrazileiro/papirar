@@ -11,6 +11,14 @@
         <a href="{{ route('student.subscriptions.history') }}" class="btn btn-outline-primary">Ver histórico</a>
     </div>
 
+    @if ($paymentStatus === 'success')
+        <div class="alert alert-success">Pagamento enviado ao Mercado Pago. Assim que o webhook confirmar a aprovação, seu acesso será liberado automaticamente.</div>
+    @elseif ($paymentStatus === 'pending')
+        <div class="alert alert-warning">Seu pagamento está pendente. Assim que houver confirmação, a assinatura será ativada.</div>
+    @elseif ($paymentStatus === 'failure')
+        <div class="alert alert-danger">O pagamento não foi concluído. Você pode tentar novamente.</div>
+    @endif
+
     @if($currentSubscription)
         <div class="card-soft p-4 mb-4">
             <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
@@ -34,16 +42,19 @@
     <div class="row g-4">
         @forelse($plans as $plan)
             <div class="col-md-6 col-xl-4">
-                <div class="card-soft p-4 h-100">
+                <div class="card-soft p-4 h-100 d-flex flex-column">
                     <div class="small-muted text-uppercase mb-2">Plano</div>
                     <div class="fs-4 fw-bold">{{ $plan->name }}</div>
+                    @if(!empty($plan->description))
+                        <div class="small-muted mt-2">{{ $plan->description }}</div>
+                    @endif
                     <div class="display-6 fw-bold my-3">R$ {{ number_format((float) $plan->price, 2, ',', '.') }}</div>
                     <div class="small-muted mb-4">Duração: {{ $plan->duration_days }} dias</div>
 
-                    <form method="POST" action="{{ route('student.subscriptions.checkout') }}">
+                    <form method="POST" action="{{ route('student.subscriptions.checkout') }}" class="mt-auto">
                         @csrf
                         <input type="hidden" name="plan_id" value="{{ $plan->id }}">
-                        <button class="btn btn-primary w-100">Assinar com Mercado Pago</button>
+                        <button class="btn btn-primary w-100">Pagar com Mercado Pago</button>
                     </form>
                 </div>
             </div>

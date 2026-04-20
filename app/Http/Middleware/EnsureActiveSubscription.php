@@ -26,7 +26,7 @@ class EnsureActiveSubscription
 
         $activeSubscription = Subscription::query()
             ->where('user_id', $user->id)
-            ->where('status', 'active')
+            ->where('status', Subscription::STATUS_ACTIVE)
             ->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>=', now());

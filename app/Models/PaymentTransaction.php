@@ -10,6 +10,14 @@ class PaymentTransaction extends Model
 {
     use HasFactory;
 
+    public const GATEWAY_MERCADO_PAGO = 'mercado_pago';
+
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_PAID = 'paid';
+    public const STATUS_FAILED = 'failed';
+    public const STATUS_REFUNDED = 'refunded';
+    public const STATUS_CANCELED = 'canceled';
+
     protected $fillable = [
         'user_id',
         'subscription_id',
@@ -35,5 +43,10 @@ class PaymentTransaction extends Model
     public function subscription(): BelongsTo
     {
         return $this->belongsTo(Subscription::class);
+    }
+
+    public function isPaid(): bool
+    {
+        return $this->status === self::STATUS_PAID;
     }
 }

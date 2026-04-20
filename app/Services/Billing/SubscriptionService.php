@@ -19,7 +19,7 @@ class SubscriptionService
         return Subscription::query()
             ->with('plan')
             ->where('user_id', $user->id)
-            ->where('status', 'active')
+            ->where('status', Subscription::STATUS_ACTIVE)
             ->where(function ($query) {
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>=', now());
@@ -39,30 +39,26 @@ class SubscriptionService
 
     public function createPendingSubscription(User $user, SubscriptionPlan $plan): Subscription
     {
-        return DB::transaction(function () use ($user, $plan) {
-            return Subscription::create([
-                'user_id' => $user->id,
-                'plan_id' => $plan->id,
-                'status' => 'pending',
-                'starts_at' => null,
-                'expires_at' => null,
-                'canceled_at' => null,
-            ]);
-        });
+        return Subscription::create([
+            'user_id' => $user->id,
+            'plan_id' => $plan->id,
+            'status' => Subscription::STATUS_PENDING,
+            'starts_at' => null,
+            'expires_at' => null,
+            'canceled_at' => null,
+        ]);
     }
 
     public function createPendingTransaction(User $user, Subscription $subscription, string $gateway, array $payload = []): PaymentTransaction
     {
-        $amount = (float) $subscription->plan->price;
-
         return PaymentTransaction::create([
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
             'gateway' => $gateway,
             'external_id' => Arr::get($payload, 'external_id'),
-            'amount' => $amount,
-            'status' => 'pending',
-            'payload' => ! empty($payload) ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : null,
+            'amount' => (float) $subscription->plan->price,
+            'status' => PaymentTransaction::STATUS_PENDING,
+            'payload' => ! empty($payload) ? $payload : null,
             'paid_at' => null,
         ]);
     }
@@ -70,9 +66,9 @@ class SubscriptionService
     public function markTransactionAsPending(PaymentTransaction $transaction, array $payload = []): PaymentTransaction
     {
         $transaction->update([
-            'status' => 'pending',
+            'status' => PaymentTransaction::STATUS_PENDING,
             'external_id' => Arr::get($payload, 'external_id', $transaction->external_id),
-            'payload' => ! empty($payload) ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $transaction->payload,
+            'payload' => ! empty($payload) ? $payload : $transaction->payload,
         ]);
 
         return $transaction->fresh();
@@ -83,41 +79,46 @@ class SubscriptionService
         return DB::transaction(function () use ($transaction, $payload) {
             $transaction->loadMissing('subscription.plan');
 
+            if ($transaction->isPaid()) {
+                return $transaction->subscription->fresh(['plan', 'transactions']);
+            }
+
             $subscription = $transaction->subscription;
 
             if (! $subscription || ! $subscription->plan) {
                 throw new ModelNotFoundException('Assinatura ou plano não encontrado para a transação informada.');
             }
 
-            $startsAt = now();
+            $now = now();
+            $baseDate = $now->copy();
+
             $currentActive = Subscription::query()
                 ->where('user_id', $subscription->user_id)
-                ->where('status', 'active')
+                ->where('status', Subscription::STATUS_ACTIVE)
                 ->whereNotNull('expires_at')
-                ->where('expires_at', '>=', now())
+                ->where('expires_at', '>=', $now)
+                ->where('id', '!=', $subscription->id)
                 ->latest('expires_at')
                 ->first();
 
-            if ($currentActive) {
-                $startsAt = Carbon::parse($currentActive->expires_at);
-                $currentActive->update([
-                    'status' => 'expired',
-                ]);
+            if ($currentActive && $currentActive->expires_at) {
+                $baseDate = Carbon::parse($currentActive->expires_at);
             }
 
-            $expiresAt = (clone $startsAt)->addDays((int) $subscription->plan->duration_days);
+            $startsAt = $subscription->starts_at ?: $now;
+            $expiresAt = $baseDate->copy()->addDays((int) $subscription->plan->duration_days);
 
             $subscription->update([
-                'status' => 'active',
-                'starts_at' => $subscription->starts_at ?? now(),
+                'status' => Subscription::STATUS_ACTIVE,
+                'starts_at' => $startsAt,
                 'expires_at' => $expiresAt,
                 'canceled_at' => null,
             ]);
 
             $transaction->update([
-                'status' => 'paid',
-                'payload' => $payload ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $transaction->payload,
-                'paid_at' => now(),
+                'status' => PaymentTransaction::STATUS_PAID,
+                'payload' => $payload ?: $transaction->payload,
+                'paid_at' => $now,
             ]);
 
             return $subscription->fresh(['plan', 'transactions']);
@@ -127,13 +128,13 @@ class SubscriptionService
     public function failTransaction(PaymentTransaction $transaction, ?array $payload = null): PaymentTransaction
     {
         $transaction->update([
-            'status' => 'failed',
-            'payload' => $payload ? json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) : $transaction->payload,
+            'status' => PaymentTransaction::STATUS_FAILED,
+            'payload' => $payload ?: $transaction->payload,
         ]);
 
-        if ($transaction->subscription && $transaction->subscription->status === 'pending') {
+        if ($transaction->subscription && $transaction->subscription->status === Subscription::STATUS_PENDING) {
             $transaction->subscription->update([
-                'status' => 'failed',
+                'status' => Subscription::STATUS_FAILED,
             ]);
         }
 
@@ -143,7 +144,7 @@ class SubscriptionService
     public function cancelSubscription(Subscription $subscription): Subscription
     {
         $subscription->update([
-            'status' => 'canceled',
+            'status' => Subscription::STATUS_CANCELED,
             'canceled_at' => now(),
         ]);
 
@@ -160,21 +161,23 @@ class SubscriptionService
             throw new InvalidArgumentException('Plano inválido ou inativo.');
         }
 
-        $subscription = $this->createPendingSubscription($user, $plan);
-        $transaction = $this->createPendingTransaction($user, $subscription, 'mercado_pago');
+        return DB::transaction(function () use ($user, $plan, $mercadoPagoService) {
+            $subscription = $this->createPendingSubscription($user, $plan);
+            $transaction = $this->createPendingTransaction($user, $subscription, PaymentTransaction::GATEWAY_MERCADO_PAGO);
 
-        $checkoutData = $mercadoPagoService->createCheckoutPreference($user, $subscription, $transaction);
+            $checkoutData = $mercadoPagoService->createCheckoutPreference($user, $subscription, $transaction);
 
-        $transaction->update([
-            'external_id' => $checkoutData['external_id'] ?? $transaction->external_id,
-            'payload' => json_encode($checkoutData, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
-        ]);
+            $transaction->update([
+                'external_id' => $checkoutData['external_id'] ?? $transaction->external_id,
+                'payload' => $checkoutData,
+            ]);
 
-        return [
-            'plan' => $plan,
-            'subscription' => $subscription->fresh('plan'),
-            'transaction' => $transaction->fresh(),
-            'checkout' => $checkoutData,
-        ];
+            return [
+                'plan' => $plan,
+                'subscription' => $subscription->fresh('plan'),
+                'transaction' => $transaction->fresh(),
+                'checkout' => $checkoutData,
+            ];
+        });
     }
 }

@@ -29,7 +29,6 @@ class PaymentWebhookService
         $normalized = $this->mercadoPagoService->normalizePaymentPayload($paymentData);
 
         $externalReference = Arr::get($normalized, 'external_reference');
-
         if (! $externalReference) {
             return [
                 'handled' => false,
@@ -49,9 +48,19 @@ class PaymentWebhookService
         $payloadToStore = [
             'webhook' => $webhookPayload,
             'payment' => $normalized,
+            'external_id' => $normalized['payment_id'] ?? $transaction->external_id,
         ];
 
         $status = (string) Arr::get($normalized, 'status');
+
+        if ($transaction->isPaid() && $status === 'approved') {
+            return [
+                'handled' => true,
+                'status' => 'approved',
+                'transaction_id' => $transaction->id,
+                'message' => 'Pagamento já processado anteriormente.',
+            ];
+        }
 
         if ($status === 'approved') {
             $subscription = $this->subscriptionService->activateSubscriptionFromTransaction($transaction, $payloadToStore);
@@ -65,7 +74,7 @@ class PaymentWebhookService
         }
 
         if (in_array($status, ['pending', 'in_process'], true)) {
-            $this->subscriptionService->markTransactionAsPending($transaction, $payloadToStore + ['external_id' => $normalized['payment_id']]);
+            $this->subscriptionService->markTransactionAsPending($transaction, $payloadToStore);
 
             return [
                 'handled' => true,
@@ -74,7 +83,7 @@ class PaymentWebhookService
             ];
         }
 
-        $this->subscriptionService->failTransaction($transaction, $payloadToStore + ['external_id' => $normalized['payment_id']]);
+        $this->subscriptionService->failTransaction($transaction, $payloadToStore);
 
         return [
             'handled' => true,

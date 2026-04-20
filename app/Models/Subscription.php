@@ -11,6 +11,12 @@ class Subscription extends Model
 {
     use HasFactory;
 
+    public const STATUS_PENDING = 'pending';
+    public const STATUS_ACTIVE = 'active';
+    public const STATUS_EXPIRED = 'expired';
+    public const STATUS_CANCELED = 'canceled';
+    public const STATUS_FAILED = 'failed';
+
     protected $fillable = [
         'user_id',
         'plan_id',
@@ -39,5 +45,14 @@ class Subscription extends Model
     public function transactions(): HasMany
     {
         return $this->hasMany(PaymentTransaction::class);
+    }
+
+    public function isActive(): bool
+    {
+        if ($this->status !== self::STATUS_ACTIVE) {
+            return false;
+        }
+
+        return is_null($this->expires_at) || $this->expires_at->greaterThanOrEqualTo(now());
     }
 }
