@@ -116,5 +116,3 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::patch('/tickets/{ticket}/status', [AdminTicketController::class, 'updateStatus'])->name('tickets.status.update');
     });
 });
-
-Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle'])->name('webhooks.mercado-pago');
