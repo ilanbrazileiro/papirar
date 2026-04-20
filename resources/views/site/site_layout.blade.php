@@ -19,7 +19,8 @@
         <link rel="stylesheet" href="{{ asset('assets/frontend/css/helpers.css')}}">
         <link rel="stylesheet" href="{{ asset('assets/frontend/css/style.css')}}">
         <link rel="stylesheet" href="{{ asset('assets/frontend/css/landing-2.css')}}">
-
+        <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
+        
     </head>
     {{-- Fim do cabeçalho--}}
     <body data-spy="scroll" data-target="#pb-navbar" data-offset="200">
