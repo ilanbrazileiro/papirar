@@ -77,6 +77,7 @@
             <div class="col-lg-2">
                 <div class="card-soft p-3 sidebar"><a href="{{ route('admin.dashboard') }}">Dashboard</a><a
                         href="{{ route('admin.questions.index') }}">Questões</a><a
+                        href="{{ route('admin.questions.import.create') }}">Importar Questões</a><a
                         href="{{ route('admin.comments.index') }}">Comentários</a><a
                         href="{{ route('admin.tickets.index') }}">Tickets</a><a
                         href="{{ route('admin.customers.index') }}">Clientes</a><a
