@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ExamController;
 use App\Http\Controllers\Admin\PlanController;
+use App\Http\Controllers\Admin\PlannedExamController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Admin\SubjectController;
@@ -19,7 +20,7 @@ use App\Http\Controllers\Auth\LogoutController;
 use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ResetPasswordController;
-use App\Http\Controllers\Billing\MercadoPagoWebhookController;
+//use App\Http\Controllers\Billing\MercadoPagoWebhookController;
 use App\Http\Controllers\SiteController;
 use App\Http\Controllers\Student\AccountController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
@@ -29,6 +30,7 @@ use App\Http\Controllers\Student\SimulatedController;
 use App\Http\Controllers\Student\StudyController;
 use App\Http\Controllers\Student\SubscriptionController;
 use App\Http\Controllers\Student\TicketController;
+use App\Http\Controllers\Student\ExamStudyController;
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
 use App\Http\Middleware\EnsureActiveSubscription;
@@ -88,6 +90,12 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/questoes/{question}/comentarios', [QuestionCommentController::class, 'store'])->name('questions.comments.store');
             Route::put('/questoes/{question}/comentarios/{comment}', [QuestionCommentController::class, 'update'])->name('questions.comments.update');
             Route::post('/questoes/{question}/dificuldade', [QuestionDifficultyVoteController::class, 'store'])->name('questions.difficulty.store');
+            
+            Route::get('/estudo-por-concurso', [ExamStudyController::class, 'index'])->name('exam-study.index');
+            Route::post('/estudo-por-concurso/iniciar', [ExamStudyController::class, 'start'])->name('exam-study.start');
+            Route::get('/estudo-por-concurso/corporations/{corporation}/exams', [ExamStudyController::class, 'examsByCorporation'])->name('exam-study.corporations.exams');
+            Route::get('/estudo-por-concurso/exams/{exam}/subjects', [ExamStudyController::class, 'subjectsByExam'])->name('exam-study.exams.subjects');
+            
         });
     });
 
@@ -114,5 +122,8 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::get('/tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
         Route::post('/tickets/{ticket}/mensagens', [AdminTicketController::class, 'reply'])->name('tickets.reply');
         Route::patch('/tickets/{ticket}/status', [AdminTicketController::class, 'updateStatus'])->name('tickets.status.update');
-    });
+        Route::get('/questions/import/topics-csv', [QuestionImportController::class, 'downloadTopicsCsv'])->name('questions.import.topics-csv');
+        Route::resource('planned-exams', PlannedExamController::class)->except(['show', 'destroy'])->names('planned-exams');
+
+        });
 });

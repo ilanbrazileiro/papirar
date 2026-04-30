@@ -1,13 +1,13 @@
 @extends('admin.layout')
 
-@section('title', 'Concursos previstos')
+@section('title', 'Concursos')
 
 @section('content')
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
-            <h1 class="h3 mb-0">Concursos previstos</h1>
-            <p class="text-muted mb-0">Cadastre concursos/editais e vincule as disciplinas cobradas.</p>
+            <h1 class="h3 mb-0">Concursos previstos e publicados</h1>
+            <p class="text-muted mb-0">Defina o concurso, status e disciplinas cobradas para orientar o estudo do aluno.</p>
         </div>
         <a href="{{ route('admin.planned-exams.create') }}" class="btn btn-primary">
             <i class="fas fa-plus"></i> Novo concurso
@@ -27,6 +27,9 @@
                         <th>Concurso</th>
                         <th>Corporação</th>
                         <th>Ano</th>
+                        <th>Status</th>
+                        <th>Disciplinas</th>
+                        <th>Ativo</th>
                         <th class="text-right">Ações</th>
                     </tr>
                 </thead>
@@ -34,18 +37,33 @@
                     @forelse($exams as $exam)
                         <tr>
                             <td>{{ $exam->id }}</td>
-                            <td>{{ $exam->name }}</td>
+                            <td class="font-weight-bold">{{ $exam->title }}</td>
                             <td>{{ $exam->corporation->name ?? '-' }}</td>
-                            <td>{{ $exam->year ?? '-' }}</td>
+                            <td>{{ $exam->year }}</td>
+                            <td>
+                                @if($exam->status === 'planned')
+                                    <span class="badge badge-info">Previsto</span>
+                                @else
+                                    <span class="badge badge-success">Publicado</span>
+                                @endif
+                            </td>
+                            <td>{{ $exam->plannedSubjects->count() }}</td>
+                            <td>
+                                @if($exam->active)
+                                    <span class="badge badge-success">Sim</span>
+                                @else
+                                    <span class="badge badge-secondary">Não</span>
+                                @endif
+                            </td>
                             <td class="text-right">
                                 <a href="{{ route('admin.planned-exams.edit', $exam) }}" class="btn btn-sm btn-outline-primary">
-                                    Editar disciplinas
+                                    Editar
                                 </a>
                             </td>
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="5" class="text-center text-muted py-4">Nenhum concurso previsto cadastrado.</td>
+                            <td colspan="8" class="text-center text-muted py-4">Nenhum concurso cadastrado.</td>
                         </tr>
                     @endforelse
                 </tbody>

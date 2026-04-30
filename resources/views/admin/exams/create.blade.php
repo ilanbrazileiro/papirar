@@ -1,17 +1,23 @@
 @extends('admin.layout')
 
-@section('title', 'Novo concurso')
+@section('title', 'Novo concurso previsto')
 
 @section('content')
-    <div class="mb-4">
-        <h1 class="page-title">Novo concurso</h1>
-        <p class="page-subtitle">Cadastre um concurso ligado a uma corporação.</p>
-    </div>
+<div class="container-fluid">
+    <h1 class="h3 mb-3">Novo concurso previsto</h1>
 
-    <div class="panel p-4 p-md-5">
-        <form method="POST" action="{{ route('admin.exams.store') }}">
-            @php($submitLabel = 'Salvar concurso')
-            @include('admin.exams._form')
-        </form>
-    </div>
+    @if($errors->any())
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach($errors->all() as $error)
+                    <li>{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    <form method="POST" action="{{ route('admin.planned-exams.store') }}">
+        @include('admin.exams._form')
+    </form>
+</div>
 @endsection

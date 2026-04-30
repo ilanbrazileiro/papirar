@@ -9,7 +9,8 @@
             <p class="page-subtitle">Resumo rápido da sua conta, do seu desempenho e dos próximos passos.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('student.study.index') }}" class="btn btn-primary">Continuar estudando</a>
+            <a href="{{ route('student.exam-study.index') }}" class="btn btn-primary">Estudar por concurso</a>
+            <a href="{{ route('student.study.index') }}" class="btn btn-outline-primary">Continuar estudando</a>
             <a href="{{ route('student.simulated.index') }}" class="btn btn-outline-primary">Meus simulados</a>
         </div>
     </div>
@@ -44,6 +45,24 @@
         <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Respostas corretas</div><div class="value">{{ $stats['correct_answers_count'] ?? 0 }}</div></div></div>
         <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Tickets em aberto</div><div class="value">{{ $stats['open_tickets_count'] ?? 0 }}</div></div></div>
     </div>
+
+
+        <div class="card-soft p-4 mb-4 border border-primary-subtle bg-primary-subtle bg-opacity-10">
+            <div class="row align-items-center g-3">
+                <div class="col-lg-8">
+                    <div class="section-title mb-2">Estudo direcionado por concurso</div>
+                    <div class="fw-semibold mb-1">Escolha a prova que você pretende fazer e estude somente as disciplinas relacionadas.</div>
+                    <div class="small-muted">
+                        Ideal para CHOE, CHOAE e outros concursos internos. O sistema filtra automaticamente as disciplinas do concurso e reaproveita questões compatíveis por disciplina e tópico.
+                    </div>
+                </div>
+                <div class="col-lg-4 text-lg-end">
+                    <a href="{{ route('student.exam-study.index') }}" class="btn btn-primary w-100 w-lg-auto">
+                        Escolher concurso
+                    </a>
+                </div>
+            </div>
+        </div>
 
     <div class="row g-4">
         <div class="col-lg-8">
@@ -93,6 +112,9 @@
             <div class="card-soft p-4">
                 <div class="section-title">Atalhos rápidos</div>
                 <div class="d-grid gap-2">
+                    @if(\Illuminate\Support\Facades\Route::has('student.exam-study.index'))
+                        <a href="{{ route('student.exam-study.index') }}" class="btn btn-light border">Estudar por concurso</a>
+                    @endif
                     <a href="{{ route('student.study.index') }}" class="btn btn-light border">Nova sessão de estudo</a>
                     <a href="{{ route('student.simulated.index') }}" class="btn btn-light border">Novo simulado</a>
                     <a href="{{ route('student.tickets.create') }}" class="btn btn-light border">Abrir ticket</a>

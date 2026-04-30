@@ -9,6 +9,9 @@
             <p class="page-subtitle">Importe entre 50 e 100 questões por vez com validação, modo simulação e relatório de erros.</p>
         </div>
         <a href="{{ route('admin.questions.import.template') }}" class="btn btn-outline-primary">Baixar modelo CSV</a>
+        <a href="{{ route('admin.questions.import.topics-csv') }}" class="btn btn-outline-primary"> <i class="fas fa-download"></i>
+        Baixar lista de subjects e topics
+        </a>
     </div>
 
     <div class="panel p-4 mb-4">
