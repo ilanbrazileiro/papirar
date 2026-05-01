@@ -236,7 +236,7 @@ class QuestionController extends Controller
     private function validatedData(Request $request): array
     {
         $validated = $request->validate([
-            'corporation_id' => ['required', 'integer', 'exists:corporations,id'],
+            'corporation_id' => ['nullable', 'integer', 'exists:corporations,id'],
             'exam_id' => ['nullable', 'integer', 'exists:exams,id'],
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],

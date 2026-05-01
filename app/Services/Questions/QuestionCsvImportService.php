@@ -178,7 +178,7 @@ class QuestionCsvImportService
         $status = trim((string) $row['status']);
         $correctLetter = strtoupper(trim((string) $row['correct_letter']));
 
-        if (!$corporationId || !Corporation::query()->whereKey($corporationId)->exists()) {
+        if ($corporationId && !Corporation::query()->whereKey($corporationId)->exists()) {
             throw new RuntimeException("Linha {$line}: corporation_id inválido ou inexistente.");
         }
 

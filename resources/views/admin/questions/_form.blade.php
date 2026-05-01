@@ -10,8 +10,9 @@
 <div class="row g-3">
     <div class="col-md-4">
         <label class="form-label">Corporação</label>
-        <select name="corporation_id" id="corporation_id" class="form-select" required>
+        <select name="corporation_id" id="corporation_id" class="form-select">
             <option value="">Selecione</option>
+            <option value="">Questão geral / sem corporação específica</option>
             @foreach($corporations as $corporation)
                 <option value="{{ $corporation->id }}" @selected(old('corporation_id', $question->corporation_id) == $corporation->id)>
                     {{ $corporation->name }}
