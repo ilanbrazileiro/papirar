@@ -18,6 +18,11 @@ class StudyController extends Controller
 {
     public function index()
     {
+        return view('student.study.choose');
+    }
+
+    public function filter()
+    {
         $savedFilter = SavedFilter::query()->firstOrCreate(
             ['user_id' => auth()->id()],
             ['mode' => 'train', 'quantity' => 10]
@@ -38,7 +43,7 @@ class StudyController extends Controller
             'subject_id' => ['nullable', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
             'difficulty' => ['nullable', 'in:easy,medium,hard'],
-            'source_type' => ['nullable', 'in:official_exam,authored,adapted'],
+            'source_type' => ['nullable', 'in:exam,authored,adapted'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
             'mode' => ['required', 'in:train,exam,review'],
         ]);

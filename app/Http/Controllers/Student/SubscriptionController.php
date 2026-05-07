@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\PaymentTransaction;
 use App\Models\Subscription;
 use App\Models\SubscriptionPlan;
 use App\Services\Billing\MercadoPagoService;
@@ -25,9 +26,6 @@ class SubscriptionController extends Controller
     {
         $user = Auth::user();
 
-        // Mostra ao aluno somente planos ativos e públicos.
-        // Planos internos como teste grátis e liberação manual continuam no banco,
-        // mas não aparecem na tela de assinatura.
         $plans = SubscriptionPlan::query()
             ->where('active', true)
             ->where('is_public', true)
@@ -35,11 +33,7 @@ class SubscriptionController extends Controller
             ->get();
 
         $currentSubscription = $this->subscriptionService->getActiveSubscriptionForUser($user)
-            ?? Subscription::query()
-                ->with('plan')
-                ->where('user_id', $user->id)
-                ->latest('id')
-                ->first();
+            ?? Subscription::query()->with('plan')->where('user_id', $user->id)->latest('id')->first();
 
         $paymentStatus = $request->query('payment');
 
@@ -52,15 +46,12 @@ class SubscriptionController extends Controller
             'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
         ]);
 
-        $plan = SubscriptionPlan::query()->findOrFail((int) $validated['plan_id']);
-
-        // Segurança extra: mesmo se alguém alterar o HTML e enviar o ID de um plano interno,
-        // o checkout não será iniciado.
-        if (! $plan->active || ! $plan->is_public) {
-            return back()->with('error', 'Este plano não está disponível para contratação.');
-        }
-
         try {
+            $plan = SubscriptionPlan::query()
+                ->where('active', true)
+                ->where('is_public', true)
+                ->findOrFail((int) $validated['plan_id']);
+
             $checkout = $this->subscriptionService->checkout(
                 Auth::user(),
                 $plan->id,
@@ -77,7 +68,7 @@ class SubscriptionController extends Controller
         } catch (\Throwable $e) {
             Log::error('Erro ao iniciar checkout da assinatura.', [
                 'user_id' => Auth::id(),
-                'plan_id' => $plan->id,
+                'plan_id' => $validated['plan_id'] ?? null,
                 'exception' => $e->getMessage(),
             ]);
 
@@ -88,11 +79,79 @@ class SubscriptionController extends Controller
     public function history(): View
     {
         $subscriptions = Subscription::query()
-            ->with(['plan', 'transactions'])
+            ->with(['plan', 'transactions' => function ($query) {
+                $query->latest('id');
+            }])
             ->where('user_id', Auth::id())
             ->latest('id')
             ->paginate(15);
 
         return view('student.subscriptions.history', compact('subscriptions'));
+    }
+
+    public function retry(Subscription $subscription): RedirectResponse
+    {
+        $user = Auth::user();
+
+        abort_unless((int) $subscription->user_id === (int) $user->id, 403);
+
+        $subscription->load(['plan', 'transactions' => function ($query) {
+            $query->latest('id');
+        }]);
+
+        if ($subscription->isActive()) {
+            return redirect()
+                ->route('student.subscriptions.history')
+                ->with('info', 'Essa assinatura já está ativa.');
+        }
+
+        if (! $subscription->plan || ! $subscription->plan->active || ! $subscription->plan->is_public) {
+            return redirect()
+                ->route('student.subscriptions.index')
+                ->with('error', 'Este plano não está mais disponível para pagamento.');
+        }
+
+        try {
+            $pendingTransaction = $subscription->transactions
+                ->first(fn (PaymentTransaction $transaction) => $transaction->status === PaymentTransaction::STATUS_PENDING);
+
+            $existingCheckoutUrl = $pendingTransaction?->checkoutUrl();
+
+            if ($existingCheckoutUrl) {
+                return redirect()->away($existingCheckoutUrl);
+            }
+
+            $targetSubscription = $subscription;
+
+            if ($subscription->status !== Subscription::STATUS_PENDING) {
+                $targetSubscription = $this->subscriptionService->createPendingSubscription($user, $subscription->plan);
+            }
+
+            $checkout = $this->subscriptionService->createCheckoutForSubscription(
+                $user,
+                $targetSubscription,
+                $this->mercadoPagoService
+            );
+
+            $checkoutUrl = $checkout['checkout']['init_point'] ?? $checkout['checkout']['sandbox_init_point'] ?? null;
+
+            if (! $checkoutUrl) {
+                return redirect()
+                    ->route('student.subscriptions.history')
+                    ->with('error', 'Não foi possível gerar uma nova tentativa de pagamento.');
+            }
+
+            return redirect()->away($checkoutUrl);
+        } catch (\Throwable $e) {
+            Log::error('Erro ao retomar/tentar novamente pagamento de assinatura.', [
+                'user_id' => $user->id,
+                'subscription_id' => $subscription->id,
+                'exception' => $e->getMessage(),
+            ]);
+
+            return redirect()
+                ->route('student.subscriptions.history')
+                ->with('error', 'Não foi possível retomar o pagamento agora.');
+        }
     }
 }

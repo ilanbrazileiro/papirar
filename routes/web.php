@@ -76,6 +76,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
 
         Route::middleware([EnsureActiveSubscription::class])->group(function () {
             Route::get('/estudar', [StudyController::class, 'index'])->name('study.index');
+            Route::get('/estudar/filtro-livre', [StudyController::class, 'filter'])->name('study.filter');
             Route::post('/estudar/iniciar', [StudyController::class, 'start'])->name('study.start');
             Route::get('/estudar/sessao/{session}', [StudyController::class, 'showQuestion'])->name('study.question');
             Route::post('/estudar/sessao/{session}/responder', [StudyController::class, 'answer'])->name('study.answer');

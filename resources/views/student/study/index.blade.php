@@ -1,11 +1,12 @@
 @extends('layouts.student')
 
-@section('title', 'Iniciar estudo')
+@section('title', 'Filtro livre de questões')
 
 @section('content')
     <div class="mb-4">
-        <h1 class="page-title">Iniciar estudo</h1>
-        <p class="page-subtitle">Monte uma sessão com filtros salvos automaticamente para a próxima vez.</p>
+        <h1 class="page-title">Filtro livre de questões</h1>
+        <p class="page-subtitle">Monte manualmente uma sessão por corporação, disciplina, assunto, dificuldade e origem.</p>
+        <a href="{{ route('student.study.index') }}" class="btn btn-sm btn-outline-secondary mt-2">Voltar para formas de estudo</a>
     </div>
 
     <div class="card-soft p-4 p-md-5">
@@ -77,7 +78,7 @@
                     <label class="form-label fw-semibold">Origem</label>
                     <select name="source_type" class="form-select">
                         <option value="">Todas</option>
-                        <option value="official_exam" @selected(old('source_type', $savedFilter->source_type) === 'official_exam')>Prova oficial</option>
+                        <option value="exam" @selected(old('source_type', $savedFilter->source_type) === 'exam')>Prova oficial</option>
                         <option value="authored" @selected(old('source_type', $savedFilter->source_type) === 'authored')>Autoral</option>
                         <option value="adapted" @selected(old('source_type', $savedFilter->source_type) === 'adapted')>Adaptada</option>
                     </select>
