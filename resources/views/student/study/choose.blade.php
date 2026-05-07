@@ -37,7 +37,7 @@
                     <li>Evita que o aluno monte filtros errados manualmente.</li>
                 </ul>
 
-                <a href="{{ route('student.exam-study.create') }}" class="btn btn-primary btn-lg w-100">
+                <a href="{{ route('student.study.index') }}" class="btn btn-primary btn-lg w-100">
                     Estudar por concurso
                 </a>
             </div>
