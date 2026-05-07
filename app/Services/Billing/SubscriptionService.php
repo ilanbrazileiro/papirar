@@ -51,12 +51,14 @@ class SubscriptionService
 
     public function createPendingTransaction(User $user, Subscription $subscription, string $gateway, array $payload = []): PaymentTransaction
     {
+        $subscription->loadMissing('plan');
+
         return PaymentTransaction::create([
             'user_id' => $user->id,
             'subscription_id' => $subscription->id,
             'gateway' => $gateway,
             'external_id' => Arr::get($payload, 'external_id'),
-            'amount' => (float) $subscription->plan->price,
+            'amount' => (float) ($subscription->plan->price ?? 0),
             'status' => PaymentTransaction::STATUS_PENDING,
             'payload' => ! empty($payload) ? $payload : null,
             'paid_at' => null,
@@ -134,7 +136,8 @@ class SubscriptionService
 
         if ($transaction->subscription && $transaction->subscription->status === Subscription::STATUS_PENDING) {
             $transaction->subscription->update([
-                'status' => Subscription::STATUS_FAILED,
+                'status' => Subscription::STATUS_CANCELED,
+                'canceled_at' => now(),
             ]);
         }
 
@@ -155,29 +158,50 @@ class SubscriptionService
     {
         $plan = SubscriptionPlan::query()
             ->where('active', true)
+            ->where('is_public', true)
             ->find($planId);
 
         if (! $plan) {
-            throw new InvalidArgumentException('Plano inválido ou inativo.');
+            throw new InvalidArgumentException('Plano inválido, interno ou inativo.');
         }
 
         return DB::transaction(function () use ($user, $plan, $mercadoPagoService) {
             $subscription = $this->createPendingSubscription($user, $plan);
-            $transaction = $this->createPendingTransaction($user, $subscription, PaymentTransaction::GATEWAY_MERCADO_PAGO);
 
-            $checkoutData = $mercadoPagoService->createCheckoutPreference($user, $subscription, $transaction);
-
-            $transaction->update([
-                'external_id' => $checkoutData['external_id'] ?? $transaction->external_id,
-                'payload' => $checkoutData,
-            ]);
-
-            return [
-                'plan' => $plan,
-                'subscription' => $subscription->fresh('plan'),
-                'transaction' => $transaction->fresh(),
-                'checkout' => $checkoutData,
-            ];
+            return $this->createCheckoutForSubscription($user, $subscription, $mercadoPagoService);
         });
+    }
+
+    public function createCheckoutForSubscription(User $user, Subscription $subscription, MercadoPagoService $mercadoPagoService): array
+    {
+        $subscription->loadMissing('plan');
+
+        if ((int) $subscription->user_id !== (int) $user->id) {
+            throw new InvalidArgumentException('A assinatura não pertence ao usuário informado.');
+        }
+
+        if (! $subscription->plan || ! $subscription->plan->active || ! $subscription->plan->is_public) {
+            throw new InvalidArgumentException('Plano inválido, interno ou inativo.');
+        }
+
+        if ($subscription->isActive()) {
+            throw new InvalidArgumentException('Esta assinatura já está ativa.');
+        }
+
+        $transaction = $this->createPendingTransaction($user, $subscription, PaymentTransaction::GATEWAY_MERCADO_PAGO);
+
+        $checkoutData = $mercadoPagoService->createCheckoutPreference($user, $subscription, $transaction);
+
+        $transaction->update([
+            'external_id' => $checkoutData['external_id'] ?? $transaction->external_id,
+            'payload' => $checkoutData,
+        ]);
+
+        return [
+            'plan' => $subscription->plan,
+            'subscription' => $subscription->fresh('plan'),
+            'transaction' => $transaction->fresh(),
+            'checkout' => $checkoutData,
+        ];
     }
 }

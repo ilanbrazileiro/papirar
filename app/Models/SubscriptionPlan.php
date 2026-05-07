@@ -17,12 +17,14 @@ class SubscriptionPlan extends Model
         'price',
         'duration_days',
         'active',
+        'is_public',
     ];
 
     protected $casts = [
         'price' => 'decimal:2',
         'duration_days' => 'integer',
         'active' => 'boolean',
+        'is_public' => 'boolean',
     ];
 
     public function subscriptions(): HasMany

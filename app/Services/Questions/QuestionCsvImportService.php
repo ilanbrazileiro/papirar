@@ -164,8 +164,13 @@ class QuestionCsvImportService
 
     private function validateRow(array $row, int $line): array
     {
-        $corporationId = $this->nullableInt($row['corporation_id']);
-        $examId = $this->nullableInt($row['exam_id']);
+       $corporationId = isset($row['corporation_id']) && trim((string) $row['corporation_id']) !== ''
+            ? (int) $row['corporation_id']
+            : null;
+
+        $examId = isset($row['exam_id']) && trim((string) $row['exam_id']) !== ''
+            ? (int) $row['exam_id']
+            : null;
         $subjectId = $this->nullableInt($row['subject_id']);
         $topicId = $this->nullableInt($row['topic_id']);
 

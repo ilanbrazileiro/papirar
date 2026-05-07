@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Arr;
 
 class PaymentTransaction extends Model
 {
@@ -23,8 +24,11 @@ class PaymentTransaction extends Model
         'subscription_id',
         'gateway',
         'external_id',
+        'provider_payment_id',
+        'gateway_reference',
         'amount',
         'status',
+        'status_detail',
         'payload',
         'paid_at',
     ];
@@ -48,5 +52,17 @@ class PaymentTransaction extends Model
     public function isPaid(): bool
     {
         return $this->status === self::STATUS_PAID;
+    }
+
+    public function checkoutUrl(): ?string
+    {
+        if ($this->status !== self::STATUS_PENDING) {
+            return null;
+        }
+
+        return Arr::get($this->payload, 'init_point')
+            ?? Arr::get($this->payload, 'sandbox_init_point')
+            ?? Arr::get($this->payload, 'checkout.init_point')
+            ?? Arr::get($this->payload, 'checkout.sandbox_init_point');
     }
 }

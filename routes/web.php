@@ -66,6 +66,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::get('/assinaturas', [SubscriptionController::class, 'index'])->name('subscriptions.index');
         Route::post('/assinaturas/checkout', [SubscriptionController::class, 'checkout'])->name('subscriptions.checkout');
         Route::get('/assinaturas/historico', [SubscriptionController::class, 'history'])->name('subscriptions.history');
+        Route::post('/assinaturas/{subscription}/retentar', [SubscriptionController::class, 'retry'])->name('subscriptions.retry');
         Route::get('/tickets', [TicketController::class, 'index'])->name('tickets.index');
         Route::get('/tickets/novo', [TicketController::class, 'create'])->name('tickets.create');
         Route::post('/tickets', [TicketController::class, 'store'])->name('tickets.store');
@@ -108,6 +109,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::resource('plans', PlanController::class);
         Route::resource('collaborators', CollaboratorController::class);
         Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
+        Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
         Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
         Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
         Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');

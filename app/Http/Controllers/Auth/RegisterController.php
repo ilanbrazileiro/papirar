@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Notifications\VerifyEmailNotification;
+use App\Services\Billing\AccessGrantService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -15,7 +16,7 @@ use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
 {
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, AccessGrantService $accessGrantService): RedirectResponse
     {
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:150'],
@@ -41,6 +42,9 @@ class RegisterController extends Controller
             'is_active' => 1,
             'email_verified_at' => null,
         ]);
+
+        // Libera automaticamente 7 dias de acesso assim que o usuário se cadastra.
+        $accessGrantService->grantTrial($user, 7);
 
         $user->notify(new VerifyEmailNotification());
 
@@ -68,6 +72,6 @@ class RegisterController extends Controller
 
         return redirect()
             ->route('student.dashboard')
-            ->with('success', 'Cadastro realizado com sucesso. Enviamos um e-mail para confirmação da sua conta.');
+            ->with('success', 'Cadastro realizado com sucesso. Você recebeu 7 dias de acesso gratuito para testar o Papirar.');
     }
 }

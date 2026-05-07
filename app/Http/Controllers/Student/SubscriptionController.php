@@ -25,13 +25,21 @@ class SubscriptionController extends Controller
     {
         $user = Auth::user();
 
+        // Mostra ao aluno somente planos ativos e públicos.
+        // Planos internos como teste grátis e liberação manual continuam no banco,
+        // mas não aparecem na tela de assinatura.
         $plans = SubscriptionPlan::query()
             ->where('active', true)
+            ->where('is_public', true)
             ->orderBy('price')
             ->get();
 
         $currentSubscription = $this->subscriptionService->getActiveSubscriptionForUser($user)
-            ?? Subscription::query()->with('plan')->where('user_id', $user->id)->latest('id')->first();
+            ?? Subscription::query()
+                ->with('plan')
+                ->where('user_id', $user->id)
+                ->latest('id')
+                ->first();
 
         $paymentStatus = $request->query('payment');
 
@@ -44,10 +52,18 @@ class SubscriptionController extends Controller
             'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
         ]);
 
+        $plan = SubscriptionPlan::query()->findOrFail((int) $validated['plan_id']);
+
+        // Segurança extra: mesmo se alguém alterar o HTML e enviar o ID de um plano interno,
+        // o checkout não será iniciado.
+        if (! $plan->active || ! $plan->is_public) {
+            return back()->with('error', 'Este plano não está disponível para contratação.');
+        }
+
         try {
             $checkout = $this->subscriptionService->checkout(
                 Auth::user(),
-                (int) $validated['plan_id'],
+                $plan->id,
                 $this->mercadoPagoService
             );
 
@@ -61,7 +77,7 @@ class SubscriptionController extends Controller
         } catch (\Throwable $e) {
             Log::error('Erro ao iniciar checkout da assinatura.', [
                 'user_id' => Auth::id(),
-                'plan_id' => $validated['plan_id'],
+                'plan_id' => $plan->id,
                 'exception' => $e->getMessage(),
             ]);
 
