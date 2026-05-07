@@ -83,12 +83,14 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/estudar/sessao/{session}/proxima', [StudyController::class, 'next'])->name('study.next');
             Route::get('/estudar/sessao/{session}/resultado', [StudyController::class, 'result'])->name('study.result');
             Route::get('/estudar/sessao/{session}/questao/{question}/revisao', [StudyController::class, 'review'])->name('study.review');
+          
             Route::get('/simulados', [SimulatedController::class, 'index'])->name('simulated.index');
             Route::post('/simulados', [SimulatedController::class, 'store'])->name('simulated.store');
             Route::get('/simulados/{simulatedExam}', [SimulatedController::class, 'show'])->name('simulated.show');
             Route::post('/simulados/{simulatedExam}/salvar-resposta', [SimulatedController::class, 'saveAnswer'])->name('simulated.save_answer');
             Route::post('/simulados/{simulatedExam}/finalizar', [SimulatedController::class, 'finish'])->name('simulated.finish');
             Route::get('/simulados/{simulatedExam}/resultado', [SimulatedController::class, 'result'])->name('simulated.result');
+          
             Route::post('/questoes/{question}/comentarios', [QuestionCommentController::class, 'store'])->name('questions.comments.store');
             Route::put('/questoes/{question}/comentarios/{comment}', [QuestionCommentController::class, 'update'])->name('questions.comments.update');
             Route::post('/questoes/{question}/dificuldade', [QuestionDifficultyVoteController::class, 'store'])->name('questions.difficulty.store');
