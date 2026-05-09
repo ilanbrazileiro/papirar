@@ -1,15 +1,20 @@
-    <nav class="navbar navbar-expand-lg navbar-dark pb_navbar pb_scrolled-light" id="pb-navbar">
-      <div class="container">
-        <a class="navbar-brand" href="/">Papirar.com.br</a>
-        <button class="navbar-toggler ml-auto" type="button" data-toggle="collapse" data-target="#probootstrap-navbar" aria-controls="probootstrap-navbar" aria-expanded="false" aria-label="Toggle navigation">
-          <span><i class="ion-navicon"></i></span>
-        </button>
-        <div class="collapse navbar-collapse" id="probootstrap-navbar">
-          <ul class="navbar-nav ml-auto">
-            <li class="nav-item"><a class="nav-link" href="#section-home">Home</a></li>
-            <li class="nav-item cta-btn ml-xl-2 ml-lg-2 ml-md-0 ml-sm-0 ml-0"><a class="nav-link" href="/"><span class="pb_rounded-4 px-4">Cadastrar</span></a></li>
-            <li class="nav-item cta-btn ml-xl-2 ml-lg-2 ml-md-0 ml-sm-0 ml-0"><a class="nav-link" href="/login"><span class="pb_rounded-4 px-4">Fazer Login</span></a></li>
-          </ul>
-        </div>
-      </div>
-    </nav>
+@php
+    $registerUrl = \Illuminate\Support\Facades\Route::has('register') ? route('register') : url('/cadastro');
+@endphp
+
+<header class="site-header">
+    <div class="site-container header-inner">
+        <a class="brand" href="{{ url('/') }}" aria-label="Papirar Concursos">
+            <img src="{{ asset('images/papirar-logo-full.png') }}" alt="Papirar Concursos">
+        </a>
+
+        <nav class="site-nav" aria-label="Menu principal">
+            <a href="{{ url('/') }}#como-funciona">Como funciona</a>
+            <a href="{{ url('/') }}#concursos">Concursos</a>
+            <a href="{{ url('/') }}#diferenciais">Diferenciais</a>
+            <a href="{{ url('/') }}#planos">Planos</a>
+            <a href="{{ url('/login') }}">Entrar</a>
+            <a class="nav-cta" href="{{ $registerUrl }}">Testar grátis</a>
+        </nav>
+    </div>
+</header>

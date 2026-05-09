@@ -40,6 +40,8 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
 
+
+
 Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('auth.login');
     Route::post('/login', [LoginController::class, 'store'])->name('auth.login.store');
@@ -48,6 +50,8 @@ Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::post('/esqueci-a-senha', [ForgotPasswordController::class, 'store'])->name('auth.forgot-password.store');
     Route::get('/redefinir-senha/{token}', [ResetPasswordController::class, 'edit'])->name('password.reset');
     Route::post('/redefinir-senha', [ResetPasswordController::class, 'update'])->name('password.update');
+    Route::get('/cadastro', [RegisterController::class, 'create'])->name('register');
+    Route::post('/cadastro', [RegisterController::class, 'store']);
 });
 
 Route::get('/email/verificar/{id}/{hash}', [VerifyEmailController::class, 'verify'])

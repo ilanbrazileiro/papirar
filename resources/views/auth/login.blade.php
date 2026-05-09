@@ -1,40 +1,43 @@
 @extends('site.site_layout')
 
+@section('title')
+Entrar | Papirar Concursos
+@endsection
+
+@section('meta_description')
+Acesse sua conta no Papirar Concursos para estudar questões de concursos internos militares.
+@endsection
+
+@section('robots')
+noindex, follow
+@endsection
+
 @section('content')
-<div class="container py-5" style="max-width:480px;">
-    @include('components.flash')
-    <h2 class="mb-4">Entrar</h2>
+@php
+    $registerUrl = \Illuminate\Support\Facades\Route::has('register') ? route('register') : url('/cadastro');
+@endphp
 
-    <form method="POST" action="{{ route('auth.login.store') }}">
-        @csrf
+<section class="auth-page">
+    <div class="auth-card">
+        <span class="eyebrow">Área do aluno</span>
+        <h1>Entrar no Papirar</h1>
+        <p>Continue seus estudos por concurso, disciplina e tópico.</p>
 
-        <div class="mb-3">
-            <label class="form-label">E-mail</label>
-            <input class="form-control" type="email" name="email" value="{{ old('email') }}" required>
-            @error('email')
-                <div class="text-danger mt-1">{{ $message }}</div>
-            @enderror
+        <form method="POST" action="{{ url('/login') }}" class="auth-form">
+            @csrf
+            <label>E-mail
+                <input type="email" name="email" value="{{ old('email') }}" required autofocus>
+            </label>
+            <label>Senha
+                <input type="password" name="password" required>
+            </label>
+            <button class="btn btn-primary full" type="submit">Entrar</button>
+        </form>
+
+        <div class="auth-extra">
+            <a href="{{ url('/esqueci-a-senha') }}">Esqueci minha senha</a>
+            <a href="{{ $registerUrl }}">Criar conta grátis</a>
         </div>
-
-        <div class="mb-3">
-            <label class="form-label">Senha</label>
-            <input class="form-control" type="password" name="password" required>
-            @error('password')
-                <div class="text-danger mt-1">{{ $message }}</div>
-            @enderror
-        </div>
-
-        <div class="form-check mb-3">
-            <input class="form-check-input" type="checkbox" name="remember" value="1" id="remember">
-            <label class="form-check-label" for="remember">Lembrar de mim</label>
-        </div>
-
-        <button class="btn btn-primary w-100">Entrar</button>
-    </form>
-
-    <div class="mt-3 d-flex justify-content-between">
-        <a href="{{ route('auth.forgot-password') }}">Esqueci a senha</a>
-        <a href="{{ route('site.home') }}">Criar conta</a>
     </div>
-</div>
+</section>
 @endsection

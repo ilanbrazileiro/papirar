@@ -1,25 +1,33 @@
 @extends('site.site_layout')
 
+@section('title')
+Recuperar senha | Papirar Concursos
+@endsection
+
+@section('meta_description')
+Recupere o acesso à sua conta do Papirar Concursos.
+@endsection
+
+@section('robots')
+noindex, follow
+@endsection
+
 @section('content')
-<div class="container py-5" style="max-width:480px;">
-    @include('components.flash')
-    <h2 class="mb-4">Recuperar senha</h2>
+<section class="auth-page">
+    <div class="auth-card">
+        <span class="eyebrow">Recuperação</span>
+        <h1>Esqueceu sua senha?</h1>
+        <p>Informe seu e-mail para receber as instruções de recuperação.</p>
 
-    <form method="POST" action="{{ route('auth.forgot-password.store') }}">
-        @csrf
-        <div class="mb-3">
-            <label class="form-label">E-mail</label>
-            <input class="form-control" type="email" name="email" value="{{ old('email') }}" required>
-            @error('email')
-                <div class="text-danger mt-1">{{ $message }}</div>
-            @enderror
-        </div>
+        <form method="POST" action="{{ url('/esqueci-a-senha') }}" class="auth-form">
+            @csrf
+            <label>E-mail
+                <input type="email" name="email" value="{{ old('email') }}" required autofocus>
+            </label>
+            <button class="btn btn-primary full" type="submit">Enviar link de recuperação</button>
+        </form>
 
-        <button class="btn btn-primary w-100">Enviar link</button>
-    </form>
-
-    <div class="mt-3 text-center">
-        <a href="{{ route('auth.login') }}">Voltar para o login</a>
+        <p class="auth-link"><a href="{{ url('/login') }}">Voltar para login</a></p>
     </div>
-</div>
+</section>
 @endsection

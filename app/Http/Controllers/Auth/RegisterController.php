@@ -74,4 +74,9 @@ class RegisterController extends Controller
             ->route('student.dashboard')
             ->with('success', 'Cadastro realizado com sucesso. Você recebeu 7 dias de acesso gratuito para testar o Papirar.');
     }
+
+    public function create()
+    {
+        return view('auth/register');
+    }
 }

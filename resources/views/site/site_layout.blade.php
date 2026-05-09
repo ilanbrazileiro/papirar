@@ -1,60 +1,70 @@
 <!DOCTYPE html>
-<html lang="pt">
-	<head>
-		
-        <title>Simualdos para Cursos e Concursos</title>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-        <meta charset="utf-8">
-		<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-		<meta name="description" content="Concursos e cursos militares para CBMERJ E PMERJ">
-		<meta name="keywords" content="Simualdos para o CBMERJ e PMERJ">
+    <title>@yield('title', 'Papirar Concursos | Questões para concursos internos militares')</title>
+    <meta name="description" content="@yield('meta_description', 'Papirar Concursos: plataforma de questões para concursos internos militares da PMERJ e CBMERJ, com estudo por concurso previsto, disciplina e tópico.')">
+    <meta name="robots" content="@yield('robots', 'index, follow')">
+    <meta name="theme-color" content="#0B1F3A">
 
-        <link href="https://fonts.googleapis.com/css?family=Crimson+Text:400,400i,600|Montserrat:200,300,400" rel="stylesheet">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/css/bootstrap/bootstrap.css') }}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/fonts/ionicons/css/ionicons.min.css')}}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/fonts/law-icons/font/flaticon.css')}}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/fonts/fontawesome/css/font-awesome.min.css') }}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/css/slick.css')}}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/css/slick-theme.css')}}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/css/helpers.css')}}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/css/style.css')}}">
-        <link rel="stylesheet" href="{{ asset('assets/frontend/css/landing-2.css')}}">
-        <link rel="icon" href="{{ asset('favicon.ico') }}" sizes="any">
-        
-    </head>
-    {{-- Fim do cabeçalho--}}
-    <body data-spy="scroll" data-target="#pb-navbar" data-offset="200">
+    <link rel="canonical" href="@yield('canonical', '/')">
+    <link rel="stylesheet" href="{{ asset('css/site-papirar.css') }}">
 
+    <meta property="og:locale" content="pt_BR">
+    <meta property="og:type" content="website">
+    <meta property="og:site_name" content="Papirar Concursos">
+    <meta property="og:title" content="@yield('og_title', 'Papirar Concursos | Questões para concursos internos militares')">
+    <meta property="og:description" content="@yield('og_description', 'Estude por concurso previsto, disciplina e tópico com questões direcionadas para PMERJ, CBMERJ e concursos internos militares.')">
+    <meta property="og:url" content="@yield('canonical', '/')">
+    <meta property="og:image" content="{{ asset('images/papirar-logo-full.png') }}">
+
+    @stack('head')
+</head>
+<body class="@yield('body_class', 'site-page')">
+    @include('site.site_topbar')
+
+    @if (session('success') || session('status') || session('error'))
+        <div class="site-alert-wrap">
+            @if (session('success'))
+                <div class="site-alert site-alert-success">{{ session('success') }}</div>
+            @endif
+            @if (session('status'))
+                <div class="site-alert site-alert-success">{{ session('status') }}</div>
+            @endif
+            @if (session('error'))
+                <div class="site-alert site-alert-error">{{ session('error') }}</div>
+            @endif
+        </div>
+    @endif
+
+    <main>
         @yield('content')
+    </main>
 
-    {{--            Inicio do Footer       --}}
-    </body>
-    <footer class="pb_footer bg-light" role="contentinfo">
-      <div class="container">
-        <div class="row text-center">
-          <div class="col">
-            <ul class="list-inline">
-              <li class="list-inline-item"><a href="#" class="p-2"><i class="fa fa-facebook"></i></a></li>
-              <li class="list-inline-item"><a href="#" class="p-2"><i class="fa fa-twitter"></i></a></li>
-              <li class="list-inline-item"><a href="#" class="p-2"><i class="fa fa-linkedin"></i></a></li>
-            </ul>
-          </div>
+    <footer class="site-footer">
+        <div class="site-container footer-grid">
+            <div>
+                <img src="{{ asset('images/papirar-logo-full.png') }}" alt="Papirar Concursos" class="footer-logo footer-logo-wide">
+                <p>Plataforma de questões para concursos internos militares.</p>
+            </div>
+            <div>
+                <strong>Papirar</strong>
+                <a href="{{ url('/') }}">Início</a>
+                <a href="{{ url('/login') }}">Área do aluno</a>
+                <a href="https://www.instagram.com/papirar.concursos" target="_blank" rel="noopener">Instagram</a>
+            </div>
+            <div>
+                <strong>Concursos</strong>
+                <span>CHOE PMERJ</span>
+                <span>CHOAE CBMERJ</span>
+                <span>Concursos internos militares</span>
+            </div>
         </div>
-        <div class="row">
-          <div class="col text-center">
-            <p class="pb_font-14">&copy; 2020. Desenvolvido por . <br>  <a href="https://imm-tecnologia.com.br">IMM-Tecnologia</a></p>
-          </div>
-        </div>
-      </div>
+        <div class="footer-bottom">© {{ date('Y') }} Papirar Concursos. Todos os direitos reservados.</div>
     </footer>
 
-    <!-- loader -->
-    <div id="pb_loader" class="show fullscreen"><svg class="circular" width="48px" height="48px"><circle class="path-bg" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke="#eeeeee"/><circle class="path" cx="24" cy="24" r="22" fill="none" stroke-width="4" stroke-miterlimit="10" stroke="#1d82ff"/></svg></div>
-    <script src="{{ asset('assets/frontend/js/jquery.min.js')}}"></script>
-    <script src="{{ asset('assets/frontend/js/popper.min.js')}}"></script>
-    <script src="{{ asset('assets/frontend/js/bootstrap.min.js')}}"></script>
-    <script src="{{ asset('assets/frontend/js/slick.min.js')}}"></script>
-    <script src="{{ asset('assets/frontend/js/jquery.mb.YTPlayer.min.js')}}"></script>
-    <script src="{{ asset('assets/frontend/js/jquery.waypoints.min.js')}}"></script>
-    <script src="{{ asset('assets/frontend/js/jquery.easing.1.3.js')}}"></script>
-    <script src="{{ asset('assets/frontend/js/main.js')}}"></script>
+    @stack('scripts')
+</body>
+</html>
