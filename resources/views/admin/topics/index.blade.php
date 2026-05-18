@@ -1,4 +1,4 @@
-@extends('admin.layout')
+@extends('layouts.admin')
 
 @section('title', 'Assuntos')
 
@@ -16,7 +16,7 @@
             <div class="row g-3 align-items-end">
                 <div class="col-lg-4">
                     <label class="form-label">Disciplina</label>
-                    <select name="subject_id" class="form-select">
+                    <select name="subject_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($subjects as $subject)
                             <option value="{{ $subject->id }}" @selected($subjectId == $subject->id)>{{ $subject->name }}</option>

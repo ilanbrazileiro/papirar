@@ -3,7 +3,7 @@
 <div class="row g-3">
     <div class="col-md-6">
         <label class="form-label">Disciplina</label>
-        <select name="subject_id" class="form-select" required>
+        <select name="subject_id" class="form-control" required>
             <option value="">Selecione</option>
             @foreach($subjects as $subject)
                 <option value="{{ $subject->id }}" @selected(old('subject_id', $topic->subject_id) == $subject->id)>

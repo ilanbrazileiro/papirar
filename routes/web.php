@@ -118,12 +118,14 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
         Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
         Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
+        
         Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
         Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');
         Route::get('questions/import/template', [QuestionImportController::class, 'downloadTemplate'])->name('questions.import.template');
         Route::get('questions/ajax/exams', [QuestionController::class, 'ajaxExams'])->name('questions.ajax.exams');
         Route::get('questions/ajax/topics', [QuestionController::class, 'ajaxTopics'])->name('questions.ajax.topics');
         Route::resource('questions', QuestionController::class);
+
         Route::get('/comentarios', [CommentModerationController::class, 'index'])->name('comments.index');
         Route::patch('/comentarios/{comment}/aprovar', [CommentModerationController::class, 'approve'])->name('comments.approve');
         Route::patch('/comentarios/{comment}/rejeitar', [CommentModerationController::class, 'reject'])->name('comments.reject');

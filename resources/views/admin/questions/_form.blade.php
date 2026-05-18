@@ -10,7 +10,7 @@
 <div class="row g-3">
     <div class="col-md-4">
         <label class="form-label">Corporação</label>
-        <select name="corporation_id" id="corporation_id" class="form-select">
+        <select name="corporation_id" id="corporation_id" class="form-control">
             <option value="">Selecione</option>
             <option value="">Questão geral / sem corporação específica</option>
             @foreach($corporations as $corporation)
@@ -23,7 +23,7 @@
 
     <div class="col-md-4">
         <label class="form-label">Disciplina</label>
-        <select name="subject_id" id="subject_id" class="form-select" required>
+        <select name="subject_id" id="subject_id" class="form-control" required>
             <option value="">Selecione</option>
             @foreach($subjects as $subject)
                 <option value="{{ $subject->id }}" @selected(old('subject_id', $question->subject_id) == $subject->id)>
@@ -35,7 +35,7 @@
 
     <div class="col-md-4">
         <label class="form-label">Assunto</label>
-        <select name="topic_id" id="topic_id" class="form-select">
+        <select name="topic_id" id="topic_id" class="form-control">
             @if($selectedTopic)
                 <option value="{{ $selectedTopic->id }}" selected>{{ $selectedTopic->name }}</option>
             @endif
@@ -45,7 +45,7 @@
 
     <div class="col-md-6">
         <label class="form-label">Concurso</label>
-        <select name="exam_id" id="exam_id" class="form-select">
+        <select name="exam_id" id="exam_id" class="form-control">
             @if($selectedExam)
                 <option value="{{ $selectedExam->id }}" selected>{{ $selectedExam->title }} ({{ $selectedExam->year }}) - {{ $selectedExam->exam_type }}</option>
             @endif
@@ -55,7 +55,7 @@
 
     <div class="col-md-2">
         <label class="form-label">Dificuldade</label>
-        <select name="difficulty" class="form-select" required>
+        <select name="difficulty" class="form-control" required>
             <option value="easy" @selected(old('difficulty', $question->difficulty) === 'easy')>Fácil</option>
             <option value="medium" @selected(old('difficulty', $question->difficulty) === 'medium')>Média</option>
             <option value="hard" @selected(old('difficulty', $question->difficulty) === 'hard')>Difícil</option>
@@ -64,7 +64,7 @@
 
     <div class="col-md-2">
         <label class="form-label">Origem</label>
-        <select name="source_type" class="form-select" required>
+        <select name="source_type" class="form-control" required>
             <option value="official_exam" @selected(old('source_type', $question->source_type) === 'exam')>Prova oficial</option>
             <option value="authored" @selected(old('source_type', $question->source_type) === 'authored')>Autoral</option>
             <option value="adapted" @selected(old('source_type', $question->source_type) === 'adapted')>Adaptada</option>
@@ -73,7 +73,7 @@
 
     <div class="col-md-2">
         <label class="form-label">Status</label>
-        <select name="status" class="form-select" required>
+        <select name="status" class="form-control" required>
             <option value="draft" @selected(old('status', $question->status) === 'draft')>Rascunho</option>
             <option value="published" @selected(old('status', $question->status) === 'published')>Publicada</option>
             <option value="archived" @selected(old('status', $question->status) === 'archived')>Arquivada</option>
@@ -87,7 +87,7 @@
 
     <div class="col-12">
         <label class="form-label">Enunciado</label>
-        <textarea name="statement" rows="8" class="form-control" required>{{ old('statement', $question->statement) }}</textarea>
+        <textarea name="statement" rows="8" class="form-control rich-editor" required>{{ old('statement', $question->statement) }}</textarea>
     </div>
 </div>
 

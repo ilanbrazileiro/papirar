@@ -1,4 +1,4 @@
-@extends('admin.layout')
+@extends('layouts.admin')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
@@ -17,7 +17,7 @@
 
         <div class="col-md-3">
             <label class="form-label">Acesso</label>
-            <select name="access_status" class="form-select">
+            <select name="access_status" class="form-control">
                 <option value="">Todos</option>
                 <option value="active" @selected(request('access_status') === 'active')>Com acesso ativo</option>
                 <option value="inactive" @selected(request('access_status') === 'inactive')>Sem acesso ativo</option>
@@ -26,7 +26,7 @@
 
         <div class="col-md-3">
             <label class="form-label">Conta</label>
-            <select name="account_status" class="form-select">
+            <select name="account_status" class="form-control">
                 <option value="">Todas</option>
                 <option value="enabled" @selected(request('account_status') === 'enabled')>Conta ativa</option>
                 <option value="disabled" @selected(request('account_status') === 'disabled')>Conta inativa</option>

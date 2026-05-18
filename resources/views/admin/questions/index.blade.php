@@ -1,4 +1,4 @@
-@extends('admin.layout')
+@extends('layouts.admin')
 
 @section('title', 'Questões')
 
@@ -16,7 +16,7 @@
             <div class="row g-3 align-items-end">
                 <div class="col-lg-2">
                     <label class="form-label">Corporação</label>
-                    <select name="corporation_id" class="form-select">
+                    <select name="corporation_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($corporations as $corporation)
                             <option value="{{ $corporation->id }}" @selected($corporationId == $corporation->id)>{{ $corporation->name }}</option>
@@ -25,7 +25,7 @@
                 </div>
                 <div class="col-lg-2">
                     <label class="form-label">Disciplina</label>
-                    <select name="subject_id" class="form-select">
+                    <select name="subject_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($subjects as $subject)
                             <option value="{{ $subject->id }}" @selected($subjectId == $subject->id)>{{ $subject->name }}</option>
@@ -34,7 +34,7 @@
                 </div>
                 <div class="col-lg-2">
                     <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="form-control">
                         <option value="">Todos</option>
                         <option value="draft" @selected($status === 'draft')>Rascunho</option>
                         <option value="published" @selected($status === 'published')>Publicada</option>
@@ -43,7 +43,7 @@
                 </div>
                 <div class="col-lg-2">
                     <label class="form-label">Dificuldade</label>
-                    <select name="difficulty" class="form-select">
+                    <select name="difficulty" class="form-control">
                         <option value="">Todas</option>
                         <option value="easy" @selected($difficulty === 'easy')>Fácil</option>
                         <option value="medium" @selected($difficulty === 'medium')>Média</option>

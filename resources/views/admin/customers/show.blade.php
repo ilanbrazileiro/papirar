@@ -1,4 +1,4 @@
-@extends('admin.layout')
+@extends('layouts.admin')
 
 @section('content')
 <div class="d-flex justify-content-between align-items-start gap-3 mb-4">
