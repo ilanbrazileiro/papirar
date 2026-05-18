@@ -131,7 +131,7 @@
 <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
 
 <script>
-    window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ \Illuminate\Support\Facades\Route::has('admin.editor.images.upload') ? route('admin.editor.images.upload') : '' }}";
+    window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
     window.PAPIRAR_CSRF_TOKEN = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
     class PapirarUploadAdapter {

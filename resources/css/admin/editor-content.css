@@ -1,0 +1,24 @@
+.ck-editor__editable {
+    min-height: 260px;
+}
+
+.ck-content img,
+.question-statement img,
+.question-commented-answer img {
+    max-width: 100%;
+    height: auto;
+}
+
+.ck-content figure.image,
+.question-statement figure.image,
+.question-commented-answer figure.image {
+    max-width: 100%;
+}
+
+.ck-content figure.image img,
+.question-statement figure.image img,
+.question-commented-answer figure.image img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
