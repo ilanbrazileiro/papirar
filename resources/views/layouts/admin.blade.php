@@ -80,5 +80,15 @@
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 @vite(['resources/js/app.js'])
 @stack('scripts')
+<script>
+    window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
+</script>
+
+@vite([
+    'resources/js/app.js',
+    'resources/js/admin-editor.js'
+])
+
+@stack('scripts')
 </body>
 </html>

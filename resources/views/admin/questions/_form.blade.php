@@ -28,7 +28,7 @@
 
             <div class="form-group">
                 <label for="statement">Enunciado <span class="text-danger">*</span></label>
-                <textarea id="statement" name="statement" class="form-control rich-editor @error('statement') is-invalid @enderror" rows="8">{{ old('statement', $question->statement ?? '') }}</textarea>
+                <textarea id="statement" name="statement" class="form-control papirar-rich-editor @error('statement') is-invalid @enderror" rows="8">{{ old('statement', $question->statement ?? '') }}</textarea>
                 @error('statement')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror
@@ -85,7 +85,7 @@
         <div class="card-body">
             <div class="form-group">
                 <label for="commented_answer">Comentário</label>
-                <textarea id="commented_answer" name="commented_answer" class="form-control rich-editor @error('commented_answer') is-invalid @enderror" rows="6">{{ old('commented_answer', $question->commented_answer ?? '') }}</textarea>
+                <textarea id="commented_answer" name="commented_answer" class="form-control papirar-rich-editor @error('commented_answer') is-invalid @enderror" rows="6">{{ old('commented_answer', $question->commented_answer ?? '') }}</textarea>
                 @error('commented_answer')
                     <div class="invalid-feedback d-block">{{ $message }}</div>
                 @enderror

@@ -13,7 +13,7 @@
             <a class="nav-link" href="{{ url('/') }}" target="_blank" title="Ver site"><i class="fas fa-external-link-alt"></i></a>
         </li>
         <li class="nav-item">
-            <form action="{{ route('logout') }}" method="POST" class="d-inline">
+            <form action="{{ route('auth.logout') }}" method="POST" class="d-inline">
                 @csrf
                 <button type="submit" class="btn btn-link nav-link" title="Sair"><i class="fas fa-sign-out-alt"></i></button>
             </form>

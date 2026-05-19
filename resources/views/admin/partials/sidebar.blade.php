@@ -21,6 +21,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.questions.import.create') }}" class="nav-link">
+                        <i class="nav-icon fas fa-file-import"></i>
+                        <p>Importar questões</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.subjects.index') }}" class="nav-link {{ request()->routeIs('admin.subjects.*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-book"></i>
                         <p>Disciplinas</p>
@@ -63,11 +69,11 @@
                     </li>
                 @endif
 
-                <li class="nav-header">SISTEMA</li>
+                <li class="nav-header">SUPORTE</li>
                 <li class="nav-item">
-                    <a href="{{ url('/') }}" class="nav-link" target="_blank">
-                        <i class="nav-icon fas fa-globe"></i>
-                        <p>Ver site</p>
+                    <a href="{{ route('admin.tickets.index') }}" class="nav-link">
+                        <i class="nav-icon fas fa-headset"></i>
+                        <p>Suporte</p>
                     </a>
                 </li>
             </ul>
