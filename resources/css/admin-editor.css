@@ -1,0 +1,26 @@
+.ck-editor__editable {
+    min-height: 260px;
+}
+
+.ck-content img,
+.question-statement img,
+.question-comment img,
+.statement-content img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 12px auto;
+}
+
+.ck-content figure.image {
+    max-width: 100%;
+}
+
+.ck-content figure.image img {
+    max-width: 100%;
+    height: auto;
+}
+
+.ck-content .image-style-side {
+    max-width: 50%;
+}

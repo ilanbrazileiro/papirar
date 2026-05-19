@@ -1,39 +1,31 @@
 import {
     ClassicEditor,
-    AccessibilityHelp,
     Alignment,
     AutoImage,
     Autosave,
     BlockQuote,
     Bold,
     Essentials,
+    FileRepository,
     Heading,
     Image,
     ImageCaption,
     ImageInsert,
     ImageResize,
     ImageStyle,
-    ImageTextAlternative,
     ImageToolbar,
     ImageUpload,
-    Indent,
-    IndentBlock,
     Italic,
     Link,
-    LinkImage,
     List,
     Paragraph,
-    SelectAll,
     Table,
-    TableCaption,
-    TableCellProperties,
-    TableColumnResize,
-    TableProperties,
     TableToolbar,
     Undo
 } from 'ckeditor5';
 
 import 'ckeditor5/ckeditor5.css';
+import '../css/admin-editor.css';
 
 class PapirarUploadAdapter {
     constructor(loader) {
@@ -51,46 +43,37 @@ class PapirarUploadAdapter {
                 return;
             }
 
-            if (!token) {
-                reject('Token CSRF não encontrado.');
-                return;
-            }
-
             this.xhr = new XMLHttpRequest();
             this.xhr.open('POST', uploadUrl, true);
-            this.xhr.setRequestHeader('X-CSRF-TOKEN', token);
             this.xhr.setRequestHeader('Accept', 'application/json');
-            this.xhr.responseType = 'json';
 
-            this.xhr.addEventListener('error', () => reject('Falha na comunicação com o servidor.'));
+            if (token) {
+                this.xhr.setRequestHeader('X-CSRF-TOKEN', token);
+            }
+
+            this.xhr.upload.addEventListener('progress', (event) => {
+                if (event.lengthComputable) {
+                    this.loader.uploadTotal = event.total;
+                    this.loader.uploaded = event.loaded;
+                }
+            });
+
+            this.xhr.addEventListener('error', () => reject('Erro ao enviar a imagem.'));
             this.xhr.addEventListener('abort', () => reject('Upload cancelado.'));
             this.xhr.addEventListener('load', () => {
-                const response = this.xhr.response;
+                const response = this.xhr.response ? JSON.parse(this.xhr.response) : null;
 
-                if (!response || this.xhr.status < 200 || this.xhr.status >= 300) {
-                    reject(response?.message || 'Falha ao enviar a imagem.');
-                    return;
-                }
-
-                if (!response.url) {
-                    reject('Resposta inválida do servidor: URL da imagem ausente.');
+                if (!response || !response.url) {
+                    reject(response?.message || 'Resposta inválida do servidor ao enviar imagem.');
                     return;
                 }
 
                 resolve({ default: response.url });
             });
 
-            if (this.xhr.upload) {
-                this.xhr.upload.addEventListener('progress', (event) => {
-                    if (event.lengthComputable) {
-                        this.loader.uploadTotal = event.total;
-                        this.loader.uploaded = event.loaded;
-                    }
-                });
-            }
-
             const data = new FormData();
             data.append('upload', file);
+
             this.xhr.send(data);
         }));
     }
@@ -103,95 +86,72 @@ class PapirarUploadAdapter {
 }
 
 function PapirarUploadAdapterPlugin(editor) {
-    editor.plugins.get('FileRepository').createUploadAdapter = (loader) => new PapirarUploadAdapter(loader);
+    editor.plugins.get(FileRepository).createUploadAdapter = (loader) => new PapirarUploadAdapter(loader);
 }
 
 const editorConfig = {
-    licenseKey: 'GPL',
     plugins: [
-        AccessibilityHelp,
         Alignment,
         AutoImage,
         Autosave,
         BlockQuote,
         Bold,
         Essentials,
+        FileRepository,
         Heading,
         Image,
         ImageCaption,
         ImageInsert,
         ImageResize,
         ImageStyle,
-        ImageTextAlternative,
         ImageToolbar,
         ImageUpload,
-        Indent,
-        IndentBlock,
         Italic,
         Link,
-        LinkImage,
         List,
         Paragraph,
-        SelectAll,
+        PapirarUploadAdapterPlugin,
         Table,
-        TableCaption,
-        TableCellProperties,
-        TableColumnResize,
-        TableProperties,
         TableToolbar,
-        Undo,
-        PapirarUploadAdapterPlugin
+        Undo
     ],
     toolbar: {
         items: [
             'undo', 'redo', '|',
             'heading', '|',
-            'bold', 'italic', '|',
-            'link', 'bulletedList', 'numberedList', '|',
-            'alignment', 'outdent', 'indent', '|',
-            'insertImage', 'insertTable', 'blockQuote', '|',
-            'accessibilityHelp'
+            'bold', 'italic', 'link', '|',
+            'bulletedList', 'numberedList', 'blockQuote', '|',
+            'insertImage', 'insertTable', '|',
+            'alignment'
         ],
         shouldNotGroupWhenFull: true
     },
     image: {
         resizeUnit: '%',
         resizeOptions: [
-            { name: 'resizeImage:original', value: null, label: 'Original' },
-            { name: 'resizeImage:25', value: '25', label: '25%' },
-            { name: 'resizeImage:50', value: '50', label: '50%' },
-            { name: 'resizeImage:75', value: '75', label: '75%' },
-            { name: 'resizeImage:100', value: '100', label: '100%' }
+            { name: 'resizeImage:original', label: 'Original', value: null },
+            { name: 'resizeImage:25', label: '25%', value: '25' },
+            { name: 'resizeImage:50', label: '50%', value: '50' },
+            { name: 'resizeImage:75', label: '75%', value: '75' }
         ],
         toolbar: [
             'imageTextAlternative',
-            'toggleImageCaption', '|',
+            'toggleImageCaption',
+            '|',
             'imageStyle:inline',
             'imageStyle:block',
-            'imageStyle:side', '|',
+            'imageStyle:side',
+            '|',
             'resizeImage'
-        ],
-        insert: {
-            integrations: ['upload']
-        }
-    },
-    table: {
-        contentToolbar: [
-            'tableColumn',
-            'tableRow',
-            'mergeTableCells',
-            'tableProperties',
-            'tableCellProperties'
         ]
     },
-    link: {
-        addTargetToExternalLinks: true,
-        defaultProtocol: 'https://'
+    table: {
+        contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells']
     }
 };
 
-function bootPapirarEditors() {
-    document.querySelectorAll('textarea.rich-editor').forEach((textarea) => {
+function initializePapirarEditors() {
+    document.querySelectorAll('textarea.papirar-rich-editor').forEach((textarea) => {
         if (textarea.dataset.ckeditorReady === '1') {
             return;
         }
@@ -201,14 +161,18 @@ function bootPapirarEditors() {
         ClassicEditor
             .create(textarea, editorConfig)
             .then((editor) => {
-                textarea._papirarEditor = editor;
+                textarea.closest('form')?.addEventListener('submit', () => {
+                    textarea.value = editor.getData();
+                });
             })
             .catch((error) => {
-                textarea.dataset.ckeditorReady = '0';
-                console.error('Erro ao inicializar CKEditor:', error);
+                console.error('Erro ao iniciar CKEditor Papirar:', error);
             });
     });
 }
 
-document.addEventListener('DOMContentLoaded', bootPapirarEditors);
-window.bootPapirarEditors = bootPapirarEditors;
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initializePapirarEditors);
+} else {
+    initializePapirarEditors();
+}

@@ -58,7 +58,7 @@ class QuestionController extends Controller
         $question = new Question([
             'question_type' => 'multiple_choice',
             'difficulty' => 'medium',
-            'source_type' => 'official_exam',
+            'source_type' => 'authored',
             'status' => 'draft',
         ]);
 
@@ -85,7 +85,7 @@ class QuestionController extends Controller
 
         DB::transaction(function () use ($data) {
             $question = Question::query()->create([
-                'corporation_id' => $data['corporation_id'],
+                'corporation_id' => $data['corporation_id'] ?? null,
                 'exam_id' => $data['exam_id'] ?? null,
                 'subject_id' => $data['subject_id'],
                 'topic_id' => $data['topic_id'] ?? null,
@@ -121,13 +121,16 @@ class QuestionController extends Controller
     public function edit(Question $question)
     {
         $question->load('alternatives');
+
         $alternatives = $question->alternatives->sortBy('letter')->values();
+
         if ($alternatives->count() < 5) {
             foreach (['A', 'B', 'C', 'D', 'E'] as $letter) {
                 if (!$alternatives->firstWhere('letter', $letter)) {
                     $alternatives->push(new Alternative(['letter' => $letter]));
                 }
             }
+
             $alternatives = $alternatives->sortBy('letter')->values();
             $question->setRelation('alternatives', $alternatives);
         }
@@ -147,7 +150,7 @@ class QuestionController extends Controller
 
         DB::transaction(function () use ($data, $question) {
             $question->update([
-                'corporation_id' => $data['corporation_id'],
+                'corporation_id' => $data['corporation_id'] ?? null,
                 'exam_id' => $data['exam_id'] ?? null,
                 'subject_id' => $data['subject_id'],
                 'topic_id' => $data['topic_id'] ?? null,
@@ -235,6 +238,14 @@ class QuestionController extends Controller
 
     private function validatedData(Request $request): array
     {
+        $request->merge([
+            'corporation_id' => $this->emptyToNull($request->input('corporation_id')),
+            'exam_id' => $this->emptyToNull($request->input('exam_id')),
+            'topic_id' => $this->emptyToNull($request->input('topic_id')),
+            'question_type' => $request->input('question_type') ?: 'multiple_choice',
+            'source_type' => $request->input('source_type') === 'official_exam' ? 'exam' : $request->input('source_type'),
+        ]);
+
         $validated = $request->validate([
             'corporation_id' => ['nullable', 'integer', 'exists:corporations,id'],
             'exam_id' => ['nullable', 'integer', 'exists:exams,id'],
@@ -243,7 +254,7 @@ class QuestionController extends Controller
             'statement' => ['required', 'string'],
             'question_type' => ['required', Rule::in(['multiple_choice'])],
             'difficulty' => ['required', Rule::in(['easy', 'medium', 'hard'])],
-            'source_type' => ['required', Rule::in(['official_exam', 'authored', 'adapted'])],
+            'source_type' => ['required', Rule::in(['exam', 'authored', 'adapted'])],
             'source_reference' => ['nullable', 'string', 'max:255'],
             'commented_answer' => ['nullable', 'string'],
             'status' => ['required', Rule::in(['draft', 'published', 'archived'])],
@@ -264,5 +275,10 @@ class QuestionController extends Controller
             ->all();
 
         return $validated;
+    }
+
+    private function emptyToNull(mixed $value): mixed
+    {
+        return $value === '' ? null : $value;
     }
 }
