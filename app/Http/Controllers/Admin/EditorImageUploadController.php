@@ -13,15 +13,17 @@ class EditorImageUploadController extends Controller
     public function store(Request $request): JsonResponse
     {
         $request->validate([
-            'upload' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:5120'],
+            'file' => ['required', 'image', 'mimes:jpg,jpeg,png,webp,gif', 'max:4096'],
         ]);
 
-        $file = $request->file('upload');
+        $file = $request->file('file');
+
         $filename = now()->format('YmdHis') . '-' . Str::random(16) . '.' . $file->getClientOriginalExtension();
+
         $path = $file->storeAs('editor/questions', $filename, 'public');
 
         return response()->json([
-            'url' => asset(Storage::url($path)),
+            'location' => Storage::disk('public')->url($path),
         ]);
     }
 }

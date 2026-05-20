@@ -127,6 +127,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::get('questions/ajax/topics', [QuestionController::class, 'ajaxTopics'])->name('questions.ajax.topics');
         Route::resource('questions', QuestionController::class);
         Route::post('/editor/images/upload', [EditorImageUploadController::class, 'store'])->name('editor-images.upload');
+        
                 
         Route::get('/comentarios', [CommentModerationController::class, 'index'])->name('comments.index');
         Route::patch('/comentarios/{comment}/aprovar', [CommentModerationController::class, 'approve'])->name('comments.approve');

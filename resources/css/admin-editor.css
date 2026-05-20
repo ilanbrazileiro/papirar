@@ -1,26 +1,36 @@
-.ck-editor__editable {
-    min-height: 260px;
+/* Papirar - conteúdo rico de questões */
+
+.tox-tinymce {
+    border-radius: .375rem !important;
 }
 
-.ck-content img,
 .question-statement img,
-.question-comment img,
-.statement-content img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-    margin: 12px auto;
-}
-
-.ck-content figure.image {
-    max-width: 100%;
-}
-
-.ck-content figure.image img {
+.question-commented-answer img,
+.rich-content img,
+.card-body img {
     max-width: 100%;
     height: auto;
 }
 
-.ck-content .image-style-side {
-    max-width: 50%;
+.question-statement figure,
+.question-commented-answer figure,
+.rich-content figure {
+    margin: 1rem 0;
+}
+
+.question-statement table,
+.question-commented-answer table,
+.rich-content table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.question-statement table td,
+.question-statement table th,
+.question-commented-answer table td,
+.question-commented-answer table th,
+.rich-content table td,
+.rich-content table th {
+    border: 1px solid #dee2e6;
+    padding: .5rem;
 }

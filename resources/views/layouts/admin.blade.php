@@ -4,18 +4,14 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    @vite(['resources/css/app.css'])
+    @stack('styles')
 
     <title>@yield('title', 'Admin | Papirar')</title>
 
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/css/adminlte.min.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@5.15.4/css/all.min.css">
-
-    @vite(['resources/css/app.css'])
-    @stack('styles')
-
-    <script>
-        window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ \Illuminate\Support\Facades\Route::has('admin.editor-images.upload') ? route('admin.editor-images.upload') : '' }}";
-    </script>
+ 
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
 <div class="wrapper">
@@ -78,17 +74,16 @@
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
-@vite(['resources/js/app.js'])
-@stack('scripts')
 <script>
-    window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
+    window.PAPIRAR_TINYMCE_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
 </script>
 
 @vite([
     'resources/js/app.js',
-    'resources/js/admin-editor.js'
+    'resources/js/admin-tinymce.js'
 ])
 
 @stack('scripts')
+
 </body>
 </html>
