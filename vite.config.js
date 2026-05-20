@@ -9,6 +9,7 @@ export default defineConfig({
                 'resources/css/app.css',
                 'resources/js/app.js',
                 'resources/js/admin-tinymce.js',
+                'resources/css/admin-editor.css',
             ],
             refresh: true,
         }),

@@ -6,6 +6,7 @@ import 'tinymce/models/dom';
 
 import 'tinymce/plugins/advlist';
 import 'tinymce/plugins/autolink';
+import 'tinymce/plugins/autoresize';
 import 'tinymce/plugins/charmap';
 import 'tinymce/plugins/code';
 import 'tinymce/plugins/fullscreen';
@@ -14,102 +15,115 @@ import 'tinymce/plugins/link';
 import 'tinymce/plugins/lists';
 import 'tinymce/plugins/media';
 import 'tinymce/plugins/preview';
+import 'tinymce/plugins/searchreplace';
 import 'tinymce/plugins/table';
-import 'tinymce/plugins/wordcount';
+import 'tinymce/plugins/visualblocks';
 
-import 'tinymce/skins/ui/oxide/skin.css';
-import 'tinymce/skins/content/default/content.css';
+const initPapirarTinyMCE = () => {
+    const uploadUrl = window.PAPIRAR_EDITOR_UPLOAD_URL || '';
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
 
-const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    const fields = document.querySelectorAll('textarea.papirar-rich-editor');
 
-function uploadImageToLaravel(blobInfo) {
-    return new Promise((resolve, reject) => {
-        if (!window.PAPIRAR_TINYMCE_UPLOAD_URL) {
-            reject('Rota de upload do editor não configurada.');
-            return;
-        }
-
-        if (!csrfToken) {
-            reject('Token CSRF não encontrado.');
-            return;
-        }
-
-        const formData = new FormData();
-        formData.append('file', blobInfo.blob(), blobInfo.filename());
-
-        fetch(window.PAPIRAR_TINYMCE_UPLOAD_URL, {
-            method: 'POST',
-            credentials: 'same-origin',
-            headers: {
-                'X-CSRF-TOKEN': csrfToken,
-                'X-Requested-With': 'XMLHttpRequest',
-            },
-            body: formData,
-        })
-            .then(async (response) => {
-                const data = await response.json().catch(() => ({}));
-
-                if (!response.ok) {
-                    const message = data.message || 'Falha ao enviar imagem.';
-                    throw new Error(message);
-                }
-
-                if (!data.location) {
-                    throw new Error('Resposta inválida do upload: location ausente.');
-                }
-
-                resolve(data.location);
-            })
-            .catch((error) => {
-                reject(error.message || 'Erro inesperado ao enviar imagem.');
-            });
-    });
-}
-
-function initPapirarTinyMCE() {
-    const selectors = 'textarea.papirar-rich-editor';
-
-    if (!document.querySelector(selectors)) {
+    if (!fields.length) {
         return;
     }
 
-    tinymce.remove(selectors);
+    if (!uploadUrl) {
+        console.warn('TinyMCE Papirar: rota de upload não configurada.');
+    }
+
+    tinymce.remove('textarea.papirar-rich-editor');
 
     tinymce.init({
-        selector: selectors,
+        selector: 'textarea.papirar-rich-editor',
+
         license_key: 'gpl',
-        promotion: false,
-        branding: false,
-        height: 420,
+
+        base_url: '/vendor/tinymce',
+        suffix: '.min',
+        skin: 'oxide',
+        content_css: '/vendor/tinymce/skins/content/default/content.css',
+
+        language: 'pt_BR',
+        height: 460,
         menubar: 'file edit view insert format tools table',
-        plugins: 'advlist autolink lists link image media table charmap preview fullscreen code wordcount',
-        toolbar: 'undo redo | blocks | bold italic underline | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent | link image media table | removeformat code fullscreen',
-        image_title: true,
-        automatic_uploads: true,
-        paste_data_images: false,
-        images_upload_handler: uploadImageToLaravel,
-        file_picker_types: 'image',
-        image_advtab: true,
-        image_dimensions: true,
-        object_resizing: 'img,table',
+        branding: false,
+        promotion: false,
+        convert_urls: false,
         relative_urls: false,
         remove_script_host: false,
-        convert_urls: false,
-        content_style: `
-            body { font-family: Arial, Helvetica, sans-serif; font-size: 16px; line-height: 1.65; }
-            img { max-width: 100%; height: auto; }
-            figure { margin: 1rem 0; }
-        `,
-        setup(editor) {
-            editor.on('change keyup', () => {
-                editor.save();
-            });
-        },
-    });
-}
 
-if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initPapirarTinyMCE);
-} else {
-    initPapirarTinyMCE();
-}
+        plugins: [
+            'advlist', 'autolink', 'autoresize', 'charmap', 'code', 'fullscreen',
+            'image', 'link', 'lists', 'media', 'preview', 'searchreplace',
+            'table', 'visualblocks'
+        ].join(' '),
+
+        toolbar: [
+            'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor',
+            'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
+            'link image media table | removeformat | preview code fullscreen'
+        ].join(' | '),
+
+        image_title: true,
+        image_caption: true,
+        image_advtab: true,
+        image_dimensions: true,
+        image_class_list: [
+            { title: 'Imagem responsiva', value: 'img-fluid' },
+            { title: 'Centralizada', value: 'img-fluid d-block mx-auto' }
+        ],
+
+        automatic_uploads: true,
+        images_upload_credentials: true,
+        images_reuse_filename: false,
+        images_file_types: 'jpeg,jpg,png,gif,webp',
+
+        images_upload_handler: (blobInfo, progress) => new Promise((resolve, reject) => {
+            if (!uploadUrl) {
+                reject('URL de upload do editor não configurada.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('upload', blobInfo.blob(), blobInfo.filename());
+
+            fetch(uploadUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRF-TOKEN': csrfToken,
+                    'Accept': 'application/json',
+                },
+                body: formData,
+                credentials: 'same-origin',
+            })
+                .then(async (response) => {
+                    const data = await response.json().catch(() => ({}));
+
+                    if (!response.ok) {
+                        reject(data.message || 'Falha no upload da imagem.');
+                        return;
+                    }
+
+                    if (!data.location) {
+                        reject('Resposta inválida do upload: campo location ausente.');
+                        return;
+                    }
+
+                    resolve(data.location);
+                })
+                .catch(() => reject('Falha ao enviar imagem.'));
+        }),
+
+        content_style: `
+            body { font-family: Arial, Helvetica, sans-serif; font-size: 15px; line-height: 1.6; }
+            img { max-width: 100%; height: auto; }
+            figure.image { margin: 1rem auto; text-align: center; }
+            figure.image img { max-width: 100%; height: auto; }
+            figcaption { color: #64748b; font-size: .875rem; }
+        `,
+    });
+};
+
+document.addEventListener('DOMContentLoaded', initPapirarTinyMCE);

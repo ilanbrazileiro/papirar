@@ -1,36 +1,44 @@
-/* Papirar - conteúdo rico de questões */
+/* Papirar - conteúdo rico no admin e visualização de questões */
 
 .tox-tinymce {
-    border-radius: .375rem !important;
+    border-radius: 0.5rem !important;
 }
 
+.papirar-rich-content img,
 .question-statement img,
-.question-commented-answer img,
-.rich-content img,
-.card-body img {
+.question-commented-answer img {
     max-width: 100%;
     height: auto;
 }
 
+.papirar-rich-content figure,
 .question-statement figure,
-.question-commented-answer figure,
-.rich-content figure {
-    margin: 1rem 0;
+.question-commented-answer figure {
+    margin: 1rem auto;
+    text-align: center;
 }
 
+.papirar-rich-content figcaption,
+.question-statement figcaption,
+.question-commented-answer figcaption {
+    color: #64748b;
+    font-size: .875rem;
+}
+
+.papirar-rich-content table,
 .question-statement table,
-.question-commented-answer table,
-.rich-content table {
+.question-commented-answer table {
     width: 100%;
+    max-width: 100%;
     border-collapse: collapse;
 }
 
+.papirar-rich-content table td,
+.papirar-rich-content table th,
 .question-statement table td,
 .question-statement table th,
 .question-commented-answer table td,
-.question-commented-answer table th,
-.rich-content table td,
-.rich-content table th {
-    border: 1px solid #dee2e6;
+.question-commented-answer table th {
+    border: 1px solid #e5e7eb;
     padding: .5rem;
 }

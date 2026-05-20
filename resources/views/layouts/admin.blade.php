@@ -75,12 +75,13 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/admin-lte@3.2/dist/js/adminlte.min.js"></script>
 <script>
-    window.PAPIRAR_TINYMCE_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
+    window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
 </script>
 
 @vite([
     'resources/js/app.js',
-    'resources/js/admin-tinymce.js'
+    'resources/js/admin-tinymce.js',
+    'resources/css/admin-editor.css'
 ])
 
 @stack('scripts')
