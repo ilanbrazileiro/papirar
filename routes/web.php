@@ -8,6 +8,7 @@ use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
 use App\Http\Controllers\Admin\ExamController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\PlannedExamController;
+use App\Http\Controllers\Admin\QuestionPreviewController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Admin\SubjectController;
@@ -120,6 +121,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
         Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
         
+        Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
         Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
         Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');
         Route::get('questions/import/template', [QuestionImportController::class, 'downloadTemplate'])->name('questions.import.template');

@@ -3,8 +3,9 @@
 @section('title', 'Editar questão #' . $question->id)
 
 @section('page_actions')
-    <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-sm btn-outline-primary">
-        <i class="fas fa-eye"></i> Ver detalhes
+    @include('admin.questions.partials.preview_button')
+    <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-secondary">
+        <i class="fas fa-list"></i> Ver detalhes
     </a>
 @endsection
 

@@ -9,7 +9,7 @@
     $correctLetter = old('correct_letter', optional($alts->firstWhere('is_correct', true))->letter ?? 'A');
 @endphp
 
-<form action="{{ $formAction }}" method="POST" class="question-form">
+<form action="{{ $formAction }}" method="POST" class="question-form" id="question-form">
     @csrf
     @if($formMethod !== 'POST')
         @method($formMethod)
@@ -207,8 +207,63 @@
         <a href="{{ route('admin.questions.index') }}" class="btn btn-outline-secondary">
             <i class="fas fa-arrow-left mr-1"></i> Cancelar
         </a>
-        <button type="submit" class="btn btn-primary">
-            <i class="fas fa-save mr-1"></i> {{ $submitLabel }}
+       <button type="submit" class="btn btn-primary">
+            Salvar questão
+            <small class="text-light ml-1">(Ctrl + S)</small>
         </button>
     </div>
 </form>
+@push('scripts')
+<script>
+    function submitQuestionFormByShortcut(event) {
+        const isSaveShortcut = (event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 's';
+
+        if (!isSaveShortcut) {
+            return;
+        }
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const form = document.getElementById('question-form');
+
+        if (!form) {
+            return;
+        }
+
+        if (window.tinymce) {
+            window.tinymce.triggerSave();
+        }
+
+        form.requestSubmit();
+    }
+
+    document.addEventListener('keydown', submitQuestionFormByShortcut, true);
+
+    document.addEventListener('tinymce-ready', function () {
+        if (!window.tinymce) {
+            return;
+        }
+
+        window.tinymce.editors.forEach(function (editor) {
+            editor.on('keydown', function (event) {
+                submitQuestionFormByShortcut(event);
+            });
+        });
+    });
+
+    window.addEventListener('load', function () {
+        if (!window.tinymce) {
+            return;
+        }
+
+        setTimeout(function () {
+            window.tinymce.editors.forEach(function (editor) {
+                editor.on('keydown', function (event) {
+                    submitQuestionFormByShortcut(event);
+                });
+            });
+        }, 800);
+    });
+</script>
+@endpush
