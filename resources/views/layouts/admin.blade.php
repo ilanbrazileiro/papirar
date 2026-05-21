@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="{{ asset('assets/adminlte/dist/css/adminlte.min.css') }}">
 
     {{-- CSS da aplicação --}}
-    @vite(['resources/css/app.css'])
+    
     @stack('styles')
 </head>
 <body class="hold-transition sidebar-mini layout-fixed">
@@ -83,15 +83,12 @@
 <script src="{{ asset('assets/adminlte/plugins/overlayScrollbars/js/jquery.overlayScrollbars.min.js') }}"></script>
 <script src="{{ asset('assets/adminlte/dist/js/adminlte.min.js') }}"></script>
 
-{{-- URL usada pelo TinyMCE para upload de imagens --}}
-@if (\Illuminate\Support\Facades\Route::has('admin.editor-images.upload'))
-    <script>
-        window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
-    </script>
-@endif
+<script>
+    window.PAPIRAR_EDITOR_UPLOAD_URL = "{{ route('admin.editor-images.upload') }}";
+</script>
 
-{{-- JS da aplicação/admin. Mantenha admin-tinymce.js se ele já estiver no Vite. --}}
-@vite(['resources/js/app.js', 'resources/js/admin-tinymce.js'])
+<script src="{{ asset('assets/tinymce/tinymce.min.js') }}"></script>
+<script src="{{ asset('js/admin-tinymce.js') }}"></script>
 @stack('scripts')
 </body>
 </html>
