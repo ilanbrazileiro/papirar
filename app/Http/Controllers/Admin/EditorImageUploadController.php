@@ -34,9 +34,11 @@ class EditorImageUploadController extends Controller
 
         $path = $file->storeAs('editor/questions', $filename, 'public');
 
+        $url = Storage::url($path);
+
         return response()->json([
-            'location' => asset(Storage::url($path)),
-            'url' => asset(Storage::url($path)),
+            'location' => $url,
+            'url' => $url,
         ]);
     }
 }
