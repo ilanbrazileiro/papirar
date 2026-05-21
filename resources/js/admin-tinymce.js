@@ -18,6 +18,7 @@ import 'tinymce/plugins/preview';
 import 'tinymce/plugins/searchreplace';
 import 'tinymce/plugins/table';
 import 'tinymce/plugins/visualblocks';
+import './admin-question-preview';
 
 const initPapirarTinyMCE = () => {
     const uploadUrl = window.PAPIRAR_EDITOR_UPLOAD_URL || '';

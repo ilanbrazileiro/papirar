@@ -20,11 +20,18 @@
     <div class="card card-primary card-outline">
         <div class="card-header">
             <h3 class="card-title"><i class="fas fa-question-circle mr-1"></i> Enunciado da questão</h3>
+
+            <button type="button" class="btn btn-outline-primary" id="papirar-question-preview-button">
+                    <i class="fas fa-eye"></i> Pré-visualizar como aluno
+                </button>
+
         </div>
         <div class="card-body">
             <div class="alert alert-info small mb-3">
                 Para inserir imagem, clique no botão de imagem do editor. O arquivo será salvo no Storage e inserido no enunciado automaticamente.
             </div>
+            
+            
 
             <div class="form-group">
                 <label for="statement">Enunciado <span class="text-danger">*</span></label>
@@ -193,6 +200,8 @@
             </div>
         </div>
     </div>
+
+    @include('admin.questions._preview_modal')
 
     <div class="d-flex justify-content-between mb-4">
         <a href="{{ route('admin.questions.index') }}" class="btn btn-outline-secondary">

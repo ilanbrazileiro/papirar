@@ -81,7 +81,7 @@
 @vite([
     'resources/js/app.js',
     'resources/js/admin-tinymce.js',
-    'resources/css/admin-editor.css'
+    'resources/css/admin-editor.css',
 ])
 
 @stack('scripts')
