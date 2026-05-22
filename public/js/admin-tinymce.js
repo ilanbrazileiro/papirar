@@ -24,6 +24,11 @@
             skin: 'oxide',
             content_css: '/assets/tinymce/skins/content/default/content.css',
 
+            convert_urls: false,
+            relative_urls: false,
+            remove_script_host: false,
+            document_base_url: window.location.origin + '/',
+
             height: 450,
             menubar: 'file edit view insert format tools table',
             branding: false,
