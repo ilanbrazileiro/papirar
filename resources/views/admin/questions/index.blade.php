@@ -88,11 +88,11 @@
                                 <td>{{ ucfirst($question->difficulty) }}</td>
                                 <td>
                                     @if($question->status === 'published')
-                                        <span class="badge text-bg-success">Publicada</span>
+                                        <span class="badge bg-success text-bg-success">Publicada</span>
                                     @elseif($question->status === 'draft')
-                                        <span class="badge text-bg-warning">Rascunho</span>
+                                        <span class="badge bg-danger text-bg-warning">Rascunho</span>
                                     @else
-                                        <span class="badge text-bg-secondary">Arquivada</span>
+                                        <span class="badge bg-secondary text-bg-secondary">Arquivada</span>
                                     @endif
                                 </td>
                                 <td style="max-width: 420px;">{{ \Illuminate\Support\Str::limit(strip_tags($question->statement), 120) }}</td>

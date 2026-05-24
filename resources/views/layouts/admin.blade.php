@@ -24,11 +24,9 @@
     <div class="content-wrapper">
         <section class="content-header">
             <div class="container-fluid">
-                <div class="row mb-2 align-items-center">
-                    <div class="col-sm-8">
-                        <h1 class="m-0">@yield('title', 'Admin')</h1>
-                    </div>
-                    <div class="col-sm-4 text-sm-right mt-2 mt-sm-0">
+                <div class="row mb-0 align-items-center">
+                    
+                    <div class="col-sm-4 text-sm-right mt-0 mt-sm-0">
                         @yield('page_actions')
                     </div>
                 </div>
