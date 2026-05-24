@@ -26,7 +26,7 @@
             <div class="container-fluid">
                 <div class="row mb-0 align-items-center">
                     
-                    <div class="col-sm-4 text-sm-right mt-0 mt-sm-0">
+                    <div class="col-sm-4 text-sm-right mt-2 mt-sm-0">
                         @yield('page_actions')
                     </div>
                 </div>
