@@ -59,7 +59,7 @@
                         </div>
                         <div class="col-md-9">
                             <label for="alternative_{{ $letter }}">Texto da alternativa {{ $letter }} <span class="text-danger">*</span></label>
-                            <textarea id="alternative_{{ $letter }}" name="alternatives[{{ $index }}][text]" class="form-control @error("alternatives.$index.text") is-invalid @enderror" rows="2">{{ $oldText }}</textarea>
+                            <textarea id="alternative_{{ $letter }}" name="alternatives[{{ $index }}][text]" class="form-control papirar-rich-editor @error("alternatives.$index.text") is-invalid @enderror" rows="2">{{ $oldText }}</textarea>
                             @error("alternatives.$index.text")
                                 <div class="invalid-feedback d-block">{{ $message }}</div>
                             @enderror

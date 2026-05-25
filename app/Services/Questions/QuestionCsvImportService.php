@@ -211,7 +211,7 @@ class QuestionCsvImportService
             throw new RuntimeException("Linha {$line}: difficulty inválida.");
         }
 
-        if (!in_array($sourceType, ['official_exam', 'authored', 'adapted'], true)) {
+        if (!in_array($sourceType, ['exam', 'authored', 'adapted'], true)) {
             throw new RuntimeException("Linha {$line}: source_type inválido.");
         }
 
