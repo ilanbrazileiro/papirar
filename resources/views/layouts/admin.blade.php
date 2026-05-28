@@ -11,6 +11,7 @@
     <link rel="stylesheet" href="{{ asset('assets/adminlte/plugins/fontawesome-free/css/all.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/adminlte/plugins/overlayScrollbars/css/OverlayScrollbars.min.css') }}">
     <link rel="stylesheet" href="{{ asset('assets/adminlte/dist/css/adminlte.min.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/katex/katex.min.css') }}">
 
     {{-- CSS da aplicação --}}
     
@@ -87,6 +88,9 @@
 
 <script src="{{ asset('assets/tinymce/tinymce.min.js') }}"></script>
 <script src="{{ asset('js/admin-tinymce.js') }}"></script>
+<script src="{{ asset('assets/katex/katex.min.js') }}"></script>
+<script src="{{ asset('assets/katex/contrib/auto-render.min.js') }}"></script>
+<script src="{{ asset('js/papirar-katex.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

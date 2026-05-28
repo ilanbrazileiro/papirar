@@ -48,6 +48,7 @@
             .app-shell { padding-top: 20px; }
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('assets/katex/katex.min.css') }}">
     @stack('styles')
 </head>
 <body>
@@ -96,6 +97,9 @@
 </main>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ asset('assets/katex/katex.min.js') }}"></script>
+<script src="{{ asset('assets/katex/contrib/auto-render.min.js') }}"></script>
+<script src="{{ asset('js/papirar-katex.js') }}"></script>
 @stack('scripts')
 </body>
 </html>

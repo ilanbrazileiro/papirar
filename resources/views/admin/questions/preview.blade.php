@@ -243,6 +243,7 @@
             .alternative { grid-template-columns: 38px 1fr; }
         }
     </style>
+    <link rel="stylesheet" href="{{ asset('assets/katex/katex.min.css') }}">
 </head>
 <body>
     <header class="preview-topbar">
@@ -307,5 +308,9 @@
             <button type="button" class="btn btn-primary" onclick="window.print()">Imprimir prévia</button>
         </div>
     </main>
+    <script src="{{ asset('assets/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('assets/katex/contrib/auto-render.min.js') }}"></script>
+    <script src="{{ asset('js/papirar-katex.js') }}"></script>
+
 </body>
 </html>

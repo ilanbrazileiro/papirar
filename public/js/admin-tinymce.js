@@ -39,7 +39,7 @@
             toolbar: [
                 'undo redo | blocks | bold italic underline strikethrough | forecolor backcolor',
                 'alignleft aligncenter alignright alignjustify | bullist numlist outdent indent',
-                'link image media table | removeformat | preview code fullscreen'
+                'link image media table | papirarFormula | removeformat | preview code fullscreen'
             ].join(' | '),
 
             automatic_uploads: true,
@@ -84,6 +84,41 @@
             },
 
             setup: function (editor) {
+                editor.ui.registry.addButton('papirarFormula', {
+                    text: 'Fórmula',
+                    tooltip: 'Inserir fórmula matemática',
+                    onAction: function () {
+                        editor.windowManager.open({
+                            title: 'Inserir fórmula matemática',
+                            body: {
+                                type: 'panel',
+                                items: [
+                                    {
+                                        type: 'textarea',
+                                        name: 'formula',
+                                        label: 'Digite a fórmula em LaTeX',
+                                        placeholder: '\\frac{90}{2} \\sqrt{81} 2^3 \\frac{x^2 + 3x}{2}'
+                                    }
+                                ]
+                            },
+                            buttons: [
+                                { type: 'cancel', text: 'Cancelar' },
+                                { type: 'submit', text: 'Inserir', primary: true }
+                            ],
+                            onSubmit: function (api) {
+                                const data = api.getData();
+                                const formula = data.formula.trim();
+
+                                if (formula) {
+                                    editor.insertContent('\\(' + formula + '\\)');
+                                }
+
+                                api.close();
+                            }
+                        });
+                    }
+                });
+
                 editor.on('keydown', function (event) {
                     const isSaveShortcut =
                         (event.ctrlKey || event.metaKey) &&
