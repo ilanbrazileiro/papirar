@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Papirar')</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ asset('assets/bootstrap/css/bootstrap.min.css') }}">
     <style>
         :root {
             --brand: #0f62fe;
@@ -96,7 +96,7 @@
     @yield('content')
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ asset('assets/bootstrap/js/bootstrap.bundle.min.js') }}"></script>
 <script src="{{ asset('assets/katex/katex.min.js') }}"></script>
 <script src="{{ asset('assets/katex/contrib/auto-render.min.js') }}"></script>
 <script src="{{ asset('js/papirar-katex.js') }}"></script>
