@@ -16,6 +16,8 @@ use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionContro
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
 use App\Http\Controllers\Admin\TopicController;
 use App\Http\Controllers\Admin\EditorImageUploadController;
+use App\Http\Controllers\Admin\SourceMaterialController;
+use App\Http\Controllers\Admin\ExamSubjectSourceMaterialController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -115,6 +117,13 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::resource('exams', ExamController::class);
         Route::resource('subjects', SubjectController::class);
         Route::resource('topics', TopicController::class);
+        Route::resource('source-materials', SourceMaterialController::class);
+
+Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])
+    ->name('exams.source-materials.edit');
+
+Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])
+    ->name('exams.source-materials.update');
         Route::resource('plans', PlanController::class);
         Route::resource('collaborators', CollaboratorController::class);
         Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);

@@ -45,6 +45,12 @@
                     </a>
                 </li>
                 <li class="nav-item">
+                    <a href="{{ route('admin.source-materials.index') }}" class="nav-link {{ request()->routeIs('admin.source-materials.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-book"></i>
+                        <p>Fontes e bibliografias</p>
+                    </a>
+                </li>
+                <li class="nav-item">
                     <a href="{{ route('admin.corporations.index') }}" class="nav-link {{ request()->routeIs('admin.corporations.*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-shield-alt"></i>
                         <p>Corporações</p>
