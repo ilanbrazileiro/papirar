@@ -1,23 +1,15 @@
 @extends('layouts.admin')
 
-@section('title', 'Novo concurso previsto')
+@section('title', 'Novo concurso')
 
 @section('content')
-<div class="container-fluid">
-    <h1 class="h3 mb-3">Novo concurso previsto</h1>
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <div>
+            <h1 class="h3 mb-0">Novo concurso</h1>
+            <p class="text-muted mb-0">Cadastre o concurso e defina as disciplinas e tópicos cobrados.</p>
         </div>
-    @endif
+        <a href="{{ route('admin.exams.index') }}" class="btn btn-outline-secondary">Voltar</a>
+    </div>
 
-    <form method="POST" action="{{ route('admin.planned-exams.store') }}">
-        @include('admin.exams._form')
-    </form>
-</div>
+    @include('admin.exams._form')
 @endsection

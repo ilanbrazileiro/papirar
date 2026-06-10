@@ -40,6 +40,11 @@ class Exam extends Model
         return $this->hasMany(Question::class);
     }
 
+    public function examSubjects(): HasMany
+    {
+        return $this->hasMany(ExamSubject::class);
+    }
+
     public function plannedSubjects(): BelongsToMany
     {
         return $this->belongsToMany(Subject::class, 'exam_subjects')
