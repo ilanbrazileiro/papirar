@@ -7,6 +7,7 @@ use App\Models\Alternative;
 use App\Models\Corporation;
 use App\Models\Exam;
 use App\Models\Question;
+use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
 use Illuminate\Http\JsonResponse;
@@ -14,6 +15,7 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class QuestionController extends Controller
 {
@@ -24,19 +26,25 @@ class QuestionController extends Controller
         $difficulty = trim((string) $request->get('difficulty', ''));
         $corporationId = $request->integer('corporation_id');
         $subjectId = $request->integer('subject_id');
+        $sourceMaterialId = $request->integer('source_material_id');
 
         $questions = Question::query()
-            ->with(['corporation', 'exam', 'subject', 'topic'])
+            ->with(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial'])
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('statement', 'like', "%{$search}%")
-                        ->orWhere('source_reference', 'like', "%{$search}%");
+                        ->orWhere('source_reference', 'like', "%{$search}%")
+                        ->orWhereHas('sourceMaterial', function ($sourceQuery) use ($search) {
+                            $sourceQuery->where('title', 'like', "%{$search}%")
+                                ->orWhere('reference_code', 'like', "%{$search}%");
+                        });
                 });
             })
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->when($difficulty !== '', fn ($q) => $q->where('difficulty', $difficulty))
             ->when($corporationId, fn ($q) => $q->where('corporation_id', $corporationId))
             ->when($subjectId, fn ($q) => $q->where('subject_id', $subjectId))
+            ->when($sourceMaterialId, fn ($q) => $q->where('source_material_id', $sourceMaterialId))
             ->orderByDesc('id')
             ->paginate(15)
             ->withQueryString();
@@ -48,8 +56,13 @@ class QuestionController extends Controller
             'difficulty' => $difficulty,
             'corporationId' => $corporationId,
             'subjectId' => $subjectId,
+            'sourceMaterialId' => $sourceMaterialId,
             'corporations' => Corporation::query()->orderBy('name')->get(),
             'subjects' => Subject::query()->orderBy('name')->get(),
+            'sourceMaterials' => SourceMaterial::query()
+                ->with(['corporation', 'subject'])
+                ->orderBy('title')
+                ->get(),
         ]);
     }
 
@@ -74,8 +87,10 @@ class QuestionController extends Controller
             'question' => $question,
             'corporations' => Corporation::query()->orderBy('name')->get(),
             'subjects' => Subject::query()->orderBy('name')->get(),
+            'sourceMaterials' => SourceMaterial::query()->active()->orderBy('title')->get(),
             'selectedExam' => null,
             'selectedTopic' => null,
+            'selectedSourceMaterial' => null,
         ]);
     }
 
@@ -94,6 +109,7 @@ class QuestionController extends Controller
                 'difficulty' => $data['difficulty'],
                 'source_type' => $data['source_type'],
                 'source_reference' => $data['source_reference'] ?? null,
+                'source_material_id' => $data['source_material_id'] ?? null,
                 'commented_answer' => $data['commented_answer'] ?? null,
                 'status' => $data['status'],
                 'created_by' => auth()->id(),
@@ -113,14 +129,14 @@ class QuestionController extends Controller
 
     public function show(Question $question)
     {
-        $question->load(['corporation', 'exam', 'subject', 'topic', 'alternatives']);
+        $question->load(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives']);
 
         return view('admin.questions.show', compact('question'));
     }
 
     public function edit(Question $question)
     {
-        $question->load('alternatives');
+        $question->load(['alternatives', 'sourceMaterial']);
 
         $alternatives = $question->alternatives->sortBy('letter')->values();
 
@@ -139,8 +155,10 @@ class QuestionController extends Controller
             'question' => $question,
             'corporations' => Corporation::query()->orderBy('name')->get(),
             'subjects' => Subject::query()->orderBy('name')->get(),
+            'sourceMaterials' => SourceMaterial::query()->active()->orderBy('title')->get(),
             'selectedExam' => $question->exam,
             'selectedTopic' => $question->topic,
+            'selectedSourceMaterial' => $question->sourceMaterial,
         ]);
     }
 
@@ -159,6 +177,7 @@ class QuestionController extends Controller
                 'difficulty' => $data['difficulty'],
                 'source_type' => $data['source_type'],
                 'source_reference' => $data['source_reference'] ?? null,
+                'source_material_id' => $data['source_material_id'] ?? null,
                 'commented_answer' => $data['commented_answer'] ?? null,
                 'status' => $data['status'],
             ]);
@@ -236,14 +255,75 @@ class QuestionController extends Controller
         return response()->json(['results' => $results]);
     }
 
+    public function ajaxSourceMaterials(Request $request): JsonResponse
+    {
+        $search = trim((string) $request->get('q', ''));
+        $corporationId = $request->integer('corporation_id');
+        $subjectId = $request->integer('subject_id');
+        $examId = $request->integer('exam_id');
+
+        $query = SourceMaterial::query()
+            ->with(['corporation', 'subject'])
+            ->where('active', true)
+            ->when($corporationId, function ($q) use ($corporationId) {
+                $q->where(function ($inner) use ($corporationId) {
+                    $inner->where('corporation_id', $corporationId)
+                        ->orWhereNull('corporation_id');
+                });
+            })
+            ->when($subjectId, fn ($q) => $q->where('subject_id', $subjectId))
+            ->when($examId && $subjectId, function ($q) use ($examId, $subjectId) {
+                $q->where(function ($inner) use ($examId, $subjectId) {
+                    $inner->whereHas('examSubjectLinks', function ($link) use ($examId, $subjectId) {
+                        $link->where('is_active', true)
+                            ->whereHas('examSubject', function ($examSubject) use ($examId, $subjectId) {
+                                $examSubject->where('exam_id', $examId)
+                                    ->where('subject_id', $subjectId);
+                            });
+                    })
+                    ->orWhereDoesntHave('examSubjectLinks');
+                });
+            })
+            ->when($search !== '', function ($q) use ($search) {
+                $q->where(function ($inner) use ($search) {
+                    $inner->where('title', 'like', "%{$search}%")
+                        ->orWhere('reference_code', 'like', "%{$search}%")
+                        ->orWhere('year', 'like', "%{$search}%");
+                });
+            })
+            ->orderBy('title')
+            ->limit(30);
+
+        $results = $query->get()
+            ->map(function (SourceMaterial $material) {
+                $details = collect([
+                    optional($material->corporation)->name,
+                    optional($material->subject)->name,
+                    $material->year,
+                    $material->reference_code,
+                ])->filter()->implode(' | ');
+
+                return [
+                    'id' => $material->id,
+                    'text' => $details ? "{$material->title} ({$details})" : $material->title,
+                ];
+            })
+            ->values();
+
+        return response()->json(['results' => $results]);
+    }
+
     private function validatedData(Request $request): array
     {
         $request->merge([
             'corporation_id' => $this->emptyToNull($request->input('corporation_id')),
             'exam_id' => $this->emptyToNull($request->input('exam_id')),
             'topic_id' => $this->emptyToNull($request->input('topic_id')),
+            'source_material_id' => $this->emptyToNull($request->input('source_material_id')),
             'question_type' => $request->input('question_type') ?: 'multiple_choice',
-            'source_type' => $request->input('source_type') === 'official_exam' ? 'exam' : $request->input('source_type'),
+            'source_type' => $request->input('source_type') === 'official_exam'
+                ? 'exam'
+                : $request->input('source_type'),
         ]);
 
         $validated = $request->validate([
@@ -251,6 +331,7 @@ class QuestionController extends Controller
             'exam_id' => ['nullable', 'integer', 'exists:exams,id'],
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
+            'source_material_id' => ['nullable', 'integer', 'exists:source_materials,id'],
             'statement' => ['required', 'string'],
             'question_type' => ['required', Rule::in(['multiple_choice'])],
             'difficulty' => ['required', Rule::in(['easy', 'medium', 'hard'])],
@@ -264,6 +345,8 @@ class QuestionController extends Controller
             'correct_letter' => ['required', Rule::in(['A', 'B', 'C', 'D', 'E'])],
         ]);
 
+        $this->validateSourceMaterialConsistency($validated);
+
         $validated['alternatives'] = collect($validated['alternatives'])
             ->map(function ($alternative) use ($validated) {
                 return [
@@ -275,6 +358,27 @@ class QuestionController extends Controller
             ->all();
 
         return $validated;
+    }
+
+    private function validateSourceMaterialConsistency(array $validated): void
+    {
+        if (empty($validated['source_material_id'])) {
+            return;
+        }
+
+        $material = SourceMaterial::query()->findOrFail($validated['source_material_id']);
+
+        if ((int) $material->subject_id !== (int) $validated['subject_id']) {
+            throw ValidationException::withMessages([
+                'source_material_id' => 'A fonte/material selecionada não pertence à disciplina informada.',
+            ]);
+        }
+
+        if (!empty($validated['corporation_id']) && $material->corporation_id && (int) $material->corporation_id !== (int) $validated['corporation_id']) {
+            throw ValidationException::withMessages([
+                'source_material_id' => 'A fonte/material selecionada pertence a outra corporação.',
+            ]);
+        }
     }
 
     private function emptyToNull(mixed $value): mixed

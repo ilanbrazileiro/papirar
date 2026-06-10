@@ -119,11 +119,11 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::resource('topics', TopicController::class);
         Route::resource('source-materials', SourceMaterialController::class);
 
-Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])
-    ->name('exams.source-materials.edit');
+        Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])
+            ->name('exams.source-materials.edit');
+        Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])
+            ->name('exams.source-materials.update');
 
-Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])
-    ->name('exams.source-materials.update');
         Route::resource('plans', PlanController::class);
         Route::resource('collaborators', CollaboratorController::class);
         Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
@@ -138,7 +138,11 @@ Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController
         Route::get('questions/ajax/topics', [QuestionController::class, 'ajaxTopics'])->name('questions.ajax.topics');
         Route::resource('questions', QuestionController::class);
         Route::post('/editor/images/upload', [EditorImageUploadController::class, 'store'])->name('editor-images.upload');
-        
+        Route::get('questions/ajax/source-materials', [QuestionController::class, 'ajaxSourceMaterials'])
+            ->name('questions.ajax-source-materials');
+
+        Route::get('questions/import/source-materials-csv', [QuestionImportController::class, 'downloadSourceMaterialsCsv'])
+            ->name('questions.import.source-materials-csv');
                 
         Route::get('/comentarios', [CommentModerationController::class, 'index'])->name('comments.index');
         Route::patch('/comentarios/{comment}/aprovar', [CommentModerationController::class, 'approve'])->name('comments.approve');

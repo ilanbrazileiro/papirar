@@ -5,6 +5,7 @@ namespace App\Services\Questions;
 use App\Models\Corporation;
 use App\Models\Exam;
 use App\Models\Question;
+use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
 use Illuminate\Support\Facades\DB;
@@ -12,18 +13,22 @@ use RuntimeException;
 
 class QuestionCsvImportService
 {
-    public function import(string $filePath, bool $dryRun = false, ?int $userId = null): array
+    public function import(string $path, bool $dryRun = false, ?int $userId = null): array
     {
-        if (!is_readable($filePath)) {
-            throw new RuntimeException('Arquivo não pode ser lido.');
-        }
+        $handle = fopen($path, 'r');
 
-        $handle = fopen($filePath, 'r');
-        if ($handle === false) {
-            throw new RuntimeException('Falha ao abrir o arquivo.');
+        if (!$handle) {
+            return [
+                'success' => false,
+                'message' => 'Não foi possível abrir o arquivo enviado.',
+                'inserted' => 0,
+                'validated_rows' => 0,
+                'errors' => [],
+            ];
         }
 
         $header = fgetcsv($handle, 0, ';');
+
         if (!$header) {
             fclose($handle);
 
@@ -36,10 +41,10 @@ class QuestionCsvImportService
             ];
         }
 
-        $expectedHeader = $this->expectedHeader();
-        $normalizedHeader = array_map(fn ($item) => trim((string) $item), $header);
+        $normalizedHeader = array_map(fn ($item) => trim((string) preg_replace('/^\xEF\xBB\xBF/', '', (string) $item)), $header);
+        $headerType = $this->detectHeaderType($normalizedHeader);
 
-        if ($normalizedHeader !== $expectedHeader) {
+        if (!$headerType) {
             fclose($handle);
 
             return [
@@ -48,7 +53,8 @@ class QuestionCsvImportService
                 'inserted' => 0,
                 'validated_rows' => 0,
                 'errors' => [],
-                'expected_header' => $expectedHeader,
+                'expected_header' => $this->expectedHeaderWithSourceMaterial(),
+                'legacy_header' => $this->legacyExpectedHeader(),
                 'received_header' => $normalizedHeader,
             ];
         }
@@ -66,7 +72,15 @@ class QuestionCsvImportService
                 continue;
             }
 
-            $payload = array_combine($expectedHeader, $row);
+            $expectedHeader = $headerType === 'new'
+                ? $this->expectedHeaderWithSourceMaterial()
+                : $this->legacyExpectedHeader();
+
+            $payload = array_combine($expectedHeader, array_pad($row, count($expectedHeader), null));
+
+            if ($headerType === 'legacy') {
+                $payload['source_material_id'] = null;
+            }
 
             try {
                 $rows[] = $this->validateRow($payload, $line);
@@ -113,6 +127,7 @@ class QuestionCsvImportService
                     'difficulty' => $data['difficulty'],
                     'source_type' => $data['source_type'],
                     'source_reference' => $data['source_reference'],
+                    'source_material_id' => $data['source_material_id'],
                     'commented_answer' => $data['commented_answer'],
                     'status' => $data['status'],
                     'created_by' => $userId,
@@ -139,7 +154,44 @@ class QuestionCsvImportService
         ];
     }
 
-    private function expectedHeader(): array
+    private function detectHeaderType(array $header): ?string
+    {
+        if ($header === $this->expectedHeaderWithSourceMaterial()) {
+            return 'new';
+        }
+
+        if ($header === $this->legacyExpectedHeader()) {
+            return 'legacy';
+        }
+
+        return null;
+    }
+
+    private function expectedHeaderWithSourceMaterial(): array
+    {
+        return [
+            'corporation_id',
+            'exam_id',
+            'subject_id',
+            'topic_id',
+            'statement',
+            'question_type',
+            'difficulty',
+            'source_type',
+            'source_reference',
+            'source_material_id',
+            'commented_answer',
+            'status',
+            'alternative_a',
+            'alternative_b',
+            'alternative_c',
+            'alternative_d',
+            'alternative_e',
+            'correct_letter',
+        ];
+    }
+
+    private function legacyExpectedHeader(): array
     {
         return [
             'corporation_id',
@@ -164,16 +216,15 @@ class QuestionCsvImportService
 
     private function validateRow(array $row, int $line): array
     {
-       $corporationId = isset($row['corporation_id']) && trim((string) $row['corporation_id']) !== ''
+        $corporationId = isset($row['corporation_id']) && trim((string) $row['corporation_id']) !== ''
             ? (int) $row['corporation_id']
             : null;
-
         $examId = isset($row['exam_id']) && trim((string) $row['exam_id']) !== ''
             ? (int) $row['exam_id']
             : null;
         $subjectId = $this->nullableInt($row['subject_id']);
         $topicId = $this->nullableInt($row['topic_id']);
-
+        $sourceMaterialId = $this->nullableInt($row['source_material_id'] ?? null);
         $statement = trim((string) $row['statement']);
         $questionType = trim((string) $row['question_type']);
         $difficulty = trim((string) $row['difficulty']);
@@ -197,6 +248,22 @@ class QuestionCsvImportService
 
         if ($topicId && !Topic::query()->whereKey($topicId)->exists()) {
             throw new RuntimeException("Linha {$line}: topic_id inválido ou inexistente.");
+        }
+
+        if ($sourceMaterialId) {
+            $material = SourceMaterial::query()->find($sourceMaterialId);
+
+            if (!$material) {
+                throw new RuntimeException("Linha {$line}: source_material_id inválido ou inexistente.");
+            }
+
+            if ((int) $material->subject_id !== (int) $subjectId) {
+                throw new RuntimeException("Linha {$line}: source_material_id não pertence ao subject_id informado.");
+            }
+
+            if ($corporationId && $material->corporation_id && (int) $material->corporation_id !== (int) $corporationId) {
+                throw new RuntimeException("Linha {$line}: source_material_id pertence a outra corporação.");
+            }
         }
 
         if ($statement === '') {
@@ -242,6 +309,7 @@ class QuestionCsvImportService
             'exam_id' => $examId,
             'subject_id' => $subjectId,
             'topic_id' => $topicId,
+            'source_material_id' => $sourceMaterialId,
             'statement' => $statement,
             'question_type' => $questionType,
             'difficulty' => $difficulty,
@@ -257,12 +325,14 @@ class QuestionCsvImportService
     private function nullableInt(mixed $value): ?int
     {
         $value = trim((string) $value);
+
         return $value === '' ? null : (int) $value;
     }
 
     private function nullableString(mixed $value): ?string
     {
         $value = trim((string) $value);
+
         return $value === '' ? null : $value;
     }
 

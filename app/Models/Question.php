@@ -21,9 +21,19 @@ class Question extends Model
         'difficulty',
         'source_type',
         'source_reference',
+        'source_material_id',
         'commented_answer',
         'status',
         'created_by',
+    ];
+
+    protected $casts = [
+        'corporation_id' => 'integer',
+        'exam_id' => 'integer',
+        'subject_id' => 'integer',
+        'topic_id' => 'integer',
+        'source_material_id' => 'integer',
+        'created_by' => 'integer',
     ];
 
     public function corporation(): BelongsTo
@@ -44,6 +54,11 @@ class Question extends Model
     public function topic(): BelongsTo
     {
         return $this->belongsTo(Topic::class);
+    }
+
+    public function sourceMaterial(): BelongsTo
+    {
+        return $this->belongsTo(SourceMaterial::class, 'source_material_id');
     }
 
     public function creator(): BelongsTo
