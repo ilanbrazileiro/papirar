@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ExamSubject extends Model
@@ -21,10 +22,8 @@ class ExamSubject extends Model
     ];
 
     protected $casts = [
-        'exam_id' => 'integer',
-        'subject_id' => 'integer',
-        'sort_order' => 'integer',
         'is_active' => 'boolean',
+        'sort_order' => 'integer',
     ];
 
     public function exam(): BelongsTo
@@ -37,13 +36,19 @@ class ExamSubject extends Model
         return $this->belongsTo(Subject::class);
     }
 
-    public function topicLinks(): HasMany
+    public function examSubjectTopics(): HasMany
     {
-        return $this->hasMany(ExamSubjectTopic::class, 'exam_subject_id');
+        return $this->hasMany(ExamSubjectTopic::class)
+            ->orderBy('sort_order');
     }
 
-    public function sourceMaterialLinks(): HasMany
+    public function topics(): BelongsToMany
     {
-        return $this->hasMany(ExamSubjectSourceMaterial::class, 'exam_subject_id');
+        return $this->belongsToMany(Topic::class, 'exam_subject_topics')
+            ->withPivot(['sort_order', 'is_active'])
+            ->withTimestamps()
+            ->wherePivot('is_active', true)
+            ->orderBy('exam_subject_topics.sort_order')
+            ->orderBy('topics.name');
     }
 }

@@ -15,24 +15,22 @@ class ExamSubjectTopic extends Model
     protected $fillable = [
         'exam_subject_id',
         'topic_id',
-        'is_active',
         'sort_order',
+        'is_active',
     ];
 
     protected $casts = [
-        'exam_subject_id' => 'integer',
-        'topic_id' => 'integer',
         'is_active' => 'boolean',
         'sort_order' => 'integer',
     ];
 
     public function examSubject(): BelongsTo
     {
-        return $this->belongsTo(ExamSubject::class, 'exam_subject_id');
+        return $this->belongsTo(ExamSubject::class);
     }
 
     public function topic(): BelongsTo
     {
-        return $this->belongsTo(Topic::class, 'topic_id');
+        return $this->belongsTo(Topic::class);
     }
 }

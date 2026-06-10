@@ -42,7 +42,8 @@ class Exam extends Model
 
     public function examSubjects(): HasMany
     {
-        return $this->hasMany(ExamSubject::class);
+        return $this->hasMany(ExamSubject::class)
+            ->orderBy('sort_order');
     }
 
     public function plannedSubjects(): BelongsToMany

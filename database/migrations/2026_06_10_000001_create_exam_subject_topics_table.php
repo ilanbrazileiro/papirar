@@ -6,8 +6,8 @@ use Illuminate\Support\Facades\DB;
 return new class extends Migration
 {
     /**
-     * Migration documental para consulta futura.
-     * O usuário optou por não rodar migrations em produção.
+     * Migration documental: manter para consulta futura da estrutura.
+     * Não executar em produção se a tabela já tiver sido criada por SQL direto.
      */
     public function up(): void
     {
@@ -21,7 +21,7 @@ CREATE TABLE IF NOT EXISTS `exam_subject_topics` (
   `created_at` timestamp NULL DEFAULT current_timestamp(),
   `updated_at` timestamp NULL DEFAULT current_timestamp() ON UPDATE current_timestamp(),
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uk_exam_subject_topic` (`exam_subject_id`,`topic_id`),
+  UNIQUE KEY `uk_exam_subject_topic` (`exam_subject_id`, `topic_id`),
   KEY `idx_exam_subject_topics_exam_subject_id` (`exam_subject_id`),
   KEY `idx_exam_subject_topics_topic_id` (`topic_id`),
   KEY `idx_exam_subject_topics_is_active` (`is_active`),
@@ -31,12 +31,12 @@ CREATE TABLE IF NOT EXISTS `exam_subject_topics` (
   CONSTRAINT `fk_exam_subject_topics_topic`
     FOREIGN KEY (`topic_id`) REFERENCES `topics` (`id`)
     ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 SQL);
     }
 
     public function down(): void
     {
-        DB::statement('DROP TABLE IF EXISTS `exam_subject_topics`;');
+        DB::statement('DROP TABLE IF EXISTS `exam_subject_topics`');
     }
 };

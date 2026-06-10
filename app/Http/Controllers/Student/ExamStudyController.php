@@ -57,33 +57,58 @@ class ExamStudyController extends Controller
     public function subjectsByExam(int $examId): JsonResponse
     {
         $exam = Exam::query()
-            ->with('plannedSubjects')
             ->where('active', true)
             ->findOrFail($examId);
 
+        $subjects = DB::table('exam_subjects')
+            ->join('subjects', 'subjects.id', '=', 'exam_subjects.subject_id')
+            ->where('exam_subjects.exam_id', $exam->id)
+            ->where('exam_subjects.is_active', true)
+            ->where('subjects.active', true)
+            ->orderBy('exam_subjects.sort_order')
+            ->orderBy('subjects.name')
+            ->get([
+                'exam_subjects.id as exam_subject_id',
+                'subjects.id',
+                'subjects.name',
+                'subjects.scope',
+            ]);
+
+        $examSubjectIds = $subjects->pluck('exam_subject_id')->map(fn ($id) => (int) $id)->values();
+
+        $topicsByExamSubject = DB::table('exam_subject_topics')
+            ->join('topics', 'topics.id', '=', 'exam_subject_topics.topic_id')
+            ->whereIn('exam_subject_topics.exam_subject_id', $examSubjectIds)
+            ->where('exam_subject_topics.is_active', true)
+            ->where('topics.active', true)
+            ->orderBy('exam_subject_topics.sort_order')
+            ->orderBy('topics.name')
+            ->get([
+                'exam_subject_topics.exam_subject_id',
+                'topics.id',
+                'topics.name',
+            ])
+            ->groupBy('exam_subject_id');
+
         return response()->json(
-            $exam->plannedSubjects->map(function ($subject) use ($exam) {
-                $sourceMaterials = DB::table('exam_subjects')
-                    ->join('exam_subject_source_materials', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')
-                    ->join('source_materials', 'source_materials.id', '=', 'exam_subject_source_materials.source_material_id')
-                    ->where('exam_subjects.exam_id', $exam->id)
-                    ->where('exam_subjects.subject_id', $subject->id)
-                    ->where('exam_subjects.is_active', true)
-                    ->where('exam_subject_source_materials.is_active', true)
-                    ->where('source_materials.active', true)
-                    ->orderBy('exam_subject_source_materials.sort_order')
-                    ->orderBy('source_materials.title')
-                    ->pluck('source_materials.title')
+            $subjects->map(function ($subject) use ($topicsByExamSubject) {
+                $topics = $topicsByExamSubject
+                    ->get($subject->exam_subject_id, collect())
+                    ->map(fn ($topic) => [
+                        'id' => (int) $topic->id,
+                        'name' => $topic->name,
+                    ])
                     ->values();
 
                 return [
-                    'id' => $subject->id,
+                    'id' => (int) $subject->id,
+                    'exam_subject_id' => (int) $subject->exam_subject_id,
                     'name' => $subject->name,
                     'scope' => $subject->scope ?? 'general',
                     'scope_label' => ($subject->scope ?? 'general') === 'corporation_specific'
                         ? 'Específica da corporação'
                         : 'Geral / reaproveitável',
-                    'source_materials' => $sourceMaterials,
+                    'topics' => $topics,
                 ];
             })->values()
         );
@@ -96,6 +121,9 @@ class ExamStudyController extends Controller
             'exam_id' => ['required', 'integer', 'exists:exams,id'],
             'subject_ids' => ['required', 'array', 'min:1'],
             'subject_ids.*' => ['integer', 'exists:subjects,id'],
+            'topic_ids' => ['nullable', 'array'],
+            'topic_ids.*' => ['array'],
+            'topic_ids.*.*' => ['integer', 'exists:topics,id'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
             'mode' => ['required', 'in:train,exam,review'],
         ], [
@@ -106,12 +134,16 @@ class ExamStudyController extends Controller
         ]);
 
         $exam = Exam::query()
-            ->with('plannedSubjects')
             ->where('corporation_id', $data['corporation_id'])
             ->where('active', true)
             ->findOrFail($data['exam_id']);
 
-        $allowedSubjectIds = $exam->plannedSubjects->pluck('id')->map(fn ($id) => (int) $id)->toArray();
+        $examSubjects = DB::table('exam_subjects')
+            ->where('exam_id', $exam->id)
+            ->where('is_active', true)
+            ->get(['id', 'subject_id']);
+
+        $allowedSubjectIds = $examSubjects->pluck('subject_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
         $selectedSubjectIds = array_values(array_intersect(
             array_map('intval', $data['subject_ids']),
             $allowedSubjectIds
@@ -123,21 +155,48 @@ class ExamStudyController extends Controller
                 ->withInput();
         }
 
-        $sourceRules = DB::table('exam_subjects')
-            ->join('exam_subject_source_materials', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')
-            ->join('source_materials', 'source_materials.id', '=', 'exam_subject_source_materials.source_material_id')
-            ->where('exam_subjects.exam_id', (int) $data['exam_id'])
-            ->whereIn('exam_subjects.subject_id', $selectedSubjectIds)
-            ->where('exam_subjects.is_active', true)
-            ->where('exam_subject_source_materials.is_active', true)
-            ->where('source_materials.active', true)
+        $examSubjectIdsBySubject = $examSubjects
+            ->whereIn('subject_id', $selectedSubjectIds)
+            ->mapWithKeys(fn ($examSubject) => [(int) $examSubject->subject_id => (int) $examSubject->id]);
+
+        $allowedTopicsBySubject = DB::table('exam_subject_topics')
+            ->join('topics', 'topics.id', '=', 'exam_subject_topics.topic_id')
+            ->join('exam_subjects', 'exam_subjects.id', '=', 'exam_subject_topics.exam_subject_id')
+            ->whereIn('exam_subject_topics.exam_subject_id', $examSubjectIdsBySubject->values())
+            ->where('exam_subject_topics.is_active', true)
+            ->where('topics.active', true)
             ->get([
                 'exam_subjects.subject_id',
-                'exam_subject_source_materials.source_material_id',
-            ]);
+                'exam_subject_topics.topic_id',
+            ])
+            ->groupBy('subject_id')
+            ->map(fn ($rows) => $rows->pluck('topic_id')->map(fn ($id) => (int) $id)->unique()->values()->all());
 
-        $subjectIdsWithSourceRules = $sourceRules->pluck('subject_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
-        $allowedSourceMaterialIds = $sourceRules->pluck('source_material_id')->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $selectedTopicIdsBySubject = [];
+        $selectedTopicIds = [];
+        $submittedTopics = $data['topic_ids'] ?? [];
+
+        foreach ($selectedSubjectIds as $subjectId) {
+            $allowedTopicIds = $allowedTopicsBySubject->get($subjectId, []);
+
+            if (empty($allowedTopicIds)) {
+                continue;
+            }
+
+            $submittedForSubject = array_map('intval', $submittedTopics[$subjectId] ?? []);
+            $validTopicIds = array_values(array_intersect($submittedForSubject, $allowedTopicIds));
+
+            if (empty($validTopicIds)) {
+                return back()
+                    ->withErrors(['topic_ids' => 'Selecione pelo menos um tópico para cada disciplina marcada.'])
+                    ->withInput();
+            }
+
+            $selectedTopicIdsBySubject[$subjectId] = $validTopicIds;
+            $selectedTopicIds = array_merge($selectedTopicIds, $validTopicIds);
+        }
+
+        $selectedTopicIds = array_values(array_unique(array_map('intval', $selectedTopicIds)));
 
         $questionsQuery = Question::query()
             ->select('questions.*')
@@ -154,11 +213,8 @@ class ExamStudyController extends Controller
                 });
             });
 
-        if (!empty($allowedSourceMaterialIds) && !empty($subjectIdsWithSourceRules)) {
-            $questionsQuery->where(function ($query) use ($subjectIdsWithSourceRules, $allowedSourceMaterialIds) {
-                $query->whereNotIn('questions.subject_id', $subjectIdsWithSourceRules)
-                    ->orWhereIn('questions.source_material_id', $allowedSourceMaterialIds);
-            });
+        if (!empty($selectedTopicIds)) {
+            $questionsQuery->whereIn('questions.topic_id', $selectedTopicIds);
         }
 
         if ($data['mode'] === 'review') {
@@ -169,14 +225,14 @@ class ExamStudyController extends Controller
         }
 
         $questions = $questionsQuery
-            ->with(['subject', 'topic', 'sourceMaterial'])
+            ->with(['subject', 'topic'])
             ->inRandomOrder()
             ->limit((int) $data['quantity'])
             ->get();
 
         if ($questions->isEmpty()) {
             return back()
-                ->with('error', 'Nenhuma questão publicada foi encontrada para esse concurso, disciplinas e fontes vinculadas.')
+                ->with('error', 'Nenhuma questão publicada foi encontrada para o concurso, disciplinas e tópicos selecionados.')
                 ->withInput();
         }
 
@@ -185,8 +241,8 @@ class ExamStudyController extends Controller
             'corporation_id' => (int) $data['corporation_id'],
             'exam_id' => (int) $data['exam_id'],
             'subject_id' => count($selectedSubjectIds) === 1 ? $selectedSubjectIds[0] : null,
-            'topic_id' => null,
-            'source_material_id' => count($allowedSourceMaterialIds) === 1 ? $allowedSourceMaterialIds[0] : null,
+            'topic_id' => count($selectedTopicIds) === 1 ? $selectedTopicIds[0] : null,
+            'source_material_id' => null,
             'mode' => $data['mode'] === 'exam' ? 'exam' : 'train',
             'started_at' => now(),
         ]);
@@ -201,6 +257,6 @@ class ExamStudyController extends Controller
 
         return redirect()
             ->route('student.study.question', $session)
-            ->with('success', 'Sessão criada com base no concurso, disciplinas e fontes vinculadas.');
+            ->with('success', 'Sessão criada com base no concurso, disciplinas e tópicos selecionados.');
     }
 }

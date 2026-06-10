@@ -6,7 +6,7 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h1 class="page-title">Estudar por concurso</h1>
-            <p class="page-subtitle">Escolha seu objetivo. O Papirar carrega as disciplinas do concurso e monta uma sessão respeitando as fontes/bibliografias vinculadas.</p>
+            <p class="page-subtitle">Escolha a corporação, o concurso, as disciplinas e os tópicos que deseja treinar.</p>
         </div>
         <a href="{{ route('student.study.index') }}" class="btn btn-outline-primary">Filtro livre</a>
     </div>
@@ -53,12 +53,12 @@
             </div>
 
             <div class="mt-4">
-                <label class="form-label fw-semibold">Disciplinas do concurso</label>
+                <label class="form-label fw-semibold">Disciplinas e tópicos do concurso</label>
                 <div id="subjectsBox" class="border rounded p-3 bg-light">
-                    <div class="text-muted">Selecione um concurso para carregar as disciplinas.</div>
+                    <div class="text-muted">Selecione um concurso para carregar as disciplinas e tópicos.</div>
                 </div>
                 <div class="small text-muted mt-2">
-                    Quando houver bibliografia vinculada à disciplina, o sistema só buscará questões daquela fonte/material.
+                    Os tópicos exibidos são aqueles vinculados ao concurso no painel administrativo.
                 </div>
             </div>
 
@@ -83,8 +83,9 @@
             </div>
 
             <div class="alert alert-info mt-4 mb-0">
-                <strong>Regra de fontes:</strong>
-                se uma disciplina do concurso tiver fonte/bibliografia vinculada no admin, as questões serão filtradas por essa fonte. Se ainda não houver fonte vinculada, o sistema mantém o comportamento anterior para não bloquear o estudo durante a transição.
+                <strong>Estudo direcionado:</strong>
+                ao escolher um concurso, o Papirar carrega apenas as disciplinas e tópicos configurados para ele no admin.
+                Você pode estudar todos os tópicos ou selecionar apenas um assunto específico, como Progressão Aritmética.
             </div>
 
             <div class="d-flex justify-content-end mt-4">
@@ -100,7 +101,7 @@
             const subjectsBox = document.getElementById('subjectsBox');
             const startButton = document.getElementById('startButton');
 
-            function resetSubjects(message = 'Selecione um concurso para carregar as disciplinas.') {
+            function resetSubjects(message = 'Selecione um concurso para carregar as disciplinas e tópicos.') {
                 subjectsBox.innerHTML = `<div class="text-muted">${message}</div>`;
                 startButton.disabled = true;
             }
@@ -109,11 +110,76 @@
                 return subjectsBox.querySelectorAll('input[name="subject_ids[]"]:checked').length;
             }
 
+            function selectedTopicCountForSubject(subjectId) {
+                return subjectsBox.querySelectorAll(`input[data-topic-subject-id="${subjectId}"]:checked`).length;
+            }
+
+            function updateStartButton() {
+                const checkedSubjects = Array.from(subjectsBox.querySelectorAll('input[name="subject_ids[]"]:checked'));
+
+                if (checkedSubjects.length === 0) {
+                    startButton.disabled = true;
+                    return;
+                }
+
+                const hasSubjectWithoutTopic = checkedSubjects.some((subjectCheckbox) => {
+                    const subjectId = subjectCheckbox.value;
+                    const topics = subjectsBox.querySelectorAll(`input[data-topic-subject-id="${subjectId}"]`);
+                    return topics.length > 0 && selectedTopicCountForSubject(subjectId) === 0;
+                });
+
+                startButton.disabled = hasSubjectWithoutTopic;
+            }
+
+            function setSubjectTopicsState(subjectId, enabled, markAllWhenEnabling = true) {
+                const topicCheckboxes = subjectsBox.querySelectorAll(`input[data-topic-subject-id="${subjectId}"]`);
+
+                topicCheckboxes.forEach((topicCheckbox) => {
+                    topicCheckbox.disabled = !enabled;
+
+                    if (!enabled) {
+                        topicCheckbox.checked = false;
+                    } else if (markAllWhenEnabling) {
+                        topicCheckbox.checked = true;
+                    }
+                });
+
+                const topicBlock = document.querySelector(`[data-topic-block-subject-id="${subjectId}"]`);
+                if (topicBlock) {
+                    topicBlock.classList.toggle('d-none', !enabled);
+                }
+            }
+
             function bindSubjectEvents() {
                 subjectsBox.querySelectorAll('input[name="subject_ids[]"]').forEach((checkbox) => {
                     checkbox.addEventListener('change', () => {
-                        startButton.disabled = selectedSubjectCount() === 0;
+                        setSubjectTopicsState(checkbox.value, checkbox.checked, true);
+                        updateStartButton();
                     });
+                });
+
+                subjectsBox.querySelectorAll('[data-select-all-topics]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const subjectId = button.getAttribute('data-select-all-topics');
+                        subjectsBox.querySelectorAll(`input[data-topic-subject-id="${subjectId}"]`).forEach((topicCheckbox) => {
+                            topicCheckbox.checked = true;
+                        });
+                        updateStartButton();
+                    });
+                });
+
+                subjectsBox.querySelectorAll('[data-clear-topics]').forEach((button) => {
+                    button.addEventListener('click', () => {
+                        const subjectId = button.getAttribute('data-clear-topics');
+                        subjectsBox.querySelectorAll(`input[data-topic-subject-id="${subjectId}"]`).forEach((topicCheckbox) => {
+                            topicCheckbox.checked = false;
+                        });
+                        updateStartButton();
+                    });
+                });
+
+                subjectsBox.querySelectorAll('input[data-topic-subject-id]').forEach((topicCheckbox) => {
+                    topicCheckbox.addEventListener('change', updateStartButton);
                 });
             }
 
@@ -121,7 +187,7 @@
                 const corporationId = this.value;
                 examSelect.innerHTML = '<option value="">Carregando...</option>';
                 examSelect.disabled = true;
-                resetSubjects('Selecione um concurso para carregar as disciplinas.');
+                resetSubjects('Selecione um concurso para carregar as disciplinas e tópicos.');
 
                 if (!corporationId) {
                     examSelect.innerHTML = '<option value="">Selecione a corporação primeiro</option>';
@@ -151,7 +217,7 @@
 
             examSelect.addEventListener('change', async function () {
                 const examId = this.value;
-                resetSubjects('Carregando disciplinas...');
+                resetSubjects('Carregando disciplinas e tópicos...');
 
                 if (!examId) {
                     resetSubjects();
@@ -167,34 +233,54 @@
                     return;
                 }
 
-                subjectsBox.innerHTML = '<div class="row g-2"></div>';
-                const row = subjectsBox.querySelector('.row');
+                subjectsBox.innerHTML = '';
 
                 subjects.forEach((subject) => {
-                    const col = document.createElement('div');
-                    col.className = 'col-md-6 col-lg-4';
+                    const topics = Array.isArray(subject.topics) ? subject.topics : [];
+                    const wrapper = document.createElement('div');
+                    wrapper.className = 'border rounded bg-white p-3 mb-3';
 
-                    const materials = Array.isArray(subject.source_materials) ? subject.source_materials : [];
-                    const materialsHtml = materials.length
-                        ? `<span class="small text-success d-block mt-1">Fonte: ${materials.join(' | ')}</span>`
-                        : `<span class="small text-muted d-block mt-1">Sem fonte específica vinculada</span>`;
+                    const topicsHtml = topics.length
+                        ? `
+                            <div class="mt-3" data-topic-block-subject-id="${subject.id}">
+                                <div class="d-flex flex-column flex-md-row justify-content-between gap-2 mb-2">
+                                    <div class="small fw-semibold text-muted">Tópicos</div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-sm btn-outline-primary" data-select-all-topics="${subject.id}">Selecionar todos</button>
+                                        <button type="button" class="btn btn-sm btn-outline-secondary" data-clear-topics="${subject.id}">Limpar</button>
+                                    </div>
+                                </div>
+                                <div class="row g-2">
+                                    ${topics.map((topic) => `
+                                        <div class="col-md-6 col-lg-4">
+                                            <label class="border rounded p-2 d-flex gap-2 align-items-start h-100" style="cursor:pointer;">
+                                                <input type="checkbox" name="topic_ids[${subject.id}][]" value="${topic.id}" checked class="form-check-input mt-1" data-topic-subject-id="${subject.id}">
+                                                <span class="small">${topic.name}</span>
+                                            </label>
+                                        </div>
+                                    `).join('')}
+                                </div>
+                            </div>
+                        `
+                        : `<div class="small text-warning mt-2">Esta disciplina ainda não possui tópicos configurados para este concurso.</div>`;
 
-                    col.innerHTML = `
-                        <label class="border rounded bg-white p-3 d-flex gap-2 align-items-start h-100" style="cursor:pointer;">
+                    wrapper.innerHTML = `
+                        <label class="d-flex gap-2 align-items-start" style="cursor:pointer;">
                             <input type="checkbox" name="subject_ids[]" value="${subject.id}" checked class="form-check-input mt-1">
                             <span>
                                 <span class="fw-semibold d-block">${subject.name}</span>
                                 <span class="small text-muted">${subject.scope_label}</span>
-                                ${materialsHtml}
                             </span>
                         </label>
+                        ${topicsHtml}
                     `;
 
-                    row.appendChild(col);
+                    subjectsBox.appendChild(wrapper);
                 });
 
                 startButton.disabled = false;
                 bindSubjectEvents();
+                updateStartButton();
             });
         });
     </script>
