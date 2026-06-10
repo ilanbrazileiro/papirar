@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Corporation;
 use App\Models\Question;
 use App\Models\SavedFilter;
+use App\Models\SourceMaterial;
 use App\Models\StudySession;
 use App\Models\StudySessionQuestion;
 use App\Models\Subject;
@@ -18,7 +19,7 @@ class StudyController extends Controller
 {
     public function index()
     {
-        return view('student.study.choose');
+        return redirect()->route('student.study.filter');
     }
 
     public function filter()
@@ -33,6 +34,11 @@ class StudyController extends Controller
             'corporations' => Corporation::query()->where('active', true)->orderBy('name')->get(),
             'subjects' => Subject::query()->where('active', true)->orderBy('name')->get(),
             'topics' => Topic::query()->where('active', true)->orderBy('name')->get(),
+            'sourceMaterials' => SourceMaterial::query()
+                ->where('active', true)
+                ->with(['corporation', 'subject'])
+                ->orderBy('title')
+                ->get(),
         ]);
     }
 
@@ -42,18 +48,20 @@ class StudyController extends Controller
             'corporation_id' => ['nullable', 'integer', 'exists:corporations,id'],
             'subject_id' => ['nullable', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
+            'source_material_id' => ['nullable', 'integer', 'exists:source_materials,id'],
             'difficulty' => ['nullable', 'in:easy,medium,hard'],
             'source_type' => ['nullable', 'in:exam,authored,adapted'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
             'mode' => ['required', 'in:train,exam,review'],
         ]);
 
-        $savedFilter = SavedFilter::query()->updateOrCreate(
+        SavedFilter::query()->updateOrCreate(
             ['user_id' => auth()->id()],
             [
                 'corporation_id' => $data['corporation_id'] ?? null,
                 'subject_id' => $data['subject_id'] ?? null,
                 'topic_id' => $data['topic_id'] ?? null,
+                'source_material_id' => $data['source_material_id'] ?? null,
                 'difficulty' => $data['difficulty'] ?? null,
                 'source_type' => $data['source_type'] ?? null,
                 'quantity' => $data['quantity'],
@@ -66,20 +74,29 @@ class StudyController extends Controller
             ->when(!empty($data['corporation_id']), fn ($q) => $q->where('corporation_id', $data['corporation_id']))
             ->when(!empty($data['subject_id']), fn ($q) => $q->where('subject_id', $data['subject_id']))
             ->when(!empty($data['topic_id']), fn ($q) => $q->where('topic_id', $data['topic_id']))
+            ->when(!empty($data['source_material_id']), fn ($q) => $q->where('source_material_id', $data['source_material_id']))
             ->when(!empty($data['difficulty']), fn ($q) => $q->where('difficulty', $data['difficulty']))
             ->when(!empty($data['source_type']), fn ($q) => $q->where('source_type', $data['source_type']))
+            ->when($data['mode'] === 'review', function ($q) {
+                $q->whereHas('answers', function ($answer) {
+                    $answer->where('user_id', auth()->id())
+                        ->where('is_correct', false);
+                });
+            })
             ->inRandomOrder()
             ->limit($data['quantity'])
             ->get();
 
         if ($questions->isEmpty()) {
-            return back()->with('error', 'Nenhuma questão encontrada com os filtros informados.');
+            return back()->with('error', 'Nenhuma questão encontrada com os filtros informados.')->withInput();
         }
 
         $session = StudySession::query()->create([
             'user_id' => auth()->id(),
             'corporation_id' => $data['corporation_id'] ?? null,
             'subject_id' => $data['subject_id'] ?? null,
+            'topic_id' => $data['topic_id'] ?? null,
+            'source_material_id' => $data['source_material_id'] ?? null,
             'mode' => $data['mode'],
             'started_at' => now(),
         ]);
@@ -115,6 +132,7 @@ class StudyController extends Controller
                 'exam',
                 'subject',
                 'topic',
+                'sourceMaterial',
                 'alternatives',
                 'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
                 'comments.user',
@@ -152,6 +170,7 @@ class StudyController extends Controller
                 'exam',
                 'subject',
                 'topic',
+                'sourceMaterial',
                 'alternatives',
                 'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
                 'comments.user',
@@ -197,6 +216,7 @@ class StudyController extends Controller
             'exam',
             'subject',
             'topic',
+            'sourceMaterial',
             'alternatives',
             'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
             'comments.user',
@@ -214,9 +234,7 @@ class StudyController extends Controller
             'question' => $question,
             'currentItem' => $currentItem,
             'currentPosition' => $currentItem->position,
-            'totalQuestions' => StudySessionQuestion::query()
-                ->where('study_session_id', $session->id)
-                ->count(),
+            'totalQuestions' => StudySessionQuestion::query()->where('study_session_id', $session->id)->count(),
             'userAnswer' => $userAnswer,
         ]);
     }
@@ -233,7 +251,7 @@ class StudyController extends Controller
         abort_unless($session->user_id === auth()->id(), 403);
 
         $answers = UserAnswer::query()
-            ->with(['question.subject', 'question.topic'])
+            ->with(['question.subject', 'question.topic', 'question.sourceMaterial'])
             ->where('study_session_id', $session->id)
             ->where('user_id', auth()->id())
             ->get();
@@ -243,13 +261,6 @@ class StudyController extends Controller
         $incorrect = $answers->where('is_correct', false)->count();
         $accuracy = $total > 0 ? ($correct / $total) * 100 : 0;
 
-        return view('student.study.result', compact(
-            'session',
-            'answers',
-            'total',
-            'correct',
-            'incorrect',
-            'accuracy'
-        ));
+        return view('student.study.result', compact('session', 'answers', 'total', 'correct', 'incorrect', 'accuracy'));
     }
 }

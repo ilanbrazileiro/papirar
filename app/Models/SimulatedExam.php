@@ -12,11 +12,29 @@ class SimulatedExam extends Model
     use HasFactory;
 
     protected $fillable = [
-        'user_id', 'title', 'corporation_id', 'exam_id', 'subject_id', 'topic_id', 'difficulty', 'source_type',
-        'total_questions', 'correct_answers', 'accuracy', 'started_at', 'finished_at',
+        'user_id',
+        'title',
+        'corporation_id',
+        'exam_id',
+        'subject_id',
+        'topic_id',
+        'source_material_id',
+        'difficulty',
+        'source_type',
+        'total_questions',
+        'correct_answers',
+        'accuracy',
+        'started_at',
+        'finished_at',
     ];
 
     protected $casts = [
+        'user_id' => 'integer',
+        'corporation_id' => 'integer',
+        'exam_id' => 'integer',
+        'subject_id' => 'integer',
+        'topic_id' => 'integer',
+        'source_material_id' => 'integer',
         'total_questions' => 'integer',
         'correct_answers' => 'integer',
         'accuracy' => 'decimal:2',
@@ -29,6 +47,7 @@ class SimulatedExam extends Model
     public function exam(): BelongsTo { return $this->belongsTo(Exam::class); }
     public function subject(): BelongsTo { return $this->belongsTo(Subject::class); }
     public function topic(): BelongsTo { return $this->belongsTo(Topic::class); }
+    public function sourceMaterial(): BelongsTo { return $this->belongsTo(SourceMaterial::class, 'source_material_id'); }
     public function items(): HasMany { return $this->hasMany(SimulatedExamQuestion::class)->orderBy('position'); }
     public function questions(): HasMany { return $this->items(); }
 }

@@ -5,129 +5,155 @@
 @section('content')
     <div class="mb-4">
         <h1 class="page-title">Simulados</h1>
-        <p class="page-subtitle">Monte simulados com filtros e acompanhe o seu histórico.</p>
+        <p class="page-subtitle">Monte um simulado por corporação, disciplina, assunto, fonte, dificuldade e origem.</p>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-5">
-            <div class="card-soft p-4">
-                <div class="section-title">Criar simulado</div>
+    @if(session('error'))
+        <div class="alert alert-warning">{{ session('error') }}</div>
+    @endif
 
-                <form method="POST" action="{{ route('student.simulated.store') }}">
-                    @csrf
+    <div class="card-soft p-4 p-md-5 mb-4">
+        <form method="POST" action="{{ route('student.simulated.store') }}">
+            @csrf
 
-                    <div class="mb-3">
-                        <label class="form-label">Título</label>
-                        <input type="text" name="title" class="form-control" value="{{ old('title') }}" placeholder="Ex.: Simulado PMERJ - Constitucional">
-                    </div>
+            <div class="row g-4">
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Título do simulado</label>
+                    <input type="text" name="title" class="form-control" value="{{ old('title') }}" placeholder="Opcional">
+                </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Corporação</label>
-                            <select name="corporation_id" class="form-select">
-                                <option value="">Todas</option>
-                                @foreach($corporations as $corporation)
-                                    <option value="{{ $corporation->id }}" @selected(old('corporation_id', $savedFilter->corporation_id ?? null) == $corporation->id)>
-                                        {{ $corporation->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Corporação</label>
+                    <select name="corporation_id" class="form-select">
+                        <option value="">Todas</option>
+                        @foreach($corporations as $corporation)
+                            <option value="{{ $corporation->id }}" @selected(old('corporation_id', $savedFilter->corporation_id) == $corporation->id)>
+                                {{ $corporation->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Disciplina</label>
-                            <select name="subject_id" class="form-select">
-                                <option value="">Todas</option>
-                                @foreach($subjects as $subject)
-                                    <option value="{{ $subject->id }}" @selected(old('subject_id', $savedFilter->subject_id ?? null) == $subject->id)>
-                                        {{ $subject->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Quantidade</label>
+                    <input type="number" name="quantity" min="1" max="100" class="form-control" value="{{ old('quantity', $savedFilter->quantity ?? 20) }}" required>
+                </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Assunto</label>
-                            <select name="topic_id" class="form-select">
-                                <option value="">Todos</option>
-                                @foreach($topics as $topic)
-                                    <option value="{{ $topic->id }}" @selected(old('topic_id', $savedFilter->topic_id ?? null) == $topic->id)>
-                                        {{ $topic->name }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Disciplina</label>
+                    <select name="subject_id" class="form-select">
+                        <option value="">Todas</option>
+                        @foreach($subjects as $subject)
+                            <option value="{{ $subject->id }}" @selected(old('subject_id', $savedFilter->subject_id) == $subject->id)>
+                                {{ $subject->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Dificuldade</label>
-                            <select name="difficulty" class="form-select">
-                                <option value="">Todas</option>
-                                <option value="easy" @selected(old('difficulty', $savedFilter->difficulty ?? null) === 'easy')>Fácil</option>
-                                <option value="medium" @selected(old('difficulty', $savedFilter->difficulty ?? null) === 'medium')>Média</option>
-                                <option value="hard" @selected(old('difficulty', $savedFilter->difficulty ?? null) === 'hard')>Difícil</option>
-                            </select>
-                        </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Assunto</label>
+                    <select name="topic_id" class="form-select">
+                        <option value="">Todos</option>
+                        @foreach($topics as $topic)
+                            <option value="{{ $topic->id }}" @selected(old('topic_id', $savedFilter->topic_id) == $topic->id)>
+                                {{ $topic->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Origem</label>
-                            <select name="source_type" class="form-select">
-                                <option value="">Todas</option>
-                                <option value="official_exam" @selected(old('source_type', $savedFilter->source_type ?? null) === 'official_exam')>Prova oficial</option>
-                                <option value="authored" @selected(old('source_type', $savedFilter->source_type ?? null) === 'authored')>Autoral</option>
-                                <option value="adapted" @selected(old('source_type', $savedFilter->source_type ?? null) === 'adapted')>Adaptada</option>
-                            </select>
-                        </div>
+                <div class="col-md-4">
+                    <label class="form-label fw-semibold">Dificuldade</label>
+                    <select name="difficulty" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="easy" @selected(old('difficulty', $savedFilter->difficulty) === 'easy')>Fácil</option>
+                        <option value="medium" @selected(old('difficulty', $savedFilter->difficulty) === 'medium')>Média</option>
+                        <option value="hard" @selected(old('difficulty', $savedFilter->difficulty) === 'hard')>Difícil</option>
+                    </select>
+                </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Quantidade</label>
-                            <input type="number" name="quantity" min="1" max="200" class="form-control" value="{{ old('quantity', $savedFilter->quantity ?? 20) }}" required>
-                        </div>
-                    </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Fonte / Bibliografia</label>
+                    <select name="source_material_id" class="form-select">
+                        <option value="">Todas as fontes</option>
+                        @foreach($sourceMaterials as $material)
+                            <option value="{{ $material->id }}" @selected(old('source_material_id', $savedFilter->source_material_id) == $material->id)>
+                                {{ $material->title }}
+                                @if($material->subject)
+                                    — {{ $material->subject->name }}
+                                @endif
+                                @if($material->corporation)
+                                    — {{ $material->corporation->name }}
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
 
-                    <button class="btn btn-primary w-100 mt-4">Gerar simulado</button>
-                </form>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Origem</label>
+                    <select name="source_type" class="form-select">
+                        <option value="">Todas</option>
+                        <option value="exam" @selected(old('source_type', $savedFilter->source_type) === 'exam')>Prova oficial</option>
+                        <option value="authored" @selected(old('source_type', $savedFilter->source_type) === 'authored')>Autoral</option>
+                        <option value="adapted" @selected(old('source_type', $savedFilter->source_type) === 'adapted')>Adaptada</option>
+                    </select>
+                </div>
             </div>
-        </div>
 
-        <div class="col-lg-7">
-            <div class="card-soft p-4">
-                <div class="section-title">Histórico</div>
-
-                @if($simulatedExams->count())
-                    <div class="table-responsive">
-                        <table class="table align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Título</th>
-                                    <th>Questões</th>
-                                    <th>Acurácia</th>
-                                    <th>Status</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                @foreach($simulatedExams as $exam)
-                                    <tr>
-                                        <td class="fw-semibold">{{ $exam->title }}</td>
-                                        <td>{{ $exam->total_questions }}</td>
-                                        <td>{{ number_format((float) $exam->accuracy, 2, ',', '.') }}%</td>
-                                        <td>{{ $exam->finished_at ? 'Finalizado' : 'Em andamento' }}</td>
-                                        <td class="text-end">
-                                            <a href="{{ route('student.simulated.show', $exam) }}" class="btn btn-sm btn-outline-primary">Abrir</a>
-                                        </td>
-                                    </tr>
-                                @endforeach
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="mt-3">
-                        {{ $simulatedExams->links() }}
-                    </div>
-                @else
-                    <div class="small-muted">Nenhum simulado criado.</div>
-                @endif
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary btn-lg px-4">Gerar simulado</button>
             </div>
-        </div>
+        </form>
+    </div>
+
+    <div class="card-soft p-4">
+        <h2 class="h5 mb-3">Meus simulados</h2>
+
+        @if($simulatedExams->count())
+            <div class="table-responsive">
+                <table class="table align-middle">
+                    <thead>
+                        <tr>
+                            <th>Título</th>
+                            <th>Questões</th>
+                            <th>Acertos</th>
+                            <th>Aproveitamento</th>
+                            <th>Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($simulatedExams as $exam)
+                            <tr>
+                                <td>{{ $exam->title }}</td>
+                                <td>{{ $exam->total_questions }}</td>
+                                <td>{{ $exam->correct_answers }}</td>
+                                <td>{{ number_format((float) $exam->accuracy, 2, ',', '.') }}%</td>
+                                <td>
+                                    @if($exam->finished_at)
+                                        <span class="badge bg-success">Finalizado</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Em andamento</span>
+                                    @endif
+                                </td>
+                                <td class="text-end">
+                                    @if($exam->finished_at)
+                                        <a href="{{ route('student.simulated.result', $exam) }}" class="btn btn-sm btn-outline-primary">Resultado</a>
+                                    @else
+                                        <a href="{{ route('student.simulated.show', $exam) }}" class="btn btn-sm btn-primary">Continuar</a>
+                                    @endif
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+
+            {{ $simulatedExams->links() }}
+        @else
+            <p class="text-muted mb-0">Você ainda não gerou nenhum simulado.</p>
+        @endif
     </div>
 @endsection

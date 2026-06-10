@@ -6,7 +6,7 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h1 class="page-title">Estudar por concurso</h1>
-            <p class="page-subtitle">Escolha seu objetivo. O Papirar carrega as disciplinas do concurso e monta uma sessão com questões compatíveis.</p>
+            <p class="page-subtitle">Escolha seu objetivo. O Papirar carrega as disciplinas do concurso e monta uma sessão respeitando as fontes/bibliografias vinculadas.</p>
         </div>
         <a href="{{ route('student.study.index') }}" class="btn btn-outline-primary">Filtro livre</a>
     </div>
@@ -57,6 +57,9 @@
                 <div id="subjectsBox" class="border rounded p-3 bg-light">
                     <div class="text-muted">Selecione um concurso para carregar as disciplinas.</div>
                 </div>
+                <div class="small text-muted mt-2">
+                    Quando houver bibliografia vinculada à disciplina, o sistema só buscará questões daquela fonte/material.
+                </div>
             </div>
 
             <div class="row g-4 mt-1">
@@ -80,8 +83,8 @@
             </div>
 
             <div class="alert alert-info mt-4 mb-0">
-                <strong>Regra de reaproveitamento:</strong>
-                disciplinas gerais podem trazer questões de outras corporações. Disciplinas específicas, como legislação PMERJ ou CBMERJ, ficam restritas à corporação do concurso.
+                <strong>Regra de fontes:</strong>
+                se uma disciplina do concurso tiver fonte/bibliografia vinculada no admin, as questões serão filtradas por essa fonte. Se ainda não houver fonte vinculada, o sistema mantém o comportamento anterior para não bloquear o estudo durante a transição.
             </div>
 
             <div class="d-flex justify-content-end mt-4">
@@ -170,15 +173,23 @@
                 subjects.forEach((subject) => {
                     const col = document.createElement('div');
                     col.className = 'col-md-6 col-lg-4';
+
+                    const materials = Array.isArray(subject.source_materials) ? subject.source_materials : [];
+                    const materialsHtml = materials.length
+                        ? `<span class="small text-success d-block mt-1">Fonte: ${materials.join(' | ')}</span>`
+                        : `<span class="small text-muted d-block mt-1">Sem fonte específica vinculada</span>`;
+
                     col.innerHTML = `
                         <label class="border rounded bg-white p-3 d-flex gap-2 align-items-start h-100" style="cursor:pointer;">
                             <input type="checkbox" name="subject_ids[]" value="${subject.id}" checked class="form-check-input mt-1">
                             <span>
                                 <span class="fw-semibold d-block">${subject.name}</span>
                                 <span class="small text-muted">${subject.scope_label}</span>
+                                ${materialsHtml}
                             </span>
                         </label>
                     `;
+
                     row.appendChild(col);
                 });
 

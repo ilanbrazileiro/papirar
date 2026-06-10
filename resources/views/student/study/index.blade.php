@@ -5,9 +5,13 @@
 @section('content')
     <div class="mb-4">
         <h1 class="page-title">Filtro livre de questões</h1>
-        <p class="page-subtitle">Monte manualmente uma sessão por corporação, disciplina, assunto, dificuldade e origem.</p>
+        <p class="page-subtitle">Monte manualmente uma sessão por corporação, disciplina, assunto, fonte, dificuldade e origem.</p>
         <a href="{{ route('student.study.index') }}" class="btn btn-sm btn-outline-secondary mt-2">Voltar para formas de estudo</a>
     </div>
+
+    @if(session('error'))
+        <div class="alert alert-warning">{{ session('error') }}</div>
+    @endif
 
     <div class="card-soft p-4 p-md-5">
         <form method="POST" action="{{ route('student.study.start') }}">
@@ -61,7 +65,26 @@
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Quantidade</label>
-                    <input type="number" name="quantity" min="1" max="200" class="form-control" value="{{ old('quantity', $savedFilter->quantity ?? 10) }}" required>
+                    <input type="number" name="quantity" min="1" max="100" class="form-control" value="{{ old('quantity', $savedFilter->quantity ?? 10) }}" required>
+                </div>
+
+                <div class="col-md-12">
+                    <label class="form-label fw-semibold">Fonte / Bibliografia</label>
+                    <select name="source_material_id" class="form-select">
+                        <option value="">Todas as fontes</option>
+                        @foreach($sourceMaterials as $material)
+                            <option value="{{ $material->id }}" @selected(old('source_material_id', $savedFilter->source_material_id) == $material->id)>
+                                {{ $material->title }}
+                                @if($material->subject)
+                                    — {{ $material->subject->name }}
+                                @endif
+                                @if($material->corporation)
+                                    — {{ $material->corporation->name }}
+                                @endif
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="small text-muted mt-1">Use este filtro para estudar apenas questões vinculadas a um manual, lei, norma ou edital específico.</div>
                 </div>
 
                 <div class="col-md-6">

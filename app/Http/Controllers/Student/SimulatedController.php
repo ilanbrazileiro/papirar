@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\SavedFilter;
 use App\Models\SimulatedExam;
 use App\Models\SimulatedExamQuestion;
+use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
 use Illuminate\Http\RedirectResponse;
@@ -34,6 +35,11 @@ class SimulatedController extends Controller
             'corporations' => Corporation::query()->where('active', true)->orderBy('name')->get(),
             'subjects' => Subject::query()->where('active', true)->orderBy('name')->get(),
             'topics' => Topic::query()->where('active', true)->orderBy('name')->get(),
+            'sourceMaterials' => SourceMaterial::query()
+                ->where('active', true)
+                ->with(['corporation', 'subject'])
+                ->orderBy('title')
+                ->get(),
         ]);
     }
 
@@ -44,8 +50,9 @@ class SimulatedController extends Controller
             'corporation_id' => ['nullable', 'integer', 'exists:corporations,id'],
             'subject_id' => ['nullable', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
+            'source_material_id' => ['nullable', 'integer', 'exists:source_materials,id'],
             'difficulty' => ['nullable', 'in:easy,medium,hard'],
-            'source_type' => ['nullable', 'in:official_exam,authored,adapted'],
+            'source_type' => ['nullable', 'in:exam,authored,adapted'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
         ]);
 
@@ -54,6 +61,7 @@ class SimulatedController extends Controller
             ->when(!empty($data['corporation_id']), fn ($q) => $q->where('corporation_id', $data['corporation_id']))
             ->when(!empty($data['subject_id']), fn ($q) => $q->where('subject_id', $data['subject_id']))
             ->when(!empty($data['topic_id']), fn ($q) => $q->where('topic_id', $data['topic_id']))
+            ->when(!empty($data['source_material_id']), fn ($q) => $q->where('source_material_id', $data['source_material_id']))
             ->when(!empty($data['difficulty']), fn ($q) => $q->where('difficulty', $data['difficulty']))
             ->when(!empty($data['source_type']), fn ($q) => $q->where('source_type', $data['source_type']))
             ->inRandomOrder()
@@ -61,7 +69,7 @@ class SimulatedController extends Controller
             ->get();
 
         if ($questions->isEmpty()) {
-            return back()->with('error', 'Nenhuma questão encontrada com os filtros informados.');
+            return back()->with('error', 'Nenhuma questão encontrada com os filtros informados.')->withInput();
         }
 
         $title = trim((string) ($data['title'] ?? '')) ?: 'Simulado ' . now()->format('d/m/Y H:i');
@@ -70,6 +78,12 @@ class SimulatedController extends Controller
             $simulatedExam = SimulatedExam::query()->create([
                 'user_id' => auth()->id(),
                 'title' => $title,
+                'corporation_id' => $data['corporation_id'] ?? null,
+                'subject_id' => $data['subject_id'] ?? null,
+                'topic_id' => $data['topic_id'] ?? null,
+                'source_material_id' => $data['source_material_id'] ?? null,
+                'difficulty' => $data['difficulty'] ?? null,
+                'source_type' => $data['source_type'] ?? null,
                 'total_questions' => $questions->count(),
                 'correct_answers' => 0,
                 'accuracy' => 0,
@@ -90,6 +104,7 @@ class SimulatedController extends Controller
                     'corporation_id' => $data['corporation_id'] ?? null,
                     'subject_id' => $data['subject_id'] ?? null,
                     'topic_id' => $data['topic_id'] ?? null,
+                    'source_material_id' => $data['source_material_id'] ?? null,
                     'difficulty' => $data['difficulty'] ?? null,
                     'source_type' => $data['source_type'] ?? null,
                     'quantity' => $data['quantity'],
@@ -108,7 +123,7 @@ class SimulatedController extends Controller
         abort_unless($simulatedExam->user_id === auth()->id(), 403);
 
         $items = SimulatedExamQuestion::query()
-            ->with(['question.corporation', 'question.exam', 'question.subject', 'question.topic', 'question.alternatives'])
+            ->with(['question.corporation', 'question.exam', 'question.subject', 'question.topic', 'question.sourceMaterial', 'question.alternatives'])
             ->where('simulated_exam_id', $simulatedExam->id)
             ->orderBy('position')
             ->get();
@@ -120,7 +135,6 @@ class SimulatedController extends Controller
         $requestedPosition = max(1, (int) $request->get('question', 1));
         $currentItem = $items->firstWhere('position', $requestedPosition) ?? $items->first();
         $question = $currentItem->question;
-
         $answeredCount = $items->whereNotNull('answered_at')->count();
         $currentPosition = (int) $currentItem->position;
         $previousItem = $items->firstWhere('position', $currentPosition - 1);
@@ -198,7 +212,7 @@ class SimulatedController extends Controller
         abort_unless($simulatedExam->user_id === auth()->id(), 403);
 
         $items = SimulatedExamQuestion::query()
-            ->with(['question.subject', 'question.topic', 'question.exam'])
+            ->with(['question.subject', 'question.topic', 'question.exam', 'question.sourceMaterial'])
             ->where('simulated_exam_id', $simulatedExam->id)
             ->orderBy('position')
             ->get();
