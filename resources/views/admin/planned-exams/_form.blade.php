@@ -28,7 +28,7 @@
         <div class="row g-3">
             <div class="col-md-6">
                 <label for="corporation_id" class="form-label">Corporação</label>
-                <select name="corporation_id" id="corporation_id" class="form-select @error('corporation_id') is-invalid @enderror" required>
+                <select name="corporation_id" id="corporation_id" class="form-control @error('corporation_id') is-invalid @enderror" required>
                     <option value="">Selecione...</option>
                     @foreach($corporations as $corporation)
                         <option value="{{ $corporation->id }}" @selected((int) old('corporation_id', $exam->corporation_id) === (int) $corporation->id)>
@@ -59,7 +59,7 @@
 
             <div class="col-md-3">
                 <label for="status" class="form-label">Status</label>
-                <select name="status" id="status" class="form-select @error('status') is-invalid @enderror" required>
+                <select name="status" id="status" class="form-control @error('status') is-invalid @enderror" required>
                     <option value="planned" @selected(old('status', $exam->status ?? 'planned') === 'planned')>Previsto</option>
                     <option value="published" @selected(old('status', $exam->status ?? 'planned') === 'published')>Publicado</option>
                 </select>

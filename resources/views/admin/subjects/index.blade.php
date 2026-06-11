@@ -26,10 +26,10 @@
         </form>
     </div>
 
-    <div class="panel p-4">
+   <div class="card">
         @if($subjects->count())
-            <div class="table-responsive">
-                <table class="table align-middle">
+           <div class="card-body table-responsive p-0">
+                <table class="table table-hover mb-0">
                     <thead>
                         <tr>
                             <th>Nome</th>

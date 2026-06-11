@@ -23,7 +23,7 @@
                     <input type="text" name="search" class="form-control" placeholder="Buscar por título, slug, referência..." value="{{ $search }}">
                 </div>
                 <div class="col-md-3">
-                    <select name="corporation_id" class="form-select">
+                    <select name="corporation_id" class="form-control">
                         <option value="">Todas as corporações</option>
                         @foreach($corporations as $corporation)
                             <option value="{{ $corporation->id }}" @selected((string) $corporationId === (string) $corporation->id)>{{ $corporation->name }}</option>
@@ -31,7 +31,7 @@
                     </select>
                 </div>
                 <div class="col-md-3">
-                    <select name="subject_id" class="form-select">
+                    <select name="subject_id" class="form-control">
                         <option value="">Todas as disciplinas</option>
                         @foreach($subjects as $subject)
                             <option value="{{ $subject->id }}" @selected((string) $subjectId === (string) $subject->id)>{{ $subject->name }}</option>
@@ -39,7 +39,7 @@
                     </select>
                 </div>
                 <div class="col-md-2">
-                    <select name="active" class="form-select">
+                    <select name="active" class="form-control">
                         <option value="">Todos</option>
                         <option value="1" @selected((string) $active === '1')>Ativos</option>
                         <option value="0" @selected((string) $active === '0')>Inativos</option>

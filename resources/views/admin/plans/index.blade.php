@@ -6,8 +6,8 @@
     <a class="btn btn-primary" href="{{ route('admin.plans.create') }}">Novo plano</a>
 </div>
 
-<div class="card-soft p-4">
-    <table class="table align-middle">
+<div class="card-body table-responsive p-0">
+                <table class="table table-hover mb-0">
         <thead>
             <tr>
                 <th>Nome</th>
