@@ -1,2 +1,22 @@
 @extends('layouts.admin')
-@section('content')<div class="card-soft p-4"><h1 class="page-title mb-4">Editar colaborador</h1><form method="POST" action="{{ route('admin.collaborators.update',$collaborator) }}">@csrf @method('PUT')<div class="row g-3"><div class="col-md-6"><label class="form-label">Nome</label><input class="form-control" name="name" value="{{ old('name',$collaborator->name) }}" required></div><div class="col-md-6"><label class="form-label">E-mail</label><input class="form-control" name="email" value="{{ old('email',$collaborator->email) }}" required></div><div class="col-md-6"><label class="form-label">Perfil</label><select class="form-select" name="role">@foreach(['admin','moderator','finance','marketing','content'] as $role)<option value="{{ $role }}" @selected(old('role',$collaborator->role)===$role)>{{ $role }}</option>@endforeach</select></div></div><button class="btn btn-primary mt-4">Salvar</button></form></div>@endsection
+
+@section('title', 'Editar colaborador | Papirar')
+
+@section('content')
+<div class="mb-4">
+    <h1 class="h3 mb-1">Editar colaborador</h1>
+    <p class="text-muted mb-0">Atualize dados, perfil, status ou senha do colaborador.</p>
+</div>
+
+<form method="POST" action="{{ route('admin.collaborators.update', $collaborator) }}">
+    @method('PUT')
+    @include('admin.collaborators._form')
+</form>
+
+@if($collaborator->id !== auth()->id())
+    <form id="delete-collaborator-form" method="POST" action="{{ route('admin.collaborators.destroy', $collaborator) }}" class="d-none" onsubmit="return confirm('Tem certeza que deseja remover este colaborador?');">
+        @csrf
+        @method('DELETE')
+    </form>
+@endif
+@endsection
