@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\TopicController;
 use App\Http\Controllers\Admin\EditorImageUploadController;
 use App\Http\Controllers\Admin\SourceMaterialController;
 use App\Http\Controllers\Admin\ExamSubjectSourceMaterialController;
+use App\Http\Controllers\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -123,10 +124,12 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('topics', TopicController::class);
             Route::resource('source-materials', SourceMaterialController::class);
 
-            Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])
-                ->name('exams.source-materials.edit');
-            Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])
-                ->name('exams.source-materials.update');
+            Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])->name('exams.source-materials.edit');
+            Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])->name('exams.source-materials.update');
+
+            Route::get('/minha-conta', [AdminAccountController::class, 'edit'])->name('account.edit');
+            Route::put('/minha-conta', [AdminAccountController::class, 'update'])->name('account.update');
+            Route::put('/minha-conta/senha', [AdminAccountController::class, 'updatePassword'])->name('account.password.update');
 
             Route::resource('plans', PlanController::class);
             Route::resource('collaborators', CollaboratorController::class);

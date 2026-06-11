@@ -8,57 +8,37 @@ use Symfony\Component\HttpFoundation\Response;
 
 class EnsureAdminContentAccess
 {
-    /**
-     * Limita o perfil administrativo "content" apenas às áreas de conteúdo e suporte.
-     * Demais perfis administrativos continuam com acesso normal.
-     */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
-        if (! $user || ($user->role ?? null) !== 'content') {
+        if (! $user || $user->role !== 'content') {
             return $next($request);
         }
 
-        $routeName = $request->route()?->getName();
-
-        if ($routeName === 'admin.dashboard') {
+        if ($request->routeIs('admin.dashboard')) {
             return redirect()->route('admin.content.dashboard');
         }
 
-        $allowedExactRoutes = [
+        if ($request->routeIs([
             'admin.content.dashboard',
-            'admin.editor-images.upload',
-            'admin.questions.ajax.exams',
-            'admin.questions.ajax.topics',
-            'admin.questions.ajax-source-materials',
-            'admin.questions.import.template',
-            'admin.questions.import.topics-csv',
-            'admin.questions.import.source-materials-csv',
-        ];
-
-        if (in_array($routeName, $allowedExactRoutes, true)) {
+            'admin.account.edit',
+            'admin.account.update',
+            'admin.account.password.update',
+            'admin.questions.*',
+            'admin.editor-images.*',
+            'admin.comments.*',
+            'admin.corporations.*',
+            'admin.subjects.*',
+            'admin.topics.*',
+            'admin.source-materials.*',
+            'admin.exams.*',
+            'admin.planned-exams.*',
+            'admin.tickets.*',
+        ])) {
             return $next($request);
         }
 
-        $allowedPrefixes = [
-            'admin.questions.',
-            'admin.comments.',
-            'admin.corporations.',
-            'admin.subjects.',
-            'admin.topics.',
-            'admin.source-materials.',
-            'admin.exams.',
-            'admin.planned-exams.',
-            'admin.tickets.',
-        ];
-
-        foreach ($allowedPrefixes as $prefix) {
-            if ($routeName && str_starts_with($routeName, $prefix)) {
-                return $next($request);
-            }
-        }
-
-        abort(403, 'Seu perfil de colaborador permite acesso apenas às áreas de conteúdo e suporte.');
+        abort(403, 'Você não tem permissão para acessar esta área.');
     }
 }
