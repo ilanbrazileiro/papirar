@@ -63,7 +63,7 @@
         <div class="collapse navbar-collapse" id="studentNav">
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
                 <li class="nav-item"><a class="nav-link" href="{{ route('student.dashboard') }}">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('student.study.index') }}">Estudar</a></li>
+                <li class="nav-item"><a class="nav-link" href="{{ route('student.exam-study.index') }}">Estudar</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('student.simulated.index') }}">Simulados</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('student.subscriptions.index') }}">Assinatura</a></li>
                 <li class="nav-item"><a class="nav-link" href="{{ route('student.tickets.index') }}">Suporte</a></li>

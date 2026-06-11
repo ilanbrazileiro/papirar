@@ -24,7 +24,9 @@ class SimulatedExam extends Model
         'total_questions',
         'correct_answers',
         'accuracy',
+        'duration_minutes',
         'started_at',
+        'ends_at',
         'finished_at',
     ];
 
@@ -38,16 +40,61 @@ class SimulatedExam extends Model
         'total_questions' => 'integer',
         'correct_answers' => 'integer',
         'accuracy' => 'decimal:2',
+        'duration_minutes' => 'integer',
         'started_at' => 'datetime',
+        'ends_at' => 'datetime',
         'finished_at' => 'datetime',
     ];
 
-    public function user(): BelongsTo { return $this->belongsTo(User::class); }
-    public function corporation(): BelongsTo { return $this->belongsTo(Corporation::class); }
-    public function exam(): BelongsTo { return $this->belongsTo(Exam::class); }
-    public function subject(): BelongsTo { return $this->belongsTo(Subject::class); }
-    public function topic(): BelongsTo { return $this->belongsTo(Topic::class); }
-    public function sourceMaterial(): BelongsTo { return $this->belongsTo(SourceMaterial::class, 'source_material_id'); }
-    public function items(): HasMany { return $this->hasMany(SimulatedExamQuestion::class)->orderBy('position'); }
-    public function questions(): HasMany { return $this->items(); }
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class);
+    }
+
+    public function corporation(): BelongsTo
+    {
+        return $this->belongsTo(Corporation::class);
+    }
+
+    public function exam(): BelongsTo
+    {
+        return $this->belongsTo(Exam::class);
+    }
+
+    public function subject(): BelongsTo
+    {
+        return $this->belongsTo(Subject::class);
+    }
+
+    public function topic(): BelongsTo
+    {
+        return $this->belongsTo(Topic::class);
+    }
+
+    public function sourceMaterial(): BelongsTo
+    {
+        return $this->belongsTo(SourceMaterial::class, 'source_material_id');
+    }
+
+    public function items(): HasMany
+    {
+        return $this->hasMany(SimulatedExamQuestion::class)->orderBy('position');
+    }
+
+    public function questions(): HasMany
+    {
+        return $this->items();
+    }
+
+    public function isFinished(): bool
+    {
+        return !is_null($this->finished_at);
+    }
+
+    public function isExpired(): bool
+    {
+        return !$this->isFinished()
+            && !is_null($this->ends_at)
+            && now()->greaterThanOrEqualTo($this->ends_at);
+    }
 }
