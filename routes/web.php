@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Admin\CollaboratorController;
 use App\Http\Controllers\Admin\CommentModerationController;
+use App\Http\Controllers\Admin\ContentDashboardController;
 use App\Http\Controllers\Admin\CorporationController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
@@ -44,8 +45,6 @@ use App\Http\Middleware\EnsureSingleSession;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
-
-
 
 Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('auth.login');
@@ -108,52 +107,55 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/estudo-por-concurso/iniciar', [ExamStudyController::class, 'start'])->name('exam-study.start');
             Route::get('/estudo-por-concurso/corporations/{corporation}/exams', [ExamStudyController::class, 'examsByCorporation'])->name('exam-study.corporations.exams');
             Route::get('/estudo-por-concurso/exams/{exam}/subjects', [ExamStudyController::class, 'subjectsByExam'])->name('exam-study.exams.subjects');
-            
         });
     });
 
-    Route::prefix('admin')->name('admin.')->middleware([EnsureAdmin::class, EnsureAdminContentAccess::class])->group(function () {
-        Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
-        Route::resource('corporations', CorporationController::class);
-        Route::resource('exams', ExamController::class);
-        Route::resource('subjects', SubjectController::class);
-        Route::resource('topics', TopicController::class);
-        Route::resource('source-materials', SourceMaterialController::class);
+    Route::prefix('admin')
+        ->name('admin.')
+        ->middleware([EnsureAdmin::class, EnsureAdminContentAccess::class])
+        ->group(function () {
+            Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
+            Route::get('/conteudo/dashboard', ContentDashboardController::class)->name('content.dashboard');
 
-        Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])
-            ->name('exams.source-materials.edit');
-        Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])
-            ->name('exams.source-materials.update');
+            Route::resource('corporations', CorporationController::class);
+            Route::resource('exams', ExamController::class);
+            Route::resource('subjects', SubjectController::class);
+            Route::resource('topics', TopicController::class);
+            Route::resource('source-materials', SourceMaterialController::class);
 
-        Route::resource('plans', PlanController::class);
-        Route::resource('collaborators', CollaboratorController::class);
-        Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
-        Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
-        Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
-        
-        Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
-        Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
-        Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');
-        Route::get('questions/import/template', [QuestionImportController::class, 'downloadTemplate'])->name('questions.import.template');
-        Route::get('questions/ajax/exams', [QuestionController::class, 'ajaxExams'])->name('questions.ajax.exams');
-        Route::get('questions/ajax/topics', [QuestionController::class, 'ajaxTopics'])->name('questions.ajax.topics');
-        Route::resource('questions', QuestionController::class);
-        Route::post('/editor/images/upload', [EditorImageUploadController::class, 'store'])->name('editor-images.upload');
-        Route::get('questions/ajax/source-materials', [QuestionController::class, 'ajaxSourceMaterials'])
-            ->name('questions.ajax-source-materials');
+            Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])
+                ->name('exams.source-materials.edit');
+            Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])
+                ->name('exams.source-materials.update');
 
-        Route::get('questions/import/source-materials-csv', [QuestionImportController::class, 'downloadSourceMaterialsCsv'])
-            ->name('questions.import.source-materials-csv');
-                
-        Route::get('/comentarios', [CommentModerationController::class, 'index'])->name('comments.index');
-        Route::patch('/comentarios/{comment}/aprovar', [CommentModerationController::class, 'approve'])->name('comments.approve');
-        Route::patch('/comentarios/{comment}/rejeitar', [CommentModerationController::class, 'reject'])->name('comments.reject');
-        Route::get('/tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
-        Route::get('/tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
-        Route::post('/tickets/{ticket}/mensagens', [AdminTicketController::class, 'reply'])->name('tickets.reply');
-        Route::patch('/tickets/{ticket}/status', [AdminTicketController::class, 'updateStatus'])->name('tickets.status.update');
-        Route::get('/questions/import/topics-csv', [QuestionImportController::class, 'downloadTopicsCsv'])->name('questions.import.topics-csv');
-        Route::resource('planned-exams', PlannedExamController::class)->except(['show', 'destroy'])->names('planned-exams');
+            Route::resource('plans', PlanController::class);
+            Route::resource('collaborators', CollaboratorController::class);
+            Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
+            Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
+            Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
+            
+            Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
+            Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
+            Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');
+            Route::get('questions/import/template', [QuestionImportController::class, 'downloadTemplate'])->name('questions.import.template');
+            Route::get('questions/ajax/exams', [QuestionController::class, 'ajaxExams'])->name('questions.ajax.exams');
+            Route::get('questions/ajax/topics', [QuestionController::class, 'ajaxTopics'])->name('questions.ajax.topics');
+            Route::resource('questions', QuestionController::class);
+            Route::post('/editor/images/upload', [EditorImageUploadController::class, 'store'])->name('editor-images.upload');
+            Route::get('questions/ajax/source-materials', [QuestionController::class, 'ajaxSourceMaterials'])
+                ->name('questions.ajax-source-materials');
 
+            Route::get('questions/import/source-materials-csv', [QuestionImportController::class, 'downloadSourceMaterialsCsv'])
+                ->name('questions.import.source-materials-csv');
+                    
+            Route::get('/comentarios', [CommentModerationController::class, 'index'])->name('comments.index');
+            Route::patch('/comentarios/{comment}/aprovar', [CommentModerationController::class, 'approve'])->name('comments.approve');
+            Route::patch('/comentarios/{comment}/rejeitar', [CommentModerationController::class, 'reject'])->name('comments.reject');
+            Route::get('/tickets', [AdminTicketController::class, 'index'])->name('tickets.index');
+            Route::get('/tickets/{ticket}', [AdminTicketController::class, 'show'])->name('tickets.show');
+            Route::post('/tickets/{ticket}/mensagens', [AdminTicketController::class, 'reply'])->name('tickets.reply');
+            Route::patch('/tickets/{ticket}/status', [AdminTicketController::class, 'updateStatus'])->name('tickets.status.update');
+            Route::get('/questions/import/topics-csv', [QuestionImportController::class, 'downloadTopicsCsv'])->name('questions.import.topics-csv');
+            Route::resource('planned-exams', PlannedExamController::class)->except(['show', 'destroy'])->names('planned-exams');
         });
 });
