@@ -39,6 +39,7 @@ use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureAdmin;
+use App\Http\Middleware\EnsureAdminContentAccess;
 use App\Http\Middleware\EnsureSingleSession;
 use Illuminate\Support\Facades\Route;
 
@@ -111,7 +112,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         });
     });
 
-    Route::prefix('admin')->name('admin.')->middleware([EnsureAdmin::class])->group(function () {
+    Route::prefix('admin')->name('admin.')->middleware([EnsureAdmin::class, EnsureAdminContentAccess::class])->group(function () {
         Route::get('/dashboard', [AdminDashboardController::class, 'index'])->name('dashboard');
         Route::resource('corporations', CorporationController::class);
         Route::resource('exams', ExamController::class);
