@@ -1,10 +1,12 @@
 @php
     $user = auth()->user();
     $isContent = ($user->role ?? null) === 'content';
+
+    $questionMenuOpen = request()->routeIs('admin.questions.*') || request()->is('admin/questions*');
 @endphp
 
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="{{ $isContent ? route('admin.content.dashboard') : route('admin.dashboard') }}" class="brand-link text-center">
+    <a href="{{ $isContent && Route::has('admin.content.dashboard') ? route('admin.content.dashboard') : route('admin.dashboard') }}" class="brand-link">
         <span class="brand-text font-weight-light">Papirar Admin</span>
     </a>
 
@@ -12,12 +14,14 @@
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
                 @if($isContent)
-                    <li class="nav-item">
-                        <a href="{{ route('admin.content.dashboard') }}" class="nav-link {{ request()->routeIs('admin.content.dashboard') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-tachometer-alt"></i>
-                            <p>Dashboard de Conteúdo</p>
-                        </a>
-                    </li>
+                    @if(Route::has('admin.content.dashboard'))
+                        <li class="nav-item">
+                            <a href="{{ route('admin.content.dashboard') }}" class="nav-link {{ request()->routeIs('admin.content.dashboard') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-tachometer-alt"></i>
+                                <p>Dashboard de Conteúdo</p>
+                            </a>
+                        </li>
+                    @endif
                 @else
                     <li class="nav-header">DASHBOARDS</li>
                     <li class="nav-item">
@@ -26,10 +30,11 @@
                             <p>Dashboard Geral</p>
                         </a>
                     </li>
+
                     @if(Route::has('admin.content.dashboard'))
                         <li class="nav-item">
                             <a href="{{ route('admin.content.dashboard') }}" class="nav-link {{ request()->routeIs('admin.content.dashboard') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-chart-bar"></i>
+                                <i class="nav-icon fas fa-chart-line"></i>
                                 <p>Dashboard de Conteúdo</p>
                             </a>
                         </li>
@@ -39,11 +44,47 @@
                 <li class="nav-header">CONTEÚDO</li>
 
                 @if(Route::has('admin.questions.index'))
-                    <li class="nav-item">
-                        <a href="{{ route('admin.questions.index') }}" class="nav-link {{ request()->routeIs('admin.questions.*') && ! request()->routeIs('admin.questions.import.*') ? 'active' : '' }}">
+                    <li class="nav-item {{ $questionMenuOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $questionMenuOpen ? 'active' : '' }}">
                             <i class="nav-icon fas fa-question-circle"></i>
-                            <p>Questões</p>
+                            <p>
+                                Questões
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav nav-treeview">
+                            @if(Route::has('admin.questions.create'))
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.questions.create') }}" class="nav-link {{ request()->routeIs('admin.questions.create') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Adicionar</p>
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if(Route::has('admin.questions.drafts'))
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.questions.drafts') }}" class="nav-link {{ request()->routeIs('admin.questions.drafts') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Rascunhos</p>
+                                    </a>
+                                </li>
+                            @else
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.questions.index', ['status' => 'draft']) }}" class="nav-link {{ request('status') === 'draft' ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Rascunhos</p>
+                                    </a>
+                                </li>
+                            @endif
+
+                            <li class="nav-item">
+                                <a href="{{ route('admin.questions.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Todas</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
                 @endif
 
@@ -95,7 +136,7 @@
                 @if(Route::has('admin.source-materials.index'))
                     <li class="nav-item">
                         <a href="{{ route('admin.source-materials.index') }}" class="nav-link {{ request()->routeIs('admin.source-materials.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-folder-open"></i>
+                            <i class="nav-icon fas fa-book-open"></i>
                             <p>Fontes e bibliografias</p>
                         </a>
                     </li>
@@ -104,7 +145,7 @@
                 @if(Route::has('admin.corporations.index'))
                     <li class="nav-item">
                         <a href="{{ route('admin.corporations.index') }}" class="nav-link {{ request()->routeIs('admin.corporations.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-shield-alt"></i>
+                            <i class="nav-icon fas fa-building"></i>
                             <p>Corporações</p>
                         </a>
                     </li>
