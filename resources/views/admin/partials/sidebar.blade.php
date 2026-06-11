@@ -11,12 +11,30 @@
     <div class="sidebar">
         <nav class="mt-2">
             <ul class="nav nav-pills nav-sidebar flex-column" data-widget="treeview" role="menu" data-accordion="false">
-                <li class="nav-item">
-                    <a href="{{ $isContent ? route('admin.content.dashboard') : route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') || request()->routeIs('admin.content.dashboard') ? 'active' : '' }}">
-                        <i class="nav-icon fas fa-tachometer-alt"></i>
-                        <p>Dashboard</p>
-                    </a>
-                </li>
+                @if($isContent)
+                    <li class="nav-item">
+                        <a href="{{ route('admin.content.dashboard') }}" class="nav-link {{ request()->routeIs('admin.content.dashboard') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>Dashboard de Conteúdo</p>
+                        </a>
+                    </li>
+                @else
+                    <li class="nav-header">DASHBOARDS</li>
+                    <li class="nav-item">
+                        <a href="{{ route('admin.dashboard') }}" class="nav-link {{ request()->routeIs('admin.dashboard') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-tachometer-alt"></i>
+                            <p>Dashboard Geral</p>
+                        </a>
+                    </li>
+                    @if(Route::has('admin.content.dashboard'))
+                        <li class="nav-item">
+                            <a href="{{ route('admin.content.dashboard') }}" class="nav-link {{ request()->routeIs('admin.content.dashboard') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-chart-bar"></i>
+                                <p>Dashboard de Conteúdo</p>
+                            </a>
+                        </li>
+                    @endif
+                @endif
 
                 <li class="nav-header">CONTEÚDO</li>
 
