@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\QuestionImportBatchController;
 use App\Http\Controllers\Admin\QuestionImportReviewController;
 use App\Http\Controllers\Admin\QuestionDraftController;
 use App\Http\Controllers\Admin\QuestionDuplicateController;
+use App\Http\Controllers\Admin\QuestionBulkStatusController;
 
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
@@ -146,6 +147,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
             Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
 
+            Route::patch('questions/bulk-status', [QuestionBulkStatusController::class, 'update'])->name('questions.bulk-status');
             Route::post('questions/check-duplicate', QuestionDuplicateController::class)->name('questions.check-duplicate');
             Route::get('questions/drafts', QuestionDraftController::class)->name('questions.drafts');
             Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
