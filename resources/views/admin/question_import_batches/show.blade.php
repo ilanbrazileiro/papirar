@@ -3,6 +3,11 @@
 @section('title', 'Detalhes da importação')
 
 @section('content')
+@if(in_array($batch->status, ['ready', 'partial']))
+    <div class="mb-3">
+        <a href="{{ route('admin.question-import-batches.review', $batch) }}" class="btn btn-success">Revisar / importar linhas válidas</a>
+    </div>
+@endif
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>

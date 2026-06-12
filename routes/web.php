@@ -13,6 +13,9 @@ use App\Http\Controllers\Admin\QuestionPreviewController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Admin\QuestionImportBatchController;
+use App\Http\Controllers\Admin\QuestionImportReviewController;
+use App\Http\Controllers\Admin\QuestionDraftController;
+
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
@@ -21,7 +24,7 @@ use App\Http\Controllers\Admin\EditorImageUploadController;
 use App\Http\Controllers\Admin\SourceMaterialController;
 use App\Http\Controllers\Admin\ExamSubjectSourceMaterialController;
 use App\Http\Controllers\Admin\AccountController as AdminAccountController;
-use App\Http\Controllers\Admin\QuestionDraftController;
+
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\Auth\LogoutController;
@@ -138,9 +141,12 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
             Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
             Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
+
             Route::get('questions/drafts', QuestionDraftController::class)->name('questions.drafts');
             Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
-            
+            Route::get('questions/imports/{batch}/review', [QuestionImportReviewController::class, 'review'])->name('question-import-batches.review');
+            Route::post('questions/imports/{batch}/confirm', [QuestionImportReviewController::class, 'confirm'])->name('question-import-batches.confirm');
+            Route::post('questions/imports/{batch}/cancel', [QuestionImportReviewController::class, 'cancel'])->name('question-import-batches.cancel');
             Route::get('questions/imports', [QuestionImportBatchController::class, 'index'])->name('question-import-batches.index');
             Route::get('questions/imports/{questionImportBatch}', [QuestionImportBatchController::class, 'show'])->name('question-import-batches.show');
             Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
@@ -151,7 +157,6 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('questions', QuestionController::class);
             Route::post('/editor/images/upload', [EditorImageUploadController::class, 'store'])->name('editor-images.upload');
             Route::get('questions/ajax/source-materials', [QuestionController::class, 'ajaxSourceMaterials'])->name('questions.ajax-source-materials');
-
             Route::get('questions/import/source-materials-csv', [QuestionImportController::class, 'downloadSourceMaterialsCsv'])->name('questions.import.source-materials-csv');
                     
             Route::get('/comentarios', [CommentModerationController::class, 'index'])->name('comments.index');
