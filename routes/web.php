@@ -147,6 +147,8 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
             Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
 
+            Route::post('questions/imports/{batch}/rows/{row}/import', [QuestionImportReviewController::class, 'importRow'])->name('question-import-batches.rows.import');
+            Route::post('questions/imports/{batch}/rows/{row}/ignore', [QuestionImportReviewController::class, 'ignoreRow'])->name('question-import-batches.rows.ignore');
             Route::patch('questions/bulk-status', [QuestionBulkStatusController::class, 'update'])->name('questions.bulk-status');
             Route::post('questions/check-duplicate', QuestionDuplicateController::class)->name('questions.check-duplicate');
             Route::get('questions/drafts', QuestionDraftController::class)->name('questions.drafts');

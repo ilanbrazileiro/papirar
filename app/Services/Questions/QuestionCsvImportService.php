@@ -252,6 +252,21 @@ class QuestionCsvImportService
         $valid = (int) ($rows['valid'] ?? 0);
         $duplicates = (int) ($rows['duplicate'] ?? 0);
         $errors = (int) ($rows['error'] ?? 0);
+        $ignored = (int) ($rows['ignored'] ?? 0);
+
+        $openRows = $valid + $duplicates + $errors;
+
+        if ($valid > 0) {
+            $status = $imported > 0 ? 'partial' : 'ready';
+        } elseif ($imported > 0 && $openRows === 0) {
+            $status = 'imported';
+        } elseif ($imported > 0) {
+            $status = 'partial';
+        } elseif ($ignored > 0 && $openRows === 0) {
+            $status = 'cancelled';
+        } else {
+            $status = $errors > 0 || $duplicates > 0 ? 'failed' : 'failed';
+        }
 
         $batch->update([
             'valid_rows' => $valid,
@@ -259,9 +274,8 @@ class QuestionCsvImportService
             'draft_rows' => $imported,
             'duplicate_rows' => $duplicates,
             'error_rows' => $errors,
-            'status' => $valid > 0
-                ? ($imported > 0 ? 'partial' : 'ready')
-                : ($imported > 0 ? 'imported' : 'failed'),
+            'ignored_rows' => $ignored,
+            'status' => $status,
             'finished_at' => $valid === 0 && $imported > 0 ? now() : $batch->finished_at,
         ]);
     }

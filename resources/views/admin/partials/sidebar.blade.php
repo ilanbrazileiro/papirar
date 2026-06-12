@@ -1,12 +1,13 @@
 @php
     $user = auth()->user();
     $isContent = ($user->role ?? null) === 'content';
-
-    $questionMenuOpen = request()->routeIs('admin.questions.*') || request()->is('admin/questions*');
+    $questionMenuOpen = request()->routeIs('admin.questions.*')
+        || request()->routeIs('admin.question-import-batches.*')
+        || request()->is('admin/questions*');
 @endphp
 
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
-    <a href="{{ $isContent && Route::has('admin.content.dashboard') ? route('admin.content.dashboard') : route('admin.dashboard') }}" class="brand-link">
+    <a href="{{ $isContent && Route::has('admin.content.dashboard') ? route('admin.content.dashboard') : route('admin.dashboard') }}" class="brand-link text-center">
         <span class="brand-text font-weight-light">Papirar Admin</span>
     </a>
 
@@ -34,7 +35,7 @@
                     @if(Route::has('admin.content.dashboard'))
                         <li class="nav-item">
                             <a href="{{ route('admin.content.dashboard') }}" class="nav-link {{ request()->routeIs('admin.content.dashboard') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-chart-line"></i>
+                                <i class="nav-icon fas fa-chart-bar"></i>
                                 <p>Dashboard de Conteúdo</p>
                             </a>
                         </li>
@@ -78,6 +79,24 @@
                                 </li>
                             @endif
 
+                            @if(Route::has('admin.questions.import.create'))
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.questions.import.create') }}" class="nav-link {{ request()->routeIs('admin.questions.import.*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Importar</p>
+                                    </a>
+                                </li>
+                            @endif
+
+                            @if(Route::has('admin.question-import-batches.index'))
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.question-import-batches.index') }}" class="nav-link {{ request()->routeIs('admin.question-import-batches.*') ? 'active' : '' }}">
+                                        <i class="far fa-circle nav-icon"></i>
+                                        <p>Importações</p>
+                                    </a>
+                                </li>
+                            @endif
+
                             <li class="nav-item">
                                 <a href="{{ route('admin.questions.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
                                     <i class="far fa-circle nav-icon"></i>
@@ -85,15 +104,6 @@
                                 </a>
                             </li>
                         </ul>
-                    </li>
-                @endif
-
-                @if(Route::has('admin.questions.import.create'))
-                    <li class="nav-item">
-                        <a href="{{ route('admin.questions.import.create') }}" class="nav-link {{ request()->routeIs('admin.questions.import.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-file-import"></i>
-                            <p>Importar questões</p>
-                        </a>
                     </li>
                 @endif
 
@@ -136,7 +146,7 @@
                 @if(Route::has('admin.source-materials.index'))
                     <li class="nav-item">
                         <a href="{{ route('admin.source-materials.index') }}" class="nav-link {{ request()->routeIs('admin.source-materials.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-book-open"></i>
+                            <i class="nav-icon fas fa-folder-open"></i>
                             <p>Fontes e bibliografias</p>
                         </a>
                     </li>
@@ -145,7 +155,7 @@
                 @if(Route::has('admin.corporations.index'))
                     <li class="nav-item">
                         <a href="{{ route('admin.corporations.index') }}" class="nav-link {{ request()->routeIs('admin.corporations.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-building"></i>
+                            <i class="nav-icon fas fa-shield-alt"></i>
                             <p>Corporações</p>
                         </a>
                     </li>
