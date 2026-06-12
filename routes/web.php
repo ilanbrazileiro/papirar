@@ -12,6 +12,7 @@ use App\Http\Controllers\Admin\PlannedExamController;
 use App\Http\Controllers\Admin\QuestionPreviewController;
 use App\Http\Controllers\Admin\QuestionController;
 use App\Http\Controllers\Admin\QuestionImportController;
+use App\Http\Controllers\Admin\QuestionImportBatchController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
@@ -139,6 +140,9 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
             Route::get('questions/drafts', QuestionDraftController::class)->name('questions.drafts');
             Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
+            
+            Route::get('questions/imports', [QuestionImportBatchController::class, 'index'])->name('question-import-batches.index');
+            Route::get('questions/imports/{questionImportBatch}', [QuestionImportBatchController::class, 'show'])->name('question-import-batches.show');
             Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
             Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');
             Route::get('questions/import/template', [QuestionImportController::class, 'downloadTemplate'])->name('questions.import.template');

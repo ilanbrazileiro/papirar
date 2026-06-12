@@ -5,6 +5,8 @@ namespace App\Services\Questions;
 use App\Models\Corporation;
 use App\Models\Exam;
 use App\Models\Question;
+use App\Models\QuestionImportBatch;
+use App\Models\QuestionImportBatchRow;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
@@ -13,14 +15,29 @@ use RuntimeException;
 
 class QuestionCsvImportService
 {
-    public function import(string $path, bool $dryRun = false, ?int $userId = null): array
+    public function import(string $path, bool $dryRun = false, ?int $userId = null, ?string $originalFilename = null): array
     {
+        $batch = QuestionImportBatch::query()->create([
+            'user_id' => $userId,
+            'filename' => basename($path),
+            'original_filename' => $originalFilename,
+            'status' => 'validating',
+            'started_at' => now(),
+        ]);
+
         $handle = fopen($path, 'r');
 
         if (!$handle) {
+            $batch->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'notes' => 'Não foi possível abrir o arquivo enviado.',
+            ]);
+
             return [
                 'success' => false,
                 'message' => 'Não foi possível abrir o arquivo enviado.',
+                'batch_id' => $batch->id,
                 'inserted' => 0,
                 'validated_rows' => 0,
                 'errors' => [],
@@ -32,9 +49,16 @@ class QuestionCsvImportService
         if (!$header) {
             fclose($handle);
 
+            $batch->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'notes' => 'Arquivo vazio ou cabeçalho inválido.',
+            ]);
+
             return [
                 'success' => false,
                 'message' => 'Arquivo vazio ou cabeçalho inválido.',
+                'batch_id' => $batch->id,
                 'inserted' => 0,
                 'validated_rows' => 0,
                 'errors' => [],
@@ -47,9 +71,16 @@ class QuestionCsvImportService
         if (!$headerType) {
             fclose($handle);
 
+            $batch->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'notes' => 'Cabeçalho do CSV inválido.',
+            ]);
+
             return [
                 'success' => false,
                 'message' => 'Cabeçalho do CSV inválido. Baixe e use o modelo oficial.',
+                'batch_id' => $batch->id,
                 'inserted' => 0,
                 'validated_rows' => 0,
                 'errors' => [],
@@ -60,9 +91,12 @@ class QuestionCsvImportService
         }
 
         $line = 1;
-        $inserted = 0;
+        $totalRows = 0;
         $validatedRows = 0;
+        $duplicateRows = 0;
+        $errorRows = 0;
         $errors = [];
+        $duplicates = [];
         $rows = [];
 
         while (($row = fgetcsv($handle, 0, ';')) !== false) {
@@ -72,10 +106,8 @@ class QuestionCsvImportService
                 continue;
             }
 
-            $expectedHeader = $headerType === 'new'
-                ? $this->expectedHeaderWithSourceMaterial()
-                : $this->legacyExpectedHeader();
-
+            $totalRows++;
+            $expectedHeader = $headerType === 'new' ? $this->expectedHeaderWithSourceMaterial() : $this->legacyExpectedHeader();
             $payload = array_combine($expectedHeader, array_pad($row, count($expectedHeader), null));
 
             if ($headerType === 'legacy') {
@@ -83,40 +115,123 @@ class QuestionCsvImportService
             }
 
             try {
-                $rows[] = $this->validateRow($payload, $line);
+                $validated = $this->validateRow($payload, $line);
+                $normalizedStatement = $this->normalizeStatement($validated['statement']);
+                $duplicateQuestion = $this->findExactDuplicate($normalizedStatement, $validated['subject_id'], $validated['topic_id']);
+
+                if ($duplicateQuestion) {
+                    $duplicateRows++;
+                    $duplicates[] = [
+                        'line' => $line,
+                        'message' => "Linha {$line}: possível duplicidade exata com a questão #{$duplicateQuestion->id}.",
+                        'question_id' => $duplicateQuestion->id,
+                    ];
+
+                    QuestionImportBatchRow::query()->create([
+                        'batch_id' => $batch->id,
+                        'row_number' => $line,
+                        'status' => 'duplicate',
+                        'raw_data' => $payload,
+                        'normalized_statement' => $normalizedStatement,
+                        'error_message' => "Possível duplicidade exata com a questão #{$duplicateQuestion->id}.",
+                        'duplicate_question_id' => $duplicateQuestion->id,
+                    ]);
+
+                    continue;
+                }
+
+                $validated['normalized_statement'] = $normalizedStatement;
+                $rows[] = [
+                    'line' => $line,
+                    'payload' => $payload,
+                    'data' => $validated,
+                ];
                 $validatedRows++;
             } catch (RuntimeException $e) {
+                $errorRows++;
                 $errors[] = [
                     'line' => $line,
                     'message' => $e->getMessage(),
                 ];
+
+                QuestionImportBatchRow::query()->create([
+                    'batch_id' => $batch->id,
+                    'row_number' => $line,
+                    'status' => 'error',
+                    'raw_data' => $payload,
+                    'normalized_statement' => isset($payload['statement']) ? $this->normalizeStatement((string) $payload['statement']) : null,
+                    'error_message' => $e->getMessage(),
+                ]);
             }
         }
 
         fclose($handle);
 
-        if (!empty($errors)) {
+        $batch->update([
+            'total_rows' => $totalRows,
+            'valid_rows' => $validatedRows,
+            'duplicate_rows' => $duplicateRows,
+            'error_rows' => $errorRows,
+        ]);
+
+        if (!empty($errors) || !empty($duplicates)) {
+            $batch->update([
+                'status' => 'failed',
+                'finished_at' => now(),
+                'notes' => 'Importação interrompida por erros ou duplicidades. Nenhuma questão foi inserida.',
+            ]);
+
             return [
                 'success' => false,
-                'message' => 'Importação interrompida. Corrija os erros e tente novamente.',
+                'message' => 'Importação interrompida. Corrija os erros/duplicidades e tente novamente.',
+                'batch_id' => $batch->id,
                 'inserted' => 0,
                 'validated_rows' => $validatedRows,
                 'errors' => $errors,
+                'duplicates' => $duplicates,
             ];
         }
 
         if ($dryRun) {
+            foreach ($rows as $row) {
+                QuestionImportBatchRow::query()->updateOrCreate(
+                    [
+                        'batch_id' => $batch->id,
+                        'row_number' => $row['line'],
+                    ],
+                    [
+                        'status' => 'valid',
+                        'raw_data' => null,
+                        'normalized_statement' => $row['data']['normalized_statement'],
+                    ]
+                );
+            }
+
+            $batch->update([
+                'status' => 'ready',
+                'finished_at' => now(),
+                'notes' => 'Validação concluída no modo simulação. Nenhuma questão foi inserida.',
+            ]);
+
             return [
                 'success' => true,
                 'message' => 'Validação concluída com sucesso. Nenhuma questão foi inserida porque o modo simulação estava ativo.',
+                'batch_id' => $batch->id,
                 'inserted' => 0,
                 'validated_rows' => $validatedRows,
                 'errors' => [],
+                'duplicates' => [],
             ];
         }
 
-        DB::transaction(function () use ($rows, $userId, &$inserted) {
-            foreach ($rows as $data) {
+        $inserted = 0;
+
+        DB::transaction(function () use ($rows, $userId, $batch, &$inserted) {
+            $batch->update(['status' => 'importing']);
+
+            foreach ($rows as $row) {
+                $data = $row['data'];
+
                 $question = Question::query()->create([
                     'corporation_id' => $data['corporation_id'],
                     'exam_id' => $data['exam_id'],
@@ -129,7 +244,7 @@ class QuestionCsvImportService
                     'source_reference' => $data['source_reference'],
                     'source_material_id' => $data['source_material_id'],
                     'commented_answer' => $data['commented_answer'],
-                    'status' => $data['status'],
+                    'status' => 'draft',
                     'created_by' => $userId,
                 ]);
 
@@ -141,16 +256,35 @@ class QuestionCsvImportService
                     ]);
                 }
 
+                QuestionImportBatchRow::query()->create([
+                    'batch_id' => $batch->id,
+                    'row_number' => $row['line'],
+                    'status' => 'imported',
+                    'raw_data' => null,
+                    'normalized_statement' => $data['normalized_statement'],
+                    'created_question_id' => $question->id,
+                ]);
+
                 $inserted++;
             }
         });
 
+        $batch->update([
+            'status' => 'imported',
+            'imported_rows' => $inserted,
+            'draft_rows' => $inserted,
+            'finished_at' => now(),
+            'notes' => 'Questões importadas como rascunho.',
+        ]);
+
         return [
             'success' => true,
-            'message' => "{$inserted} questão(ões) importada(s) com sucesso.",
+            'message' => "{$inserted} questão(ões) importada(s) como rascunho.",
+            'batch_id' => $batch->id,
             'inserted' => $inserted,
             'validated_rows' => $validatedRows,
             'errors' => [],
+            'duplicates' => [],
         ];
     }
 
@@ -216,12 +350,8 @@ class QuestionCsvImportService
 
     private function validateRow(array $row, int $line): array
     {
-        $corporationId = isset($row['corporation_id']) && trim((string) $row['corporation_id']) !== ''
-            ? (int) $row['corporation_id']
-            : null;
-        $examId = isset($row['exam_id']) && trim((string) $row['exam_id']) !== ''
-            ? (int) $row['exam_id']
-            : null;
+        $corporationId = isset($row['corporation_id']) && trim((string) $row['corporation_id']) !== '' ? (int) $row['corporation_id'] : null;
+        $examId = isset($row['exam_id']) && trim((string) $row['exam_id']) !== '' ? (int) $row['exam_id'] : null;
         $subjectId = $this->nullableInt($row['subject_id']);
         $topicId = $this->nullableInt($row['topic_id']);
         $sourceMaterialId = $this->nullableInt($row['source_material_id'] ?? null);
@@ -231,7 +361,6 @@ class QuestionCsvImportService
         $sourceType = trim((string) $row['source_type']);
         $sourceReference = $this->nullableString($row['source_reference']);
         $commentedAnswer = $this->nullableString($row['commented_answer']);
-        $status = trim((string) $row['status']);
         $correctLetter = strtoupper(trim((string) $row['correct_letter']));
 
         if ($corporationId && !Corporation::query()->whereKey($corporationId)->exists()) {
@@ -282,10 +411,6 @@ class QuestionCsvImportService
             throw new RuntimeException("Linha {$line}: source_type inválido.");
         }
 
-        if (!in_array($status, ['draft', 'published', 'archived'], true)) {
-            throw new RuntimeException("Linha {$line}: status inválido.");
-        }
-
         if (!in_array($correctLetter, ['A', 'B', 'C', 'D', 'E'], true)) {
             throw new RuntimeException("Linha {$line}: correct_letter inválida.");
         }
@@ -316,23 +441,45 @@ class QuestionCsvImportService
             'source_type' => $sourceType,
             'source_reference' => $sourceReference,
             'commented_answer' => $commentedAnswer,
-            'status' => $status,
+            'status' => 'draft',
             'correct_letter' => $correctLetter,
             'alternatives' => $alternatives,
         ];
     }
 
+    private function findExactDuplicate(string $normalizedStatement, int $subjectId, ?int $topicId): ?Question
+    {
+        $questions = Question::query()
+            ->where('subject_id', $subjectId)
+            ->when($topicId, fn ($query) => $query->where('topic_id', $topicId))
+            ->select(['id', 'statement', 'subject_id', 'topic_id'])
+            ->get();
+
+        foreach ($questions as $question) {
+            if ($this->normalizeStatement((string) $question->statement) === $normalizedStatement) {
+                return $question;
+            }
+        }
+
+        return null;
+    }
+
+    private function normalizeStatement(string $statement): string
+    {
+        $text = html_entity_decode(strip_tags($statement), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $text = preg_replace('/\s+/u', ' ', $text) ?? $text;
+        return mb_strtolower(trim($text));
+    }
+
     private function nullableInt(mixed $value): ?int
     {
         $value = trim((string) $value);
-
         return $value === '' ? null : (int) $value;
     }
 
     private function nullableString(mixed $value): ?string
     {
         $value = trim((string) $value);
-
         return $value === '' ? null : $value;
     }
 
