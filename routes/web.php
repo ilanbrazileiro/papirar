@@ -15,6 +15,7 @@ use App\Http\Controllers\Admin\QuestionImportController;
 use App\Http\Controllers\Admin\QuestionImportBatchController;
 use App\Http\Controllers\Admin\QuestionImportReviewController;
 use App\Http\Controllers\Admin\QuestionDraftController;
+use App\Http\Controllers\Admin\QuestionDuplicateController;
 
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
@@ -33,6 +34,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 //use App\Http\Controllers\Billing\MercadoPagoWebhookController;
 use App\Http\Controllers\SiteController;
+
 use App\Http\Controllers\Student\AccountController;
 use App\Http\Controllers\Student\DashboardController as StudentDashboardController;
 use App\Http\Controllers\Student\QuestionCommentController;
@@ -42,12 +44,14 @@ use App\Http\Controllers\Student\StudyController;
 use App\Http\Controllers\Student\SubscriptionController;
 use App\Http\Controllers\Student\TicketController;
 use App\Http\Controllers\Student\ExamStudyController;
+
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureAdminContentAccess;
 use App\Http\Middleware\EnsureSingleSession;
+
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
@@ -142,6 +146,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
             Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
 
+            Route::post('questions/check-duplicate', QuestionDuplicateController::class)->name('questions.check-duplicate');
             Route::get('questions/drafts', QuestionDraftController::class)->name('questions.drafts');
             Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
             Route::get('questions/imports/{batch}/review', [QuestionImportReviewController::class, 'review'])->name('question-import-batches.review');

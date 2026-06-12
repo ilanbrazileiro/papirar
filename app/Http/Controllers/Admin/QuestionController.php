@@ -10,6 +10,7 @@ use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
+use App\Services\Questions\QuestionDuplicateChecker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -94,9 +95,15 @@ class QuestionController extends Controller
         ]);
     }
 
-    public function store(Request $request): RedirectResponse
+    public function store(Request $request, QuestionDuplicateChecker $duplicateChecker): RedirectResponse
     {
         $data = $this->validatedData($request);
+
+        if ($duplicateChecker->hasExactDuplicate($data['statement'])) {
+            throw ValidationException::withMessages([
+                'statement' => 'Já existe uma questão cadastrada com este mesmo enunciado. Verifique a duplicidade antes de salvar.',
+            ]);
+        }
 
         DB::transaction(function () use ($data) {
             $question = Question::query()->create([
@@ -162,9 +169,15 @@ class QuestionController extends Controller
         ]);
     }
 
-    public function update(Request $request, Question $question): RedirectResponse
+    public function update(Request $request, Question $question, QuestionDuplicateChecker $duplicateChecker): RedirectResponse
     {
         $data = $this->validatedData($request);
+
+        if ($duplicateChecker->hasExactDuplicate($data['statement'], $question->id)) {
+            throw ValidationException::withMessages([
+                'statement' => 'Já existe outra questão cadastrada com este mesmo enunciado. Verifique a duplicidade antes de salvar.',
+            ]);
+        }
 
         DB::transaction(function () use ($data, $question) {
             $question->update([
@@ -280,8 +293,7 @@ class QuestionController extends Controller
                                 $examSubject->where('exam_id', $examId)
                                     ->where('subject_id', $subjectId);
                             });
-                    })
-                    ->orWhereDoesntHave('examSubjectLinks');
+                    })->orWhereDoesntHave('examSubjectLinks');
                 });
             })
             ->when($search !== '', function ($q) use ($search) {
@@ -321,9 +333,7 @@ class QuestionController extends Controller
             'topic_id' => $this->emptyToNull($request->input('topic_id')),
             'source_material_id' => $this->emptyToNull($request->input('source_material_id')),
             'question_type' => $request->input('question_type') ?: 'multiple_choice',
-            'source_type' => $request->input('source_type') === 'official_exam'
-                ? 'exam'
-                : $request->input('source_type'),
+            'source_type' => $request->input('source_type') === 'official_exam' ? 'exam' : $request->input('source_type'),
         ]);
 
         $validated = $request->validate([
