@@ -10,19 +10,23 @@ class EnsureGptApiToken
 {
     public function handle(Request $request, Closure $next): Response
     {
-        $configuredToken = (string) config('services.gpt_api.token');
+        $configuredToken = trim((string) config('services.gpt_api.token'));
 
-        if ($configuredToken === '') {
-            return response()->json([
-                'message' => 'API GPT não configurada. Defina GPT_API_TOKEN no .env.',
-            ], 503);
+        $providedToken = trim((string) $request->bearerToken());
+
+        if ($providedToken === '') {
+            $providedToken = trim((string) $request->header('X-GPT-Token'));
         }
 
-        $providedToken = $request->bearerToken()
-            ?: $request->header('X-GPT-API-TOKEN')
-            ?: (string) $request->query('api_token', '');
+        if ($providedToken === '') {
+            $providedToken = trim((string) $request->server('HTTP_X_GPT_TOKEN'));
+        }
 
-        if (! hash_equals($configuredToken, (string) $providedToken)) {
+        if (
+            $configuredToken === '' ||
+            $providedToken === '' ||
+            !hash_equals($configuredToken, $providedToken)
+        ) {
             return response()->json([
                 'message' => 'Token inválido ou ausente.',
             ], 401);
