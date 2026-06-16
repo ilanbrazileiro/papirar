@@ -15,11 +15,17 @@ class CourseAccess extends Model
     public const STATUS_EXPIRED = 'expired';
     public const STATUS_CANCELED = 'canceled';
 
+    public const TYPE_MANUAL = 'manual';
+    public const TYPE_TRIAL = 'trial';
+    public const TYPE_PAID = 'paid';
+    public const TYPE_BONUS = 'bonus';
+
     protected $fillable = [
         'user_id',
         'course_id',
         'subscription_id',
         'status',
+        'access_type',
         'starts_at',
         'ends_at',
         'canceled_at',

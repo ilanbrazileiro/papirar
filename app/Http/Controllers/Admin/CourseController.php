@@ -54,6 +54,8 @@ class CourseController extends Controller
             'inherit_exam_scope' => true,
             'active' => true,
             'is_public' => true,
+            'is_trial_available' => true,
+            'trial_days' => 7,
             'price' => 0,
             'quarterly_price' => null,
             'semiannual_price' => null,
@@ -239,6 +241,8 @@ class CourseController extends Controller
             'inherit_exam_scope' => ['nullable', 'boolean'],
             'active' => ['nullable', 'boolean'],
             'is_public' => ['nullable', 'boolean'],
+            'is_trial_available' => ['nullable', 'boolean'],
+            'trial_days' => ['nullable', 'integer', 'min:1', 'max:30'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
             'subjects' => ['nullable', 'array'],
             'subjects.*.selected' => ['nullable', 'boolean'],
@@ -258,7 +262,7 @@ class CourseController extends Controller
         }
 
         if ($slug === '') {
-            $slug = 'curso-' . Str::random(8);
+            abort(back()->withErrors(['slug' => 'Não foi possível gerar o slug do curso.'])->withInput());
         }
 
         $exists = Course::query()
@@ -269,6 +273,9 @@ class CourseController extends Controller
         if ($exists) {
             abort(back()->withErrors(['slug' => 'Já existe um curso com este slug.'])->withInput());
         }
+
+        $trialDays = (int) ($validated['trial_days'] ?? 7);
+        $trialDays = max(1, min($trialDays, 30));
 
         return [
             'corporation_id' => $validated['corporation_id'] ?? null,
@@ -284,6 +291,8 @@ class CourseController extends Controller
             'inherit_exam_scope' => (bool) ($validated['inherit_exam_scope'] ?? false),
             'active' => (bool) ($validated['active'] ?? false),
             'is_public' => (bool) ($validated['is_public'] ?? false),
+            'is_trial_available' => (bool) ($validated['is_trial_available'] ?? false),
+            'trial_days' => $trialDays,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
         ];
     }

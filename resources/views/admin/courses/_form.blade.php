@@ -96,7 +96,7 @@
                     <textarea name="description" id="description" class="form-control" rows="4">{{ old('description', $course->description ?? '') }}</textarea>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-check form-switch">
                         <input type="hidden" name="active" value="0">
                         <input class="form-check-input" type="checkbox" role="switch" id="active" name="active" value="1" @checked((bool) old('active', $course->active ?? true))>
@@ -104,7 +104,7 @@
                     </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <div class="form-check form-switch">
                         <input type="hidden" name="is_public" value="0">
                         <input class="form-check-input" type="checkbox" role="switch" id="is_public" name="is_public" value="1" @checked((bool) old('is_public', $course->is_public ?? true))>
@@ -112,7 +112,22 @@
                     </div>
                 </div>
 
-                <div class="col-md-4">
+                <div class="col-md-3">
+                    <div class="form-check form-switch">
+                        <input type="hidden" name="is_trial_available" value="0">
+                        <input class="form-check-input" type="checkbox" role="switch" id="is_trial_available" name="is_trial_available" value="1" @checked((bool) old('is_trial_available', $course->is_trial_available ?? true))>
+                        <label class="form-check-label" for="is_trial_available">Liberar teste grátis</label>
+                    </div>
+                    <div class="text-muted small">Se marcado, o curso aparecerá no cadastro para teste gratuito.</div>
+                </div>
+
+                <div class="col-md-3">
+                    <label for="trial_days" class="form-label">Dias grátis</label>
+                    <input type="number" name="trial_days" id="trial_days" class="form-control" value="{{ old('trial_days', $course->trial_days ?? 7) }}" min="1" max="30">
+                    <div class="text-muted small">Recomendado: 7 dias.</div>
+                </div>
+
+                <div class="col-md-12">
                     <div class="form-check form-switch">
                         <input type="hidden" name="inherit_exam_scope" value="0">
                         <input class="form-check-input" type="checkbox" role="switch" id="inherit_exam_scope" name="inherit_exam_scope" value="1" @checked((bool) old('inherit_exam_scope', $course->inherit_exam_scope ?? true))>
@@ -125,124 +140,70 @@
     </div>
 
     <div class="card mb-4">
-    <div class="card-header d-flex justify-content-between align-items-center">
-        <div>
-            <strong>Escopo manual do curso</strong>
-            <div class="text-muted small">Use quando o curso não estiver vinculado a um concurso ou quando quiser um recorte próprio.</div>
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <div>
+                <strong>Escopo manual do curso</strong>
+                <div class="text-muted small">Use quando o curso não estiver vinculado a um concurso ou quando quiser um recorte próprio.</div>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-all-course-subjects">Expandir/recolher</button>
         </div>
-        <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-all-course-subjects">
-            Expandir/recolher
-        </button>
-    </div>
 
-    <div class="card-body p-0">
-        <div id="course-subjects-wrapper">
-            @foreach($subjects as $subject)
-                @php
-                    $subjectId = (int) $subject->id;
+        <div class="card-body p-0">
+            <div id="course-subjects-wrapper">
+                @foreach($subjects as $subject)
+                    @php
+                        $subjectId = (int) $subject->id;
+                        $oldSubjectSelected = old("subjects.$subjectId.selected");
+                        $isSubjectSelected = $oldSubjectSelected !== null
+                            ? (bool) $oldSubjectSelected
+                            : in_array($subjectId, $selectedSubjects ?? [], true);
+                        $oldTopics = old("subjects.$subjectId.topics");
+                        $selectedTopicIds = $oldTopics !== null
+                            ? array_map('intval', (array) $oldTopics)
+                            : array_map('intval', $selectedTopicsBySubject[$subjectId] ?? []);
+                        $topics = $topicsBySubject->get($subjectId, collect());
+                        $topicsPanelId = 'course-subject-topics-' . $subjectId;
+                    @endphp
 
-                    $oldSubjectSelected = old("subjects.$subjectId.selected");
-
-                    $isSubjectSelected = $oldSubjectSelected !== null
-                        ? (bool) $oldSubjectSelected
-                        : in_array($subjectId, $selectedSubjects ?? [], true);
-
-                    $oldTopics = old("subjects.$subjectId.topics");
-
-                    $selectedTopicIds = $oldTopics !== null
-                        ? array_map('intval', (array) $oldTopics)
-                        : array_map('intval', $selectedTopicsBySubject[$subjectId] ?? []);
-
-                    $topics = $topicsBySubject->get($subjectId, collect());
-
-                    $topicsPanelId = 'course-subject-topics-' . $subjectId;
-                @endphp
-
-                <div class="border-bottom course-subject-item">
-                    <div class="d-flex justify-content-between align-items-center p-3">
-                        <div class="form-check mb-0">
-                            <input type="hidden" name="subjects[{{ $subjectId }}][selected]" value="0">
-
-                            <input
-                                class="form-check-input course-subject-checkbox"
-                                type="checkbox"
-                                id="course-subject-{{ $subjectId }}"
-                                name="subjects[{{ $subjectId }}][selected]"
-                                value="1"
-                                data-subject-id="{{ $subjectId }}"
-                                @checked($isSubjectSelected)
-                            >
-
-                            <label class="form-check-label font-weight-bold" for="course-subject-{{ $subjectId }}">
-                                {{ $subject->name }}
-                                <span class="badge badge-light bg-light text-dark ml-2 ms-2">
-                                    {{ $topics->count() }} tópico(s)
-                                </span>
-                            </label>
+                    <div class="border-bottom course-subject-item">
+                        <div class="d-flex justify-content-between align-items-center p-3">
+                            <div class="form-check mb-0">
+                                <input type="hidden" name="subjects[{{ $subjectId }}][selected]" value="0">
+                                <input class="form-check-input course-subject-checkbox" type="checkbox" id="course-subject-{{ $subjectId }}" name="subjects[{{ $subjectId }}][selected]" value="1" data-subject-id="{{ $subjectId }}" @checked($isSubjectSelected)>
+                                <label class="form-check-label font-weight-bold" for="course-subject-{{ $subjectId }}">
+                                    {{ $subject->name }}
+                                    <span class="badge badge-light bg-light text-dark ml-2 ms-2">{{ $topics->count() }} tópico(s)</span>
+                                </label>
+                            </div>
+                            <button type="button" class="btn btn-sm btn-outline-primary toggle-course-topics" data-target="{{ $topicsPanelId }}">Tópicos</button>
                         </div>
 
-                        <button
-                            type="button"
-                            class="btn btn-sm btn-outline-primary toggle-course-topics"
-                            data-target="{{ $topicsPanelId }}"
-                        >
-                            Tópicos
-                        </button>
-                    </div>
+                        <div id="{{ $topicsPanelId }}" class="course-topics-panel {{ $isSubjectSelected ? '' : 'd-none' }} p-3 border-top bg-light" data-subject-id="{{ $subjectId }}">
+                            @if($topics->isEmpty())
+                                <div class="alert alert-warning mb-0">Esta disciplina ainda não possui tópicos cadastrados.</div>
+                            @else
+                                <div class="d-flex mb-3">
+                                    <button type="button" class="btn btn-sm btn-outline-primary mr-2 me-2 select-all-course-topics" data-subject-id="{{ $subjectId }}">Marcar todos</button>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary clear-all-course-topics" data-subject-id="{{ $subjectId }}">Limpar</button>
+                                </div>
 
-                    <div
-                        id="{{ $topicsPanelId }}"
-                        class="course-topics-panel {{ $isSubjectSelected ? '' : 'd-none' }} p-3 border-top bg-light"
-                        data-subject-id="{{ $subjectId }}"
-                    >
-                        @if($topics->isEmpty())
-                            <div class="alert alert-warning mb-0">Esta disciplina ainda não possui tópicos cadastrados.</div>
-                        @else
-                            <div class="d-flex mb-3">
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-primary mr-2 me-2 select-all-course-topics"
-                                    data-subject-id="{{ $subjectId }}"
-                                >
-                                    Marcar todos
-                                </button>
-
-                                <button
-                                    type="button"
-                                    class="btn btn-sm btn-outline-secondary clear-all-course-topics"
-                                    data-subject-id="{{ $subjectId }}"
-                                >
-                                    Limpar
-                                </button>
-                            </div>
-
-                            <div class="row course-topic-group" data-subject-id="{{ $subjectId }}">
-                                @foreach($topics as $topic)
-                                    <div class="col-md-6 col-lg-4 mb-2">
-                                        <div class="form-check border rounded p-2 h-100 bg-white">
-                                            <input
-                                                class="form-check-input course-topic-checkbox course-topic-checkbox-{{ $subjectId }}"
-                                                type="checkbox"
-                                                id="course-topic-{{ $topic->id }}"
-                                                name="subjects[{{ $subjectId }}][topics][]"
-                                                value="{{ $topic->id }}"
-                                                @checked(in_array((int) $topic->id, $selectedTopicIds, true))
-                                            >
-
-                                            <label class="form-check-label" for="course-topic-{{ $topic->id }}">
-                                                {{ $topic->name }}
-                                            </label>
+                                <div class="row course-topic-group" data-subject-id="{{ $subjectId }}">
+                                    @foreach($topics as $topic)
+                                        <div class="col-md-6 col-lg-4 mb-2">
+                                            <div class="form-check border rounded p-2 h-100 bg-white">
+                                                <input class="form-check-input course-topic-checkbox course-topic-checkbox-{{ $subjectId }}" type="checkbox" id="course-topic-{{ $topic->id }}" name="subjects[{{ $subjectId }}][topics][]" value="{{ $topic->id }}" @checked(in_array((int) $topic->id, $selectedTopicIds, true))>
+                                                <label class="form-check-label" for="course-topic-{{ $topic->id }}">{{ $topic->name }}</label>
+                                            </div>
                                         </div>
-                                    </div>
-                                @endforeach
-                            </div>
-                        @endif
+                                    @endforeach
+                                </div>
+                            @endif
+                        </div>
                     </div>
-                </div>
-            @endforeach
+                @endforeach
+            </div>
         </div>
     </div>
-</div>
 
     <div class="card mb-4">
         <div class="card-header">
@@ -284,7 +245,7 @@
         </div>
         <div class="card-body">
             @if($availableCourses->isEmpty())
-                <div class="alert alert-info mb-0">Ainda não existem outros cursos ativos para incluir em combo.</div>
+                <div class="alert alert-warning mb-0">Nenhum outro curso ativo disponível para incluir no combo.</div>
             @else
                 <div class="row g-2">
                     @foreach($availableCourses as $availableCourse)
@@ -297,10 +258,10 @@
                         @endphp
                         <div class="col-md-6 col-lg-4">
                             <div class="form-check border rounded p-2 h-100">
-                                <input class="form-check-input ms-0 me-2 bundle-course-checkbox" type="checkbox" id="bundle-course-{{ $availableCourseId }}" name="bundle_courses[]" value="{{ $availableCourseId }}" @checked($isSelected)>
+                                <input class="form-check-input ms-0 me-2" type="checkbox" id="bundle-course-{{ $availableCourseId }}" name="bundle_courses[]" value="{{ $availableCourseId }}" @checked($isSelected)>
                                 <label class="form-check-label" for="bundle-course-{{ $availableCourseId }}">
                                     {{ $availableCourse->title }}
-                                    <div class="text-muted small">A partir de R$ {{ number_format((float) $availableCourse->price, 2, ',', '.') }}/mês</div>
+                                    <div class="text-muted small">{{ $availableCourse->typeLabel() }}</div>
                                 </label>
                             </div>
                         </div>
@@ -310,8 +271,8 @@
         </div>
     </div>
 
-    <div class="d-flex justify-content-end gap-2 mb-5">
-        <a href="{{ route('admin.courses.index') }}" class="btn btn-outline-secondary">Cancelar</a>
+    <div class="d-flex justify-content-between">
+        <a href="{{ route('admin.courses.index') }}" class="btn btn-outline-secondary">Voltar</a>
         <button type="submit" class="btn btn-primary">Salvar curso</button>
     </div>
 </form>
@@ -336,9 +297,7 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', function () {
             const targetId = this.dataset.target;
             const panel = document.getElementById(targetId);
-
             if (!panel) return;
-
             panel.classList.toggle('d-none');
         });
     });
@@ -347,12 +306,7 @@ document.addEventListener('DOMContentLoaded', function () {
         checkbox.addEventListener('change', function () {
             const subjectId = this.dataset.subjectId;
             const panel = document.getElementById('course-subject-topics-' + subjectId);
-
-            if (!panel) return;
-
-            if (this.checked) {
-                panel.classList.remove('d-none');
-            }
+            if (this.checked && panel) panel.classList.remove('d-none');
         });
     });
 
@@ -360,17 +314,12 @@ document.addEventListener('DOMContentLoaded', function () {
         checkbox.addEventListener('change', function () {
             const group = this.closest('.course-topic-group');
             if (!group) return;
-
             const subjectId = group.dataset.subjectId;
             const subjectCheckbox = document.getElementById('course-subject-' + subjectId);
-
             if (this.checked && subjectCheckbox) {
                 subjectCheckbox.checked = true;
-
                 const panel = document.getElementById('course-subject-topics-' + subjectId);
-                if (panel) {
-                    panel.classList.remove('d-none');
-                }
+                if (panel) panel.classList.remove('d-none');
             }
         });
     });
@@ -379,16 +328,9 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', function () {
             const subjectId = this.dataset.subjectId;
             const subjectCheckbox = document.getElementById('course-subject-' + subjectId);
-
-            if (subjectCheckbox) {
-                subjectCheckbox.checked = true;
-            }
-
+            if (subjectCheckbox) subjectCheckbox.checked = true;
             const panel = document.getElementById('course-subject-topics-' + subjectId);
-            if (panel) {
-                panel.classList.remove('d-none');
-            }
-
+            if (panel) panel.classList.remove('d-none');
             document.querySelectorAll('.course-topic-checkbox-' + subjectId).forEach(function (checkbox) {
                 checkbox.checked = true;
             });
@@ -398,7 +340,6 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.clear-all-course-topics').forEach(function (button) {
         button.addEventListener('click', function () {
             const subjectId = this.dataset.subjectId;
-
             document.querySelectorAll('.course-topic-checkbox-' + subjectId).forEach(function (checkbox) {
                 checkbox.checked = false;
             });
@@ -406,21 +347,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const toggleAll = document.getElementById('toggle-all-course-subjects');
-
     if (toggleAll) {
         toggleAll.addEventListener('click', function () {
             const panels = Array.from(document.querySelectorAll('.course-topics-panel'));
-            const hasHidden = panels.some(function (panel) {
-                return panel.classList.contains('d-none');
-            });
-
-            panels.forEach(function (panel) {
-                if (hasHidden) {
-                    panel.classList.remove('d-none');
-                } else {
-                    panel.classList.add('d-none');
-                }
-            });
+            const hasHidden = panels.some(panel => panel.classList.contains('d-none'));
+            panels.forEach(panel => hasHidden ? panel.classList.remove('d-none') : panel.classList.add('d-none'));
         });
     }
 });

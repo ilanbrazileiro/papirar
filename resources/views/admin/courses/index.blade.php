@@ -55,6 +55,7 @@
                         <th>Curso</th>
                         <th>Tipo</th>
                         <th>Preço</th>
+                        <th>Teste grátis</th>
                         <th>Concurso vinculado</th>
                         <th>Status</th>
                         <th class="text-right">Ações</th>
@@ -76,6 +77,13 @@
                                 @endif
                                 @if($course->semiannual_price)
                                     <div class="text-muted small">Semestral: R$ {{ number_format((float) $course->semiannual_price, 2, ',', '.') }}</div>
+                                @endif
+                            </td>
+                            <td>
+                                @if($course->is_trial_available)
+                                    <span class="badge bg-success">{{ $course->trial_days }} dia(s)</span>
+                                @else
+                                    <span class="badge bg-secondary">Não</span>
                                 @endif
                             </td>
                             <td>
@@ -106,7 +114,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted py-4">Nenhum curso cadastrado.</td>
+                            <td colspan="8" class="text-center text-muted py-4">Nenhum curso cadastrado.</td>
                         </tr>
                     @endforelse
                 </tbody>

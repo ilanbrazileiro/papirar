@@ -32,6 +32,8 @@ class Course extends Model
         'inherit_exam_scope',
         'active',
         'is_public',
+        'is_trial_available',
+        'trial_days',
         'sort_order',
     ];
 
@@ -44,6 +46,8 @@ class Course extends Model
         'inherit_exam_scope' => 'boolean',
         'active' => 'boolean',
         'is_public' => 'boolean',
+        'is_trial_available' => 'boolean',
+        'trial_days' => 'integer',
         'sort_order' => 'integer',
     ];
 
@@ -147,10 +151,17 @@ class Course extends Model
         return $query->where('is_public', true);
     }
 
+    public function scopeTrialAvailable($query)
+    {
+        return $query->where('is_trial_available', true)
+            ->where('trial_days', '>', 0);
+    }
+
     public function typeLabel(): string
     {
         return self::typeOptions()[$this->course_type] ?? $this->course_type;
     }
+
     public function hasQuarterlyPrice(): bool
     {
         return $this->quarterly_price !== null && (float) $this->quarterly_price > 0;
@@ -159,5 +170,12 @@ class Course extends Model
     public function hasSemiannualPrice(): bool
     {
         return $this->semiannual_price !== null && (float) $this->semiannual_price > 0;
+    }
+
+    public function trialDaysForAccess(): int
+    {
+        $days = (int) ($this->trial_days ?: 7);
+
+        return max(1, min($days, 30));
     }
 }
