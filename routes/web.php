@@ -18,6 +18,7 @@ use App\Http\Controllers\Admin\QuestionDraftController;
 use App\Http\Controllers\Admin\QuestionDuplicateController;
 use App\Http\Controllers\Admin\QuestionBulkStatusController;
 
+use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\SubjectController;
 use App\Http\Controllers\Admin\SubscriptionController as AdminSubscriptionController;
 use App\Http\Controllers\Admin\TicketController as AdminTicketController;
@@ -133,6 +134,9 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('subjects', SubjectController::class);
             Route::resource('topics', TopicController::class);
             Route::resource('source-materials', SourceMaterialController::class);
+            Route::resource('courses', CourseController::class);
+
+
 
             Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])->name('exams.source-materials.edit');
             Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])->name('exams.source-materials.update');

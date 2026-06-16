@@ -173,6 +173,14 @@
 
                 @unless($isContent)
                     <li class="nav-header">COMERCIAL</li>
+                    @if(Route::has('admin.courses.index'))
+                        <li class="nav-item">
+                            <a href="{{ route('admin.courses.index') }}" class="nav-link {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-graduation-cap"></i>
+                                <p>Cursos/Produtos</p>
+                            </a>
+                        </li>
+                    @endif
                     @if(Route::has('admin.plans.index'))
                         <li class="nav-item">
                             <a href="{{ route('admin.plans.index') }}" class="nav-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}">

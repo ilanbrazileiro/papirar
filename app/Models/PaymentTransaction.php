@@ -22,6 +22,7 @@ class PaymentTransaction extends Model
     protected $fillable = [
         'user_id',
         'subscription_id',
+        'course_id',
         'gateway',
         'external_id',
         'provider_payment_id',
@@ -64,5 +65,9 @@ class PaymentTransaction extends Model
             ?? Arr::get($this->payload, 'sandbox_init_point')
             ?? Arr::get($this->payload, 'checkout.init_point')
             ?? Arr::get($this->payload, 'checkout.sandbox_init_point');
+    }
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
     }
 }
