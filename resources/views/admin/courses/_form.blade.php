@@ -125,74 +125,124 @@
     </div>
 
     <div class="card mb-4">
-        <div class="card-header d-flex justify-content-between align-items-center">
-            <div>
-                <strong>Escopo manual do curso</strong>
-                <div class="text-muted small">Use quando o curso não estiver vinculado a um concurso ou quando quiser um recorte próprio.</div>
-            </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-all-course-subjects">Expandir/recolher</button>
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <div>
+            <strong>Escopo manual do curso</strong>
+            <div class="text-muted small">Use quando o curso não estiver vinculado a um concurso ou quando quiser um recorte próprio.</div>
         </div>
-        <div class="card-body p-0">
-            <div class="accordion" id="course-subjects-accordion">
-                @foreach($subjects as $subject)
-                    @php
-                        $subjectId = (int) $subject->id;
-                        $oldSubjectSelected = old("subjects.$subjectId.selected");
-                        $isSubjectSelected = $oldSubjectSelected !== null
-                            ? (bool) $oldSubjectSelected
-                            : in_array($subjectId, $selectedSubjects ?? [], true);
+        <button type="button" class="btn btn-sm btn-outline-secondary" id="toggle-all-course-subjects">
+            Expandir/recolher
+        </button>
+    </div>
 
-                        $oldTopics = old("subjects.$subjectId.topics");
-                        $selectedTopicIds = $oldTopics !== null
-                            ? array_map('intval', (array) $oldTopics)
-                            : array_map('intval', $selectedTopicsBySubject[$subjectId] ?? []);
+    <div class="card-body p-0">
+        <div id="course-subjects-wrapper">
+            @foreach($subjects as $subject)
+                @php
+                    $subjectId = (int) $subject->id;
 
-                        $topics = $topicsBySubject[$subjectId] ?? collect();
-                        $collapseId = 'course-subject-collapse-' . $subjectId;
-                    @endphp
+                    $oldSubjectSelected = old("subjects.$subjectId.selected");
 
-                    <div class="accordion-item">
-                        <h2 class="accordion-header" id="course-subject-heading-{{ $subjectId }}">
-                            <button class="accordion-button {{ $isSubjectSelected ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#{{ $collapseId }}" aria-expanded="{{ $isSubjectSelected ? 'true' : 'false' }}" aria-controls="{{ $collapseId }}">
-                                <span class="me-3">
-                                    <input type="hidden" name="subjects[{{ $subjectId }}][selected]" value="0">
-                                    <input class="form-check-input course-subject-checkbox" type="checkbox" id="course-subject-{{ $subjectId }}" name="subjects[{{ $subjectId }}][selected]" value="1" data-subject-id="{{ $subjectId }}" @checked($isSubjectSelected) onclick="event.stopPropagation();">
+                    $isSubjectSelected = $oldSubjectSelected !== null
+                        ? (bool) $oldSubjectSelected
+                        : in_array($subjectId, $selectedSubjects ?? [], true);
+
+                    $oldTopics = old("subjects.$subjectId.topics");
+
+                    $selectedTopicIds = $oldTopics !== null
+                        ? array_map('intval', (array) $oldTopics)
+                        : array_map('intval', $selectedTopicsBySubject[$subjectId] ?? []);
+
+                    $topics = $topicsBySubject->get($subjectId, collect());
+
+                    $topicsPanelId = 'course-subject-topics-' . $subjectId;
+                @endphp
+
+                <div class="border-bottom course-subject-item">
+                    <div class="d-flex justify-content-between align-items-center p-3">
+                        <div class="form-check mb-0">
+                            <input type="hidden" name="subjects[{{ $subjectId }}][selected]" value="0">
+
+                            <input
+                                class="form-check-input course-subject-checkbox"
+                                type="checkbox"
+                                id="course-subject-{{ $subjectId }}"
+                                name="subjects[{{ $subjectId }}][selected]"
+                                value="1"
+                                data-subject-id="{{ $subjectId }}"
+                                @checked($isSubjectSelected)
+                            >
+
+                            <label class="form-check-label font-weight-bold" for="course-subject-{{ $subjectId }}">
+                                {{ $subject->name }}
+                                <span class="badge badge-light bg-light text-dark ml-2 ms-2">
+                                    {{ $topics->count() }} tópico(s)
                                 </span>
-                                <span>
-                                    {{ $subject->name }}
-                                    <span class="badge bg-light text-dark ms-2">{{ $topics->count() }} tópico(s)</span>
-                                </span>
-                            </button>
-                        </h2>
-
-                        <div id="{{ $collapseId }}" class="accordion-collapse collapse {{ $isSubjectSelected ? 'show' : '' }}" aria-labelledby="course-subject-heading-{{ $subjectId }}" data-bs-parent="#course-subjects-accordion">
-                            <div class="accordion-body">
-                                @if($topics->isEmpty())
-                                    <div class="alert alert-warning mb-0">Esta disciplina ainda não possui tópicos cadastrados.</div>
-                                @else
-                                    <div class="d-flex gap-2 mb-3">
-                                        <button type="button" class="btn btn-sm btn-outline-primary select-all-course-topics" data-subject-id="{{ $subjectId }}">Marcar todos</button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary clear-all-course-topics" data-subject-id="{{ $subjectId }}">Limpar</button>
-                                    </div>
-
-                                    <div class="row g-2 course-topic-group" data-subject-id="{{ $subjectId }}">
-                                        @foreach($topics as $topic)
-                                            <div class="col-md-6 col-lg-4">
-                                                <div class="form-check border rounded p-2 h-100">
-                                                    <input class="form-check-input ms-0 me-2 course-topic-checkbox course-topic-checkbox-{{ $subjectId }}" type="checkbox" id="course-topic-{{ $topic->id }}" name="subjects[{{ $subjectId }}][topics][]" value="{{ $topic->id }}" @checked(in_array((int) $topic->id, $selectedTopicIds, true))>
-                                                    <label class="form-check-label" for="course-topic-{{ $topic->id }}">{{ $topic->name }}</label>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @endif
-                            </div>
+                            </label>
                         </div>
+
+                        <button
+                            type="button"
+                            class="btn btn-sm btn-outline-primary toggle-course-topics"
+                            data-target="{{ $topicsPanelId }}"
+                        >
+                            Tópicos
+                        </button>
                     </div>
-                @endforeach
-            </div>
+
+                    <div
+                        id="{{ $topicsPanelId }}"
+                        class="course-topics-panel {{ $isSubjectSelected ? '' : 'd-none' }} p-3 border-top bg-light"
+                        data-subject-id="{{ $subjectId }}"
+                    >
+                        @if($topics->isEmpty())
+                            <div class="alert alert-warning mb-0">Esta disciplina ainda não possui tópicos cadastrados.</div>
+                        @else
+                            <div class="d-flex mb-3">
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-primary mr-2 me-2 select-all-course-topics"
+                                    data-subject-id="{{ $subjectId }}"
+                                >
+                                    Marcar todos
+                                </button>
+
+                                <button
+                                    type="button"
+                                    class="btn btn-sm btn-outline-secondary clear-all-course-topics"
+                                    data-subject-id="{{ $subjectId }}"
+                                >
+                                    Limpar
+                                </button>
+                            </div>
+
+                            <div class="row course-topic-group" data-subject-id="{{ $subjectId }}">
+                                @foreach($topics as $topic)
+                                    <div class="col-md-6 col-lg-4 mb-2">
+                                        <div class="form-check border rounded p-2 h-100 bg-white">
+                                            <input
+                                                class="form-check-input course-topic-checkbox course-topic-checkbox-{{ $subjectId }}"
+                                                type="checkbox"
+                                                id="course-topic-{{ $topic->id }}"
+                                                name="subjects[{{ $subjectId }}][topics][]"
+                                                value="{{ $topic->id }}"
+                                                @checked(in_array((int) $topic->id, $selectedTopicIds, true))
+                                            >
+
+                                            <label class="form-check-label" for="course-topic-{{ $topic->id }}">
+                                                {{ $topic->name }}
+                                            </label>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            @endforeach
         </div>
     </div>
+</div>
 
     <div class="card mb-4">
         <div class="card-header">
@@ -282,24 +332,45 @@ document.addEventListener('DOMContentLoaded', function () {
         toggleBundleCard();
     }
 
+    document.querySelectorAll('.toggle-course-topics').forEach(function (button) {
+        button.addEventListener('click', function () {
+            const targetId = this.dataset.target;
+            const panel = document.getElementById(targetId);
+
+            if (!panel) return;
+
+            panel.classList.toggle('d-none');
+        });
+    });
+
     document.querySelectorAll('.course-subject-checkbox').forEach(function (checkbox) {
         checkbox.addEventListener('change', function () {
             const subjectId = this.dataset.subjectId;
-            const collapse = document.getElementById('course-subject-collapse-' + subjectId);
-            if (this.checked && collapse && !collapse.classList.contains('show')) {
-                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(collapse, { toggle: false });
-                bsCollapse.show();
+            const panel = document.getElementById('course-subject-topics-' + subjectId);
+
+            if (!panel) return;
+
+            if (this.checked) {
+                panel.classList.remove('d-none');
             }
         });
     });
 
     document.querySelectorAll('.course-topic-checkbox').forEach(function (checkbox) {
         checkbox.addEventListener('change', function () {
-            const subjectId = this.closest('.course-topic-group')?.dataset.subjectId;
-            if (!subjectId) return;
+            const group = this.closest('.course-topic-group');
+            if (!group) return;
+
+            const subjectId = group.dataset.subjectId;
             const subjectCheckbox = document.getElementById('course-subject-' + subjectId);
+
             if (this.checked && subjectCheckbox) {
                 subjectCheckbox.checked = true;
+
+                const panel = document.getElementById('course-subject-topics-' + subjectId);
+                if (panel) {
+                    panel.classList.remove('d-none');
+                }
             }
         });
     });
@@ -308,7 +379,16 @@ document.addEventListener('DOMContentLoaded', function () {
         button.addEventListener('click', function () {
             const subjectId = this.dataset.subjectId;
             const subjectCheckbox = document.getElementById('course-subject-' + subjectId);
-            if (subjectCheckbox) subjectCheckbox.checked = true;
+
+            if (subjectCheckbox) {
+                subjectCheckbox.checked = true;
+            }
+
+            const panel = document.getElementById('course-subject-topics-' + subjectId);
+            if (panel) {
+                panel.classList.remove('d-none');
+            }
+
             document.querySelectorAll('.course-topic-checkbox-' + subjectId).forEach(function (checkbox) {
                 checkbox.checked = true;
             });
@@ -318,6 +398,7 @@ document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('.clear-all-course-topics').forEach(function (button) {
         button.addEventListener('click', function () {
             const subjectId = this.dataset.subjectId;
+
             document.querySelectorAll('.course-topic-checkbox-' + subjectId).forEach(function (checkbox) {
                 checkbox.checked = false;
             });
@@ -325,13 +406,20 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 
     const toggleAll = document.getElementById('toggle-all-course-subjects');
+
     if (toggleAll) {
         toggleAll.addEventListener('click', function () {
-            const collapses = Array.from(document.querySelectorAll('#course-subjects-accordion .accordion-collapse'));
-            const hasClosed = collapses.some(function (item) { return !item.classList.contains('show'); });
-            collapses.forEach(function (item) {
-                const bsCollapse = bootstrap.Collapse.getOrCreateInstance(item, { toggle: false });
-                hasClosed ? bsCollapse.show() : bsCollapse.hide();
+            const panels = Array.from(document.querySelectorAll('.course-topics-panel'));
+            const hasHidden = panels.some(function (panel) {
+                return panel.classList.contains('d-none');
+            });
+
+            panels.forEach(function (panel) {
+                if (hasHidden) {
+                    panel.classList.remove('d-none');
+                } else {
+                    panel.classList.add('d-none');
+                }
             });
         });
     }
