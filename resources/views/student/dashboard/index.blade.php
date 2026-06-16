@@ -6,11 +6,10 @@
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h1 class="page-title">Olá, {{ auth()->user()->name ?? 'Aluno' }}</h1>
-            <p class="page-subtitle">Resumo rápido da sua conta, do seu desempenho e dos próximos passos.</p>
+            <p class="page-subtitle">Resumo rápido da sua conta, dos seus cursos e do seu desempenho.</p>
         </div>
         <div class="d-flex flex-wrap gap-2">
-            <a href="{{ route('student.exam-study.index') }}" class="btn btn-primary">Estudar por concurso</a>
-            <a href="{{ route('student.study.index') }}" class="btn btn-outline-primary">Continuar estudando</a>
+            <a href="{{ route('student.courses.index') }}" class="btn btn-primary">Meus cursos</a>
             <a href="{{ route('student.simulated.index') }}" class="btn btn-outline-primary">Meus simulados</a>
         </div>
     </div>
@@ -31,8 +30,8 @@
 
     @if($needsSubscription ?? false)
         <div class="alert alert-warning mb-4" role="alert">
-            <strong>Assinatura pendente.</strong><br>
-            Seu cadastro já está ativo para login, mas você precisa contratar uma assinatura para começar a responder questões e usar a área de estudo.
+            <strong>Nenhum curso ativo encontrado.</strong><br>
+            Seu cadastro já está ativo para login, mas você precisa contratar ou receber acesso a um curso para começar a estudar.
             <div class="mt-3">
                 <a href="{{ route('student.subscriptions.index') }}" class="btn btn-warning">Ver planos</a>
             </div>
@@ -40,32 +39,51 @@
     @endif
 
     <div class="row g-3 mb-4">
+        <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Cursos ativos</div><div class="value">{{ $stats['active_courses_count'] ?? 0 }}</div></div></div>
         <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Sessões de estudo</div><div class="value">{{ $stats['study_sessions_count'] ?? 0 }}</div></div></div>
         <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Questões respondidas</div><div class="value">{{ $stats['answers_count'] ?? 0 }}</div></div></div>
         <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Respostas corretas</div><div class="value">{{ $stats['correct_answers_count'] ?? 0 }}</div></div></div>
-        <div class="col-md-6 col-xl-3"><div class="stats-card"><div class="label">Tickets em aberto</div><div class="value">{{ $stats['open_tickets_count'] ?? 0 }}</div></div></div>
     </div>
 
-
-        <div class="card-soft p-4 mb-4 border border-primary-subtle bg-primary-subtle bg-opacity-10">
-            <div class="row align-items-center g-3">
-                <div class="col-lg-8">
-                    <div class="section-title mb-2">Estudo direcionado por concurso</div>
-                    <div class="fw-semibold mb-1">Escolha a prova que você pretende fazer e estude somente as disciplinas relacionadas.</div>
-                    <div class="small-muted">
-                        Ideal para CHOE, CHOAE e outros concursos internos. O sistema filtra automaticamente as disciplinas do concurso e reaproveita questões compatíveis por disciplina e tópico.
-                    </div>
-                </div>
-                <div class="col-lg-4 text-lg-end">
-                    <a href="{{ route('student.exam-study.index') }}" class="btn btn-primary w-100 w-lg-auto">
-                        Escolher concurso
-                    </a>
+    <div class="card-soft p-4 mb-4 border border-primary-subtle bg-primary-subtle bg-opacity-10">
+        <div class="row align-items-center g-3">
+            <div class="col-lg-8">
+                <div class="section-title mb-2">Estudo por curso</div>
+                <div class="fw-semibold mb-1">Entre no curso que você assinou e estude somente as questões daquele escopo.</div>
+                <div class="small-muted">
+                    O Papirar agora organiza o acesso por cursos/produtos. Cada curso libera disciplinas, tópicos e fontes próprias.
                 </div>
             </div>
+            <div class="col-lg-4 text-lg-end">
+                <a href="{{ route('student.courses.index') }}" class="btn btn-primary w-100 w-lg-auto">Abrir meus cursos</a>
+            </div>
         </div>
+    </div>
 
     <div class="row g-4">
         <div class="col-lg-8">
+            <div class="card-soft p-4 mb-4">
+                <div class="section-title">Cursos ativos</div>
+
+                @if(($activeCourseAccesses ?? collect())->count())
+                    <div class="row g-3">
+                        @foreach($activeCourseAccesses as $access)
+                            @if($access->course)
+                                <div class="col-md-6">
+                                    <div class="border rounded-4 p-3 bg-white h-100">
+                                        <div class="fw-semibold">{{ $access->course->title }}</div>
+                                        <div class="small-muted mb-3">Acesso até: {{ $access->ends_at ? $access->ends_at->format('d/m/Y') : 'Sem limite' }}</div>
+                                        <a href="{{ route('student.courses.show', $access->course) }}" class="btn btn-sm btn-outline-primary">Entrar</a>
+                                    </div>
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
+                @else
+                    <div class="small-muted">Você ainda não possui cursos ativos.</div>
+                @endif
+            </div>
+
             <div class="card-soft p-4 h-100">
                 <div class="section-title">Simulados recentes</div>
 
@@ -103,7 +121,7 @@
                     <div class="fw-semibold">{{ $currentSubscription->plan->name ?? 'Plano sem nome' }}</div>
                     <div class="small-muted mt-2">Expira em: {{ optional($currentSubscription->expires_at)->format('d/m/Y H:i') ?? 'Não definido' }}</div>
                 @else
-                    <div class="small-muted">Você não possui assinatura ativa.</div>
+                    <div class="small-muted">Você não possui assinatura geral ativa. O acesso aos cursos liberados continua funcionando pelo período vigente.</div>
                 @endif
 
                 <a href="{{ route('student.subscriptions.index') }}" class="btn btn-outline-primary w-100 mt-3">Gerenciar assinatura</a>
@@ -112,10 +130,7 @@
             <div class="card-soft p-4">
                 <div class="section-title">Atalhos rápidos</div>
                 <div class="d-grid gap-2">
-                    @if(\Illuminate\Support\Facades\Route::has('student.exam-study.index'))
-                        <a href="{{ route('student.exam-study.index') }}" class="btn btn-light border">Estudar por concurso</a>
-                    @endif
-                    <a href="{{ route('student.study.index') }}" class="btn btn-light border">Nova sessão de estudo</a>
+                    <a href="{{ route('student.courses.index') }}" class="btn btn-light border">Meus cursos</a>
                     <a href="{{ route('student.simulated.index') }}" class="btn btn-light border">Novo simulado</a>
                     <a href="{{ route('student.tickets.create') }}" class="btn btn-light border">Abrir ticket</a>
                     <a href="{{ route('student.account.edit') }}" class="btn btn-light border">Atualizar meus dados</a>

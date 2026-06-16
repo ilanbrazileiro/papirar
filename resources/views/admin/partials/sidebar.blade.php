@@ -181,6 +181,12 @@
                             </a>
                         </li>
                     @endif
+                    <li class="nav-item">
+                        <a href="{{ route('admin.course-accesses.index') }}" class="nav-link {{ request()->routeIs('admin.course-accesses.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-user-check"></i>
+                            <p>Acessos a cursos</p>
+                        </a>
+                    </li>
                     @if(Route::has('admin.plans.index'))
                         <li class="nav-item">
                             <a href="{{ route('admin.plans.index') }}" class="nav-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}">

@@ -14,6 +14,7 @@ class StudySession extends Model
 
     protected $fillable = [
         'user_id',
+        'course_id',
         'corporation_id',
         'exam_id',
         'subject_id',
@@ -26,6 +27,7 @@ class StudySession extends Model
 
     protected $casts = [
         'user_id' => 'integer',
+        'course_id' => 'integer',
         'corporation_id' => 'integer',
         'exam_id' => 'integer',
         'subject_id' => 'integer',
@@ -36,6 +38,7 @@ class StudySession extends Model
     ];
 
     public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function course(): BelongsTo { return $this->belongsTo(Course::class); }
     public function corporation(): BelongsTo { return $this->belongsTo(Corporation::class); }
     public function exam(): BelongsTo { return $this->belongsTo(Exam::class); }
     public function subject(): BelongsTo { return $this->belongsTo(Subject::class); }

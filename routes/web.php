@@ -27,6 +27,7 @@ use App\Http\Controllers\Admin\EditorImageUploadController;
 use App\Http\Controllers\Admin\SourceMaterialController;
 use App\Http\Controllers\Admin\ExamSubjectSourceMaterialController;
 use App\Http\Controllers\Admin\AccountController as AdminAccountController;
+use App\Http\Controllers\Admin\CourseAccessController;
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -46,6 +47,8 @@ use App\Http\Controllers\Student\StudyController;
 use App\Http\Controllers\Student\SubscriptionController;
 use App\Http\Controllers\Student\TicketController;
 use App\Http\Controllers\Student\ExamStudyController;
+use App\Http\Controllers\Student\CourseController as StudentCourseController;
+use App\Http\Controllers\Student\CourseStudyController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
