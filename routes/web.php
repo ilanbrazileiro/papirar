@@ -52,10 +52,12 @@ use App\Http\Controllers\Student\CourseStudyController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
-use App\Http\Middleware\EnsureActiveSubscription;
-use App\Http\Middleware\EnsureAdmin;
 use App\Http\Middleware\EnsureAdminContentAccess;
 use App\Http\Middleware\EnsureSingleSession;
+use App\Http\Middleware\EnsureActiveSubscription;
+use App\Http\Middleware\EnsureActiveCourseAccess;
+use App\Http\Middleware\EnsureAdmin;
+
 
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +98,18 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
         Route::post('/tickets/{ticket}/responder', [TicketController::class, 'reply'])->name('tickets.reply');
         Route::post('/tickets/{ticket}/fechar', [TicketController::class, 'close'])->name('tickets.close');
+        Route::get('/cursos', [StudentCourseController::class, 'index'])->name('courses.index');
+
+        Route::middleware([EnsureActiveCourseAccess::class])->group(function () {
+            Route::get('/cursos/estudar/sessao/{session}', [CourseStudyController::class, 'showQuestion'])->name('course-study.question');
+            Route::post('/cursos/estudar/sessao/{session}/responder', [CourseStudyController::class, 'answer'])->name('course-study.answer');
+            Route::post('/cursos/estudar/sessao/{session}/proxima', [CourseStudyController::class, 'next'])->name('course-study.next');
+            Route::get('/cursos/estudar/sessao/{session}/questao/{question}/revisao', [CourseStudyController::class, 'review'])->name('course-study.review');
+            Route::get('/cursos/estudar/sessao/{session}/resultado', [CourseStudyController::class, 'result'])->name('course-study.result');
+            Route::get('/cursos/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
+            Route::get('/cursos/{course}/estudar', [StudentCourseController::class, 'study'])->name('courses.study');
+            Route::post('/cursos/{course}/estudar/iniciar', [CourseStudyController::class, 'start'])->name('course-study.start');
+        });
 
         Route::middleware([EnsureActiveSubscription::class])->group(function () {
             Route::get('/estudar', [StudyController::class, 'index'])->name('study.index');
