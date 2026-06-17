@@ -152,8 +152,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('topics', TopicController::class);
             Route::resource('source-materials', SourceMaterialController::class);
             Route::resource('courses', CourseController::class);
-
-
+            Route::resource('course-accesses', CourseAccessController::class)->except(['show']);
 
             Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])->name('exams.source-materials.edit');
             Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])->name('exams.source-materials.update');
