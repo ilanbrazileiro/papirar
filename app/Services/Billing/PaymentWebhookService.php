@@ -11,6 +11,7 @@ class PaymentWebhookService
     public function __construct(
         protected SubscriptionService $subscriptionService,
         protected MercadoPagoService $mercadoPagoService,
+        protected CoursePaymentService $coursePaymentService,
     ) {
     }
 
@@ -38,7 +39,7 @@ class PaymentWebhookService
         }
 
         $transaction = PaymentTransaction::query()
-            ->with(['subscription.plan'])
+            ->with(['subscription.plan', 'subscription.course', 'course'])
             ->find($externalReference);
 
         if (! $transaction) {
@@ -52,6 +53,7 @@ class PaymentWebhookService
         ];
 
         $status = (string) Arr::get($normalized, 'status');
+        $isCoursePayment = $transaction->course_id || $transaction->subscription?->course_id;
 
         if ($transaction->isPaid() && $status === 'approved') {
             return [
@@ -63,6 +65,18 @@ class PaymentWebhookService
         }
 
         if ($status === 'approved') {
+            if ($isCoursePayment) {
+                $subscription = $this->coursePaymentService->activateCourseAccessFromTransaction($transaction, $payloadToStore);
+
+                return [
+                    'handled' => true,
+                    'status' => 'approved',
+                    'subscription_id' => $subscription->id,
+                    'course_id' => $subscription->course_id,
+                    'transaction_id' => $transaction->id,
+                ];
+            }
+
             $subscription = $this->subscriptionService->activateSubscriptionFromTransaction($transaction, $payloadToStore);
 
             return [
@@ -74,7 +88,11 @@ class PaymentWebhookService
         }
 
         if (in_array($status, ['pending', 'in_process'], true)) {
-            $this->subscriptionService->markTransactionAsPending($transaction, $payloadToStore);
+            if ($isCoursePayment) {
+                $this->coursePaymentService->markTransactionAsPending($transaction, $payloadToStore);
+            } else {
+                $this->subscriptionService->markTransactionAsPending($transaction, $payloadToStore);
+            }
 
             return [
                 'handled' => true,
@@ -83,7 +101,11 @@ class PaymentWebhookService
             ];
         }
 
-        $this->subscriptionService->failTransaction($transaction, $payloadToStore);
+        if ($isCoursePayment) {
+            $this->coursePaymentService->failTransaction($transaction, $payloadToStore);
+        } else {
+            $this->subscriptionService->failTransaction($transaction, $payloadToStore);
+        }
 
         return [
             'handled' => true,

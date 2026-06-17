@@ -2,6 +2,7 @@
 
 namespace App\Services\Billing;
 
+use App\Models\Course;
 use App\Models\PaymentTransaction;
 use App\Models\Subscription;
 use App\Models\User;
@@ -64,6 +65,56 @@ class MercadoPagoService
             ],
         ];
 
+        return $this->postCheckoutPreference($payload);
+    }
+
+    public function createCourseCheckoutPreference(
+        User $user,
+        Course $course,
+        Subscription $subscription,
+        PaymentTransaction $transaction,
+        string $billingCycle,
+        int $periodDays,
+        float $amount
+    ): array {
+        $cycleLabel = $course->billingCycleLabel($billingCycle);
+
+        $payload = [
+            'items' => [[
+                'id' => 'course-' . $course->id . '-' . $billingCycle,
+                'title' => $course->title . ' — ' . $cycleLabel,
+                'description' => 'Acesso ao curso ' . $course->title . ' por ' . $periodDays . ' dias.',
+                'quantity' => 1,
+                'currency_id' => 'BRL',
+                'unit_price' => $amount,
+            ]],
+            'payer' => [
+                'name' => $user->name,
+                'email' => $user->email,
+            ],
+            'external_reference' => (string) $transaction->id,
+            'notification_url' => $this->webhookUrl,
+            'back_urls' => [
+                'success' => route('student.courses.index', ['payment' => 'success', 'course_id' => $course->id]),
+                'failure' => route('student.courses.index', ['payment' => 'failure', 'course_id' => $course->id]),
+                'pending' => route('student.courses.index', ['payment' => 'pending', 'course_id' => $course->id]),
+            ],
+            'auto_return' => 'approved',
+            'metadata' => [
+                'user_id' => $user->id,
+                'subscription_id' => $subscription->id,
+                'transaction_id' => $transaction->id,
+                'course_id' => $course->id,
+                'billing_cycle' => $billingCycle,
+                'period_days' => $periodDays,
+            ],
+        ];
+
+        return $this->postCheckoutPreference($payload);
+    }
+
+    protected function postCheckoutPreference(array $payload): array
+    {
         $response = $this->client()->post($this->baseUrl . '/checkout/preferences', $payload);
 
         if ($response->failed()) {

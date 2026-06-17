@@ -28,6 +28,21 @@ class CourseController extends Controller
             ->latest('ends_at')
             ->get();
 
+        $activeCourseIds = $courseAccesses
+            ->pluck('course_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $availableCourses = Course::query()
+            ->active()
+            ->public()
+            ->whereNotIn('id', $activeCourseIds ?: [0])
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get();
+
         $courseQuestionCounts = [];
 
         foreach ($courseAccesses as $access) {
@@ -36,12 +51,18 @@ class CourseController extends Controller
             }
         }
 
-        return view('student.courses.index', compact('courseAccesses', 'courseQuestionCounts'));
+        foreach ($availableCourses as $course) {
+            $courseQuestionCounts[$course->id] = $this->countQuestionsForCourse($course);
+        }
+
+        $paymentStatus = request('payment');
+
+        return view('student.courses.index', compact('courseAccesses', 'availableCourses', 'courseQuestionCounts', 'paymentStatus'));
     }
 
     public function show(Course $course): View
     {
-        $this->authorizeCourseAccess($course);
+        $access = $this->authorizeCourseAccess($course);
 
         $scope = $this->resolveCourseScope($course);
 
@@ -62,7 +83,7 @@ class CourseController extends Controller
 
         $totalQuestions = $this->countQuestionsForCourse($course);
 
-        return view('student.courses.show', compact('course', 'subjects', 'topics', 'sourceMaterials', 'totalQuestions'));
+        return view('student.courses.show', compact('course', 'access', 'subjects', 'topics', 'sourceMaterials', 'totalQuestions'));
     }
 
     public function study(Course $course): View
@@ -90,9 +111,9 @@ class CourseController extends Controller
         return view('student.courses.study', compact('course', 'subjects', 'topics', 'sourceMaterials'));
     }
 
-    private function authorizeCourseAccess(Course $course): void
+    private function authorizeCourseAccess(Course $course): CourseAccess
     {
-        $hasAccess = CourseAccess::query()
+        $access = CourseAccess::query()
             ->where('user_id', Auth::id())
             ->where('course_id', $course->id)
             ->where('status', CourseAccess::STATUS_ACTIVE)
@@ -100,9 +121,12 @@ class CourseController extends Controller
                 $query->whereNull('ends_at')
                     ->orWhere('ends_at', '>=', now());
             })
-            ->exists();
+            ->latest('ends_at')
+            ->first();
 
-        abort_unless($hasAccess, 403);
+        abort_unless($access, 403);
+
+        return $access;
     }
 
     private function countQuestionsForCourse(Course $course): int

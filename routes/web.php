@@ -50,6 +50,7 @@ use App\Http\Controllers\Student\ExamStudyController;
 use App\Http\Controllers\Student\CourseController as StudentCourseController;
 use App\Http\Controllers\Student\CourseStudyController;
 use App\Http\Controllers\Student\CourseSimulatedController;
+use App\Http\Controllers\Student\CourseCheckoutController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
@@ -110,6 +111,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         |
         */
         Route::get('/cursos', [StudentCourseController::class, 'index'])->name('courses.index');
+        Route::post('/cursos/{course}/checkout', [CourseCheckoutController::class, 'checkout'])->name('courses.checkout');
 
         Route::middleware([EnsureActiveCourseAccess::class])->group(function () {
             Route::get('/cursos/estudar/sessao/{session}', [CourseStudyController::class, 'showQuestion'])->name('course-study.question');

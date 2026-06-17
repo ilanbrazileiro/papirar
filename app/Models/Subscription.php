@@ -22,6 +22,9 @@ class Subscription extends Model
         'user_id',
         'plan_id',
         'course_id',
+        'billing_cycle',
+        'period_days',
+        'amount',
         'status',
         'starts_at',
         'expires_at',
@@ -32,6 +35,8 @@ class Subscription extends Model
         'starts_at' => 'datetime',
         'expires_at' => 'datetime',
         'canceled_at' => 'datetime',
+        'period_days' => 'integer',
+        'amount' => 'decimal:2',
     ];
 
     public function user(): BelongsTo
@@ -44,9 +49,19 @@ class Subscription extends Model
         return $this->belongsTo(SubscriptionPlan::class, 'plan_id');
     }
 
+    public function course(): BelongsTo
+    {
+        return $this->belongsTo(Course::class);
+    }
+
     public function transactions(): HasMany
     {
         return $this->hasMany(PaymentTransaction::class);
+    }
+
+    public function courseAccess(): HasOne
+    {
+        return $this->hasOne(CourseAccess::class);
     }
 
     public function isActive(): bool
@@ -57,14 +72,9 @@ class Subscription extends Model
 
         return is_null($this->expires_at) || $this->expires_at->greaterThanOrEqualTo(now());
     }
-    public function course(): BelongsTo
-    {
-        return $this->belongsTo(Course::class);
-    }
 
-    public function courseAccess(): HasOne
+    public function isCourseSubscription(): bool
     {
-        return $this->hasOne(CourseAccess::class);
+        return ! is_null($this->course_id);
     }
-
 }

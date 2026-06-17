@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use InvalidArgumentException;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -17,6 +18,10 @@ class Course extends Model
     public const TYPE_SUBJECT_COURSE = 'subject_course';
     public const TYPE_TOPIC_COURSE = 'topic_course';
     public const TYPE_COMBO = 'combo';
+
+    public const BILLING_MONTHLY = 'monthly';
+    public const BILLING_QUARTERLY = 'quarterly';
+    public const BILLING_SEMIANNUAL = 'semiannual';
 
     protected $fillable = [
         'corporation_id',
@@ -59,6 +64,15 @@ class Course extends Model
             self::TYPE_SUBJECT_COURSE => 'Curso por disciplina',
             self::TYPE_TOPIC_COURSE => 'Curso por tópico',
             self::TYPE_COMBO => 'Combo',
+        ];
+    }
+
+    public static function billingCycleOptions(): array
+    {
+        return [
+            self::BILLING_MONTHLY => 'Mensal',
+            self::BILLING_QUARTERLY => 'Trimestral',
+            self::BILLING_SEMIANNUAL => 'Semestral',
         ];
     }
 
@@ -141,6 +155,11 @@ class Course extends Model
         return $this->hasMany(CourseAccess::class);
     }
 
+    public function subscriptions(): HasMany
+    {
+        return $this->hasMany(Subscription::class);
+    }
+
     public function scopeActive($query)
     {
         return $query->where('active', true);
@@ -160,6 +179,38 @@ class Course extends Model
     public function typeLabel(): string
     {
         return self::typeOptions()[$this->course_type] ?? $this->course_type;
+    }
+
+    public function billingCycleLabel(string $billingCycle): string
+    {
+        return self::billingCycleOptions()[$billingCycle] ?? $billingCycle;
+    }
+
+    public function priceForBillingCycle(string $billingCycle): float
+    {
+        return match ($billingCycle) {
+            self::BILLING_MONTHLY => (float) $this->price,
+            self::BILLING_QUARTERLY => (float) ($this->quarterly_price ?: 0),
+            self::BILLING_SEMIANNUAL => (float) ($this->semiannual_price ?: 0),
+            default => throw new InvalidArgumentException('Ciclo de cobrança inválido.'),
+        };
+    }
+
+    public function periodDaysForBillingCycle(string $billingCycle): int
+    {
+        return match ($billingCycle) {
+            self::BILLING_MONTHLY => 30,
+            self::BILLING_QUARTERLY => 90,
+            self::BILLING_SEMIANNUAL => 180,
+            default => throw new InvalidArgumentException('Ciclo de cobrança inválido.'),
+        };
+    }
+
+    public function availableBillingCycles(): array
+    {
+        return collect(self::billingCycleOptions())
+            ->filter(fn ($label, $cycle) => $this->priceForBillingCycle((string) $cycle) > 0)
+            ->all();
     }
 
     public function hasQuarterlyPrice(): bool
