@@ -23,6 +23,9 @@
             @if($question->sourceMaterial)
                 <span class="meta-badge">Fonte: {{ $question->sourceMaterial->title }}</span>
             @endif
+            @if($question->activeVideoLesson)
+                <span class="meta-badge">Aula em vídeo disponível após responder</span>
+            @endif
         </div>
 
         <div class="mb-4 papirar-katex">
@@ -44,6 +47,8 @@
                 <div class="section-title">Comentário</div>
                 <div class="papirar-katex">{!! $question->commented_answer ?: 'Comentário ainda não cadastrado.' !!}</div>
             </div>
+
+            @include('student.courses.partials.video-lesson', ['question' => $question])
 
             <form method="POST" action="{{ route('student.course-study.next', $session) }}" class="mt-4 text-end">
                 @csrf

@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Question extends Model
 {
@@ -84,5 +85,15 @@ class Question extends Model
     public function answers(): HasMany
     {
         return $this->hasMany(UserAnswer::class);
+    }
+
+    public function videoLesson(): HasOne
+    {
+        return $this->hasOne(QuestionVideoLesson::class);
+    }
+
+    public function activeVideoLesson(): HasOne
+    {
+        return $this->hasOne(QuestionVideoLesson::class)->where('status', 'active');
     }
 }

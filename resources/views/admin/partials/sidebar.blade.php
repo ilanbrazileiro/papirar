@@ -79,6 +79,13 @@
                                 </li>
                             @endif
 
+                            <li class="nav-item">
+                                <a href="{{ route('admin.question-video-lessons.index') }}" class="nav-link {{ request()->routeIs('admin.question-video-lessons.*') ? 'active' : '' }}">
+                                    <i class="nav-icon fas fa-video"></i>
+                                    <p>Aulas por questão</p>
+                                </a>
+                            </li>
+
                             @if(Route::has('admin.questions.import.create'))
                                 <li class="nav-item">
                                     <a href="{{ route('admin.questions.import.create') }}" class="nav-link {{ request()->routeIs('admin.questions.import.*') ? 'active' : '' }}">

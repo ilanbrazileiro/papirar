@@ -114,6 +114,7 @@ class CourseStudyController extends Controller
                 'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
                 'comments.user',
                 'difficultyVotes',
+                'activeVideoLesson',
             ])
             ->findOrFail($currentItem->question_id);
 
@@ -152,6 +153,7 @@ class CourseStudyController extends Controller
                 'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
                 'comments.user',
                 'difficultyVotes',
+                'activeVideoLesson',
             ])
             ->findOrFail($data['question_id']);
 
@@ -198,6 +200,7 @@ class CourseStudyController extends Controller
             'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
             'comments.user',
             'difficultyVotes',
+            'activeVideoLesson',
         ]);
 
         $userAnswer = UserAnswer::query()

@@ -28,6 +28,7 @@ use App\Http\Controllers\Admin\SourceMaterialController;
 use App\Http\Controllers\Admin\ExamSubjectSourceMaterialController;
 use App\Http\Controllers\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Admin\CourseAccessController;
+use App\Http\Controllers\Admin\QuestionVideoLessonController;
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -216,6 +217,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
             Route::post('/customers/{customer}/grant-access', [CustomerController::class, 'grantAccess'])->name('customers.grant-access');
             Route::resource('subscriptions', AdminSubscriptionController::class)->only(['index', 'show', 'update']);
+            Route::resource('question-video-lessons', QuestionVideoLessonController::class)->except(['show']);
 
             Route::post('questions/imports/{batch}/rows/{row}/import', [QuestionImportReviewController::class, 'importRow'])->name('question-import-batches.rows.import');
             Route::post('questions/imports/{batch}/rows/{row}/ignore', [QuestionImportReviewController::class, 'ignoreRow'])->name('question-import-batches.rows.ignore');
