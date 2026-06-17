@@ -119,7 +119,7 @@
                 <div class="d-grid gap-2">
                     <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">Iniciar estudo</a>
                     <a href="{{ route('student.courses.simulated.index', $course) }}" class="btn btn-outline-primary">Criar simulado</a>
-                    <button class="btn btn-outline-secondary" type="button" disabled>Desempenho em breve</button>
+                    <a href="{{ route('student.courses.performance', $course) }}" class="btn btn-outline-primary">Ver desempenho</a>
                 </div>
             </div>
 

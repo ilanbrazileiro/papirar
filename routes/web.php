@@ -53,6 +53,7 @@ use App\Http\Controllers\Student\CourseSimulatedController;
 use App\Http\Controllers\Student\CourseCheckoutController;
 use App\Http\Controllers\Student\CoursePurchaseController;
 use App\Http\Controllers\Student\CoursePaymentReturnController;
+use App\Http\Controllers\Student\CoursePerformanceController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
@@ -129,6 +130,8 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::get('/cursos/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
             Route::get('/cursos/{course}/estudar', [StudentCourseController::class, 'study'])->name('courses.study');
             Route::post('/cursos/{course}/estudar/iniciar', [CourseStudyController::class, 'start'])->name('course-study.start');
+            Route::get('/cursos/{course}/desempenho', [CoursePerformanceController::class, 'show'])->name('courses.performance');
+
 
             /*
              * Rotas do Lote 3 — Simulados por curso.
