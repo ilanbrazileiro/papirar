@@ -202,6 +202,12 @@
                             </a>
                         </li>
                     @endif
+                    <li class="nav-item">
+                        <a href="{{ route('admin.reports.courses.index') }}" class="nav-link {{ request()->routeIs('admin.reports.courses.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-chart-line"></i>
+                            <p>Relatórios de cursos</p>
+                        </a>
+                    </li>
 
                     @if(Route::has('admin.customers.index'))
                         <li class="nav-item">

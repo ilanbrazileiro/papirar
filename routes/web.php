@@ -29,6 +29,7 @@ use App\Http\Controllers\Admin\ExamSubjectSourceMaterialController;
 use App\Http\Controllers\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Admin\CourseAccessController;
 use App\Http\Controllers\Admin\QuestionVideoLessonController;
+use App\Http\Controllers\Admin\CourseReportController;
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -204,14 +205,16 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('courses', CourseController::class);
             Route::resource('course-accesses', CourseAccessController::class)->except(['show']);
             Route::patch('course-accesses/{courseAccess}/cancel', [CourseAccessController::class, 'cancel'])->name('course-accesses.cancel');
+            Route::prefix('reports')->name('reports.')->group(function () {
+                Route::get('/courses', [CourseReportController::class, 'index'])->name('courses.index');
+                Route::get('/courses/{course}', [CourseReportController::class, 'show'])->name('courses.show');
+            });
 
             Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])->name('exams.source-materials.edit');
             Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])->name('exams.source-materials.update');
-
             Route::get('/minha-conta', [AdminAccountController::class, 'edit'])->name('account.edit');
             Route::put('/minha-conta', [AdminAccountController::class, 'update'])->name('account.update');
             Route::put('/minha-conta/senha', [AdminAccountController::class, 'updatePassword'])->name('account.password.update');
-
             Route::resource('plans', PlanController::class);
             Route::resource('collaborators', CollaboratorController::class);
             Route::resource('customers', CustomerController::class)->only(['index', 'show', 'edit', 'update']);
