@@ -52,6 +52,7 @@ use App\Http\Controllers\Student\CourseStudyController;
 use App\Http\Controllers\Student\CourseSimulatedController;
 use App\Http\Controllers\Student\CourseCheckoutController;
 use App\Http\Controllers\Student\CoursePurchaseController;
+use App\Http\Controllers\Student\CoursePaymentReturnController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
@@ -113,6 +114,9 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         */
         Route::get('/cursos', [StudentCourseController::class, 'index'])->name('courses.index');
         Route::post('/cursos/{course}/checkout', [CourseCheckoutController::class, 'checkout'])->name('courses.checkout');
+        Route::get('/cursos/checkout/{transaction}/sucesso', [CoursePaymentReturnController::class, 'success'])->name('courses.checkout.success');
+        Route::get('/cursos/checkout/{transaction}/pendente', [CoursePaymentReturnController::class, 'pending'])->name('courses.checkout.pending');
+        Route::get('/cursos/checkout/{transaction}/falha', [CoursePaymentReturnController::class, 'failure'])->name('courses.checkout.failure');
         Route::get('/compras', [CoursePurchaseController::class, 'index'])->name('purchases.index');
 
         Route::middleware([EnsureActiveCourseAccess::class])->group(function () {

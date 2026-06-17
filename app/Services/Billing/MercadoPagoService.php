@@ -95,9 +95,9 @@ class MercadoPagoService
             'external_reference' => (string) $transaction->id,
             'notification_url' => $this->webhookUrl,
             'back_urls' => [
-                'success' => route('student.courses.index', ['payment' => 'success', 'course_id' => $course->id]),
-                'failure' => route('student.courses.index', ['payment' => 'failure', 'course_id' => $course->id]),
-                'pending' => route('student.courses.index', ['payment' => 'pending', 'course_id' => $course->id]),
+                'success' => route('student.courses.checkout.success', $transaction),
+                'failure' => route('student.courses.checkout.failure', $transaction),
+                'pending' => route('student.courses.checkout.pending', $transaction),
             ],
             'auto_return' => 'approved',
             'metadata' => [
