@@ -16,7 +16,7 @@ class CourseAccessController extends Controller
     public function index(Request $request): View
     {
         $accesses = CourseAccess::query()
-            ->with(['user', 'course'])
+            ->with(['user', 'course', 'subscription.transactions'])
             ->when($request->filled('search'), function ($query) use ($request) {
                 $search = $request->string('search')->toString();
 
@@ -31,21 +31,24 @@ class CourseAccessController extends Controller
                 });
             })
             ->when($request->filled('status'), fn ($query) => $query->where('status', $request->string('status')->toString()))
+            ->when($request->filled('access_type'), fn ($query) => $query->where('access_type', $request->string('access_type')->toString()))
             ->when($request->filled('course_id'), fn ($query) => $query->where('course_id', $request->integer('course_id')))
             ->latest('id')
             ->paginate(20)
             ->withQueryString();
 
         $courses = Course::query()->orderBy('title')->get();
-        $statuses = $this->statuses();
+        $statuses = CourseAccess::statusOptions();
+        $accessTypes = CourseAccess::accessTypeOptions();
 
-        return view('admin.course-accesses.index', compact('accesses', 'courses', 'statuses'));
+        return view('admin.course-accesses.index', compact('accesses', 'courses', 'statuses', 'accessTypes'));
     }
 
     public function create(): View
     {
         $access = new CourseAccess([
             'status' => CourseAccess::STATUS_ACTIVE,
+            'access_type' => CourseAccess::TYPE_MANUAL,
             'starts_at' => now(),
             'ends_at' => now()->addMonth(),
             'bonus_days' => 0,
@@ -58,6 +61,7 @@ class CourseAccessController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $data = $this->validateData($request);
+        $data['access_type'] = $data['access_type'] ?? CourseAccess::TYPE_MANUAL;
         $data['cancel_at_period_end'] = (bool) ($data['cancel_at_period_end'] ?? false);
         $data['bonus_days'] = (int) ($data['bonus_days'] ?? 0);
 
@@ -70,12 +74,15 @@ class CourseAccessController extends Controller
 
     public function edit(CourseAccess $courseAccess): View
     {
+        $courseAccess->load(['user', 'course', 'subscription.transactions']);
+
         return view('admin.course-accesses.edit', $this->formData($courseAccess));
     }
 
     public function update(Request $request, CourseAccess $courseAccess): RedirectResponse
     {
         $data = $this->validateData($request);
+        $data['access_type'] = $data['access_type'] ?? CourseAccess::TYPE_MANUAL;
         $data['cancel_at_period_end'] = (bool) ($data['cancel_at_period_end'] ?? false);
         $data['bonus_days'] = (int) ($data['bonus_days'] ?? 0);
 
@@ -111,7 +118,8 @@ class CourseAccessController extends Controller
                 ->where('active', true)
                 ->orderBy('title')
                 ->get(),
-            'statuses' => $this->statuses(),
+            'statuses' => CourseAccess::statusOptions(),
+            'accessTypes' => CourseAccess::accessTypeOptions(),
         ];
     }
 
@@ -120,21 +128,12 @@ class CourseAccessController extends Controller
         return $request->validate([
             'user_id' => ['required', 'integer', Rule::exists('users', 'id')->where('role', 'student')],
             'course_id' => ['required', 'integer', 'exists:courses,id'],
-            'status' => ['required', Rule::in(array_keys($this->statuses()))],
+            'status' => ['required', Rule::in(array_keys(CourseAccess::statusOptions()))],
+            'access_type' => ['nullable', Rule::in(array_keys(CourseAccess::accessTypeOptions()))],
             'starts_at' => ['required', 'date'],
             'ends_at' => ['nullable', 'date', 'after_or_equal:starts_at'],
             'bonus_days' => ['nullable', 'integer', 'min:0', 'max:365'],
             'cancel_at_period_end' => ['nullable', 'boolean'],
         ]);
-    }
-
-    private function statuses(): array
-    {
-        return [
-            CourseAccess::STATUS_PENDING => 'Pendente',
-            CourseAccess::STATUS_ACTIVE => 'Ativo',
-            CourseAccess::STATUS_EXPIRED => 'Expirado',
-            CourseAccess::STATUS_CANCELED => 'Cancelado',
-        ];
     }
 }

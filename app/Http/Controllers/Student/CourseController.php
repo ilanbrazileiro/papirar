@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseAccess;
 use App\Models\Question;
+use App\Models\PaymentTransaction;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
@@ -57,7 +58,31 @@ class CourseController extends Controller
 
         $paymentStatus = request('payment');
 
-        return view('student.courses.index', compact('courseAccesses', 'availableCourses', 'courseQuestionCounts', 'paymentStatus'));
+        $pendingTransactions = PaymentTransaction::query()
+            ->with(['course', 'subscription'])
+            ->where('user_id', Auth::id())
+            ->whereNotNull('course_id')
+            ->where('status', PaymentTransaction::STATUS_PENDING)
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        $recentTransactions = PaymentTransaction::query()
+            ->with(['course', 'subscription'])
+            ->where('user_id', Auth::id())
+            ->whereNotNull('course_id')
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        return view('student.courses.index', compact(
+            'courseAccesses',
+            'availableCourses',
+            'courseQuestionCounts',
+            'paymentStatus',
+            'pendingTransactions',
+            'recentTransactions'
+        ));
     }
 
     public function show(Course $course): View
@@ -83,7 +108,15 @@ class CourseController extends Controller
 
         $totalQuestions = $this->countQuestionsForCourse($course);
 
-        return view('student.courses.show', compact('course', 'access', 'subjects', 'topics', 'sourceMaterials', 'totalQuestions'));
+        $transactions = PaymentTransaction::query()
+            ->with('subscription')
+            ->where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->latest('id')
+            ->limit(5)
+            ->get();
+
+        return view('student.courses.show', compact('course', 'access', 'subjects', 'topics', 'sourceMaterials', 'totalQuestions', 'transactions'));
     }
 
     public function study(Course $course): View

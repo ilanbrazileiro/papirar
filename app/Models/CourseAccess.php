@@ -44,6 +44,26 @@ class CourseAccess extends Model
         'bonus_days' => 'integer',
     ];
 
+    public static function statusOptions(): array
+    {
+        return [
+            self::STATUS_PENDING => 'Pendente',
+            self::STATUS_ACTIVE => 'Ativo',
+            self::STATUS_EXPIRED => 'Expirado',
+            self::STATUS_CANCELED => 'Cancelado',
+        ];
+    }
+
+    public static function accessTypeOptions(): array
+    {
+        return [
+            self::TYPE_MANUAL => 'Manual',
+            self::TYPE_TRIAL => 'Teste grátis',
+            self::TYPE_PAID => 'Pago',
+            self::TYPE_BONUS => 'Bônus',
+        ];
+    }
+
     public function user(): BelongsTo
     {
         return $this->belongsTo(User::class);
@@ -66,5 +86,26 @@ class CourseAccess extends Model
         }
 
         return is_null($this->ends_at) || $this->ends_at->greaterThanOrEqualTo(now());
+    }
+
+    public function statusLabel(): string
+    {
+        return self::statusOptions()[$this->status] ?? $this->status;
+    }
+
+    public function accessTypeLabel(): string
+    {
+        return self::accessTypeOptions()[$this->access_type ?: self::TYPE_MANUAL] ?? ($this->access_type ?: self::TYPE_MANUAL);
+    }
+
+    public function statusBadgeClass(): string
+    {
+        return match ($this->status) {
+            self::STATUS_ACTIVE => 'success',
+            self::STATUS_PENDING => 'warning',
+            self::STATUS_EXPIRED => 'secondary',
+            self::STATUS_CANCELED => 'danger',
+            default => 'secondary',
+        };
     }
 }
