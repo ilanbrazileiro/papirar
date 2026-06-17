@@ -13,6 +13,7 @@ class SimulatedExam extends Model
 
     protected $fillable = [
         'user_id',
+        'course_id',
         'title',
         'corporation_id',
         'exam_id',
@@ -32,6 +33,7 @@ class SimulatedExam extends Model
 
     protected $casts = [
         'user_id' => 'integer',
+        'course_id' => 'integer',
         'corporation_id' => 'integer',
         'exam_id' => 'integer',
         'subject_id' => 'integer',
@@ -46,35 +48,13 @@ class SimulatedExam extends Model
         'finished_at' => 'datetime',
     ];
 
-    public function user(): BelongsTo
-    {
-        return $this->belongsTo(User::class);
-    }
-
-    public function corporation(): BelongsTo
-    {
-        return $this->belongsTo(Corporation::class);
-    }
-
-    public function exam(): BelongsTo
-    {
-        return $this->belongsTo(Exam::class);
-    }
-
-    public function subject(): BelongsTo
-    {
-        return $this->belongsTo(Subject::class);
-    }
-
-    public function topic(): BelongsTo
-    {
-        return $this->belongsTo(Topic::class);
-    }
-
-    public function sourceMaterial(): BelongsTo
-    {
-        return $this->belongsTo(SourceMaterial::class, 'source_material_id');
-    }
+    public function user(): BelongsTo { return $this->belongsTo(User::class); }
+    public function course(): BelongsTo { return $this->belongsTo(Course::class); }
+    public function corporation(): BelongsTo { return $this->belongsTo(Corporation::class); }
+    public function exam(): BelongsTo { return $this->belongsTo(Exam::class); }
+    public function subject(): BelongsTo { return $this->belongsTo(Subject::class); }
+    public function topic(): BelongsTo { return $this->belongsTo(Topic::class); }
+    public function sourceMaterial(): BelongsTo { return $this->belongsTo(SourceMaterial::class, 'source_material_id'); }
 
     public function items(): HasMany
     {

@@ -54,7 +54,7 @@
 <body>
 <nav class="navbar navbar-expand-lg app-navbar">
     <div class="container-fluid" style="max-width: 1280px;">
-        <a class="navbar-brand fw-bold" href="{{ route('student.dashboard') }}">Papirar</a>
+        <a class="navbar-brand fw-bold" href="{{ route('student.courses.index') }}">Papirar</a>
 
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#studentNav">
             <span class="navbar-toggler-icon"></span>
@@ -62,12 +62,21 @@
 
         <div class="collapse navbar-collapse" id="studentNav">
             <ul class="navbar-nav ms-auto align-items-lg-center gap-lg-2">
-                <li class="nav-item"><a class="nav-link" href="{{ route('student.dashboard') }}">Dashboard</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('student.courses.index') }}">Meus cursos</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('student.simulated.index') }}">Simulados</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('student.subscriptions.index') }}">Assinatura</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('student.tickets.index') }}">Suporte</a></li>
-                <li class="nav-item"><a class="nav-link" href="{{ route('student.account.edit') }}">Minha conta</a></li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('student.dashboard') ? 'active' : '' }}" href="{{ route('student.dashboard') }}">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('student.courses.*') || request()->routeIs('student.course-study.*') ? 'active' : '' }}" href="{{ route('student.courses.index') }}">Meus cursos</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('student.subscriptions.*') ? 'active' : '' }}" href="{{ route('student.subscriptions.index') }}">Assinatura</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('student.tickets.*') ? 'active' : '' }}" href="{{ route('student.tickets.index') }}">Suporte</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('student.account.*') ? 'active' : '' }}" href="{{ route('student.account.edit') }}">Minha conta</a>
+                </li>
                 <li class="nav-item ms-lg-2">
                     <form method="POST" action="{{ route('auth.logout') }}">
                         @csrf

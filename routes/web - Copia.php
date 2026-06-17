@@ -59,6 +59,7 @@ use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureActiveCourseAccess;
 use App\Http\Middleware\EnsureAdmin;
 
+
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
@@ -98,17 +99,6 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::get('/tickets/{ticket}', [TicketController::class, 'show'])->name('tickets.show');
         Route::post('/tickets/{ticket}/responder', [TicketController::class, 'reply'])->name('tickets.reply');
         Route::post('/tickets/{ticket}/fechar', [TicketController::class, 'close'])->name('tickets.close');
-
-        /*
-        |--------------------------------------------------------------------------
-        | Novo fluxo principal do aluno
-        |--------------------------------------------------------------------------
-        |
-        | O aluno acessa primeiro "Meus Cursos". Qualquer tela que exiba questões,
-        | sessão de estudo ou simulado dentro de um curso precisa passar pelo
-        | middleware EnsureActiveCourseAccess.
-        |
-        */
         Route::get('/cursos', [StudentCourseController::class, 'index'])->name('courses.index');
 
         Route::middleware([EnsureActiveCourseAccess::class])->group(function () {
@@ -117,64 +107,43 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/cursos/estudar/sessao/{session}/proxima', [CourseStudyController::class, 'next'])->name('course-study.next');
             Route::get('/cursos/estudar/sessao/{session}/questao/{question}/revisao', [CourseStudyController::class, 'review'])->name('course-study.review');
             Route::get('/cursos/estudar/sessao/{session}/resultado', [CourseStudyController::class, 'result'])->name('course-study.result');
-
             Route::get('/cursos/{course}', [StudentCourseController::class, 'show'])->name('courses.show');
             Route::get('/cursos/{course}/estudar', [StudentCourseController::class, 'study'])->name('courses.study');
             Route::post('/cursos/{course}/estudar/iniciar', [CourseStudyController::class, 'start'])->name('course-study.start');
-
-            /*
-             * Rotas do Lote 3 — Simulados por curso.
-             * Se o controller CourseSimulatedController ainda não tiver sido copiado,
-             * aplique primeiro os arquivos do Lote 3 antes de acessar essas URLs.
-             */
-            Route::get('/cursos/{course}/simulados', [CourseSimulatedController::class, 'index'])->name('courses.simulated.index');
-            Route::post('/cursos/{course}/simulados', [CourseSimulatedController::class, 'store'])->name('courses.simulated.store');
-            Route::get('/cursos/{course}/simulados/{simulatedExam}', [CourseSimulatedController::class, 'show'])->name('courses.simulated.show');
-            Route::post('/cursos/{course}/simulados/{simulatedExam}/salvar-resposta', [CourseSimulatedController::class, 'saveAnswer'])->name('courses.simulated.save_answer');
-            Route::post('/cursos/{course}/simulados/{simulatedExam}/finalizar', [CourseSimulatedController::class, 'finish'])->name('courses.simulated.finish');
-            Route::get('/cursos/{course}/simulados/{simulatedExam}/resultado', [CourseSimulatedController::class, 'result'])->name('courses.simulated.result');
+            Route::get('/cursos/{course}/simulados', [CourseSimulatedController::class, 'index'])->name('course-simulated.index');
+            Route::post('/cursos/{course}/simulados', [CourseSimulatedController::class, 'store'])->name('course-simulated.store');
+            Route::get('/cursos/simulados/{simulatedExam}', [CourseSimulatedController::class, 'show'])->name('course-simulated.show');
+            Route::post('/cursos/simulados/{simulatedExam}/salvar-resposta', [CourseSimulatedController::class, 'saveAnswer'])->name('course-simulated.save_answer');
+            Route::post('/cursos/simulados/{simulatedExam}/finalizar', [CourseSimulatedController::class, 'finish'])->name('course-simulated.finish');
+            Route::get('/cursos/simulados/{simulatedExam}/resultado', [CourseSimulatedController::class, 'result'])->name('course-simulated.result');
         });
 
-        /*
-        |--------------------------------------------------------------------------
-        | Fluxos antigos do aluno — desativados
-        |--------------------------------------------------------------------------
-        |
-        | As rotas antigas continuam existindo apenas para evitar erro 404 em links
-        | salvos, botões antigos ou histórico do navegador. Todas redirecionam para
-        | "Meus Cursos", que é o novo ponto de entrada da área do aluno.
-        |
-        */
-        Route::get('/estudar', fn () => redirect()->route('student.courses.index'))->name('study.index');
-        Route::get('/estudar/filtro-livre', fn () => redirect()->route('student.courses.index'))->name('study.filter');
-        Route::post('/estudar/iniciar', fn () => redirect()->route('student.courses.index'))->name('study.start');
-        Route::get('/estudar/sessao/{session}', fn () => redirect()->route('student.courses.index'))->name('study.question');
-        Route::post('/estudar/sessao/{session}/responder', fn () => redirect()->route('student.courses.index'))->name('study.answer');
-        Route::post('/estudar/sessao/{session}/proxima', fn () => redirect()->route('student.courses.index'))->name('study.next');
-        Route::get('/estudar/sessao/{session}/resultado', fn () => redirect()->route('student.courses.index'))->name('study.result');
-        Route::get('/estudar/sessao/{session}/questao/{question}/revisao', fn () => redirect()->route('student.courses.index'))->name('study.review');
-
-        Route::get('/simulados', fn () => redirect()->route('student.courses.index'))->name('simulated.index');
-        Route::post('/simulados', fn () => redirect()->route('student.courses.index'))->name('simulated.store');
-        Route::get('/simulados/{simulatedExam}', fn () => redirect()->route('student.courses.index'))->name('simulated.show');
-        Route::post('/simulados/{simulatedExam}/salvar-resposta', fn () => redirect()->route('student.courses.index'))->name('simulated.save_answer');
-        Route::post('/simulados/{simulatedExam}/finalizar', fn () => redirect()->route('student.courses.index'))->name('simulated.finish');
-        Route::get('/simulados/{simulatedExam}/resultado', fn () => redirect()->route('student.courses.index'))->name('simulated.result');
-
-        Route::get('/estudo-por-concurso', fn () => redirect()->route('student.courses.index'))->name('exam-study.index');
-        Route::post('/estudo-por-concurso/iniciar', fn () => redirect()->route('student.courses.index'))->name('exam-study.start');
-        Route::get('/estudo-por-concurso/corporations/{corporation}/exams', fn () => redirect()->route('student.courses.index'))->name('exam-study.corporations.exams');
-        Route::get('/estudo-por-concurso/exams/{exam}/subjects', fn () => redirect()->route('student.courses.index'))->name('exam-study.exams.subjects');
-
-        /*
-         * Comentários e voto de dificuldade permanecem ativos temporariamente
-         * porque podem ser usados pelas telas de revisão do novo fluxo por curso.
-         * Em lote futuro, o ideal é vinculá-los ao curso/sessão para validação
-         * explícita de acesso.
-         */
-        Route::post('/questoes/{question}/comentarios', [QuestionCommentController::class, 'store'])->name('questions.comments.store');
-        Route::put('/questoes/{question}/comentarios/{comment}', [QuestionCommentController::class, 'update'])->name('questions.comments.update');
-        Route::post('/questoes/{question}/dificuldade', [QuestionDifficultyVoteController::class, 'store'])->name('questions.difficulty.store');
+        Route::middleware([EnsureActiveSubscription::class])->group(function () {
+            Route::get('/estudar', [StudyController::class, 'index'])->name('study.index');
+            Route::get('/estudar/filtro-livre', [StudyController::class, 'filter'])->name('study.filter');
+            Route::post('/estudar/iniciar', [StudyController::class, 'start'])->name('study.start');
+            Route::get('/estudar/sessao/{session}', [StudyController::class, 'showQuestion'])->name('study.question');
+            Route::post('/estudar/sessao/{session}/responder', [StudyController::class, 'answer'])->name('study.answer');
+            Route::post('/estudar/sessao/{session}/proxima', [StudyController::class, 'next'])->name('study.next');
+            Route::get('/estudar/sessao/{session}/resultado', [StudyController::class, 'result'])->name('study.result');
+            Route::get('/estudar/sessao/{session}/questao/{question}/revisao', [StudyController::class, 'review'])->name('study.review');
+          
+            Route::get('/simulados', [SimulatedController::class, 'index'])->name('simulated.index');
+            Route::post('/simulados', [SimulatedController::class, 'store'])->name('simulated.store');
+            Route::get('/simulados/{simulatedExam}', [SimulatedController::class, 'show'])->name('simulated.show');
+            Route::post('/simulados/{simulatedExam}/salvar-resposta', [SimulatedController::class, 'saveAnswer'])->name('simulated.save_answer');
+            Route::post('/simulados/{simulatedExam}/finalizar', [SimulatedController::class, 'finish'])->name('simulated.finish');
+            Route::get('/simulados/{simulatedExam}/resultado', [SimulatedController::class, 'result'])->name('simulated.result');
+          
+            Route::post('/questoes/{question}/comentarios', [QuestionCommentController::class, 'store'])->name('questions.comments.store');
+            Route::put('/questoes/{question}/comentarios/{comment}', [QuestionCommentController::class, 'update'])->name('questions.comments.update');
+            Route::post('/questoes/{question}/dificuldade', [QuestionDifficultyVoteController::class, 'store'])->name('questions.difficulty.store');
+            
+            Route::get('/estudo-por-concurso', [ExamStudyController::class, 'index'])->name('exam-study.index');
+            Route::post('/estudo-por-concurso/iniciar', [ExamStudyController::class, 'start'])->name('exam-study.start');
+            Route::get('/estudo-por-concurso/corporations/{corporation}/exams', [ExamStudyController::class, 'examsByCorporation'])->name('exam-study.corporations.exams');
+            Route::get('/estudo-por-concurso/exams/{exam}/subjects', [ExamStudyController::class, 'subjectsByExam'])->name('exam-study.exams.subjects');
+        });
     });
 
     Route::prefix('admin')
@@ -191,7 +160,6 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('source-materials', SourceMaterialController::class);
             Route::resource('courses', CourseController::class);
             Route::resource('course-accesses', CourseAccessController::class)->except(['show']);
-            Route::patch('course-accesses/{courseAccess}/cancel', [CourseAccessController::class, 'cancel'])->name('course-accesses.cancel');
 
             Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])->name('exams.source-materials.edit');
             Route::put('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'update'])->name('exams.source-materials.update');
@@ -226,7 +194,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('/editor/images/upload', [EditorImageUploadController::class, 'store'])->name('editor-images.upload');
             Route::get('questions/ajax/source-materials', [QuestionController::class, 'ajaxSourceMaterials'])->name('questions.ajax-source-materials');
             Route::get('questions/import/source-materials-csv', [QuestionImportController::class, 'downloadSourceMaterialsCsv'])->name('questions.import.source-materials-csv');
-
+                    
             Route::get('/comentarios', [CommentModerationController::class, 'index'])->name('comments.index');
             Route::patch('/comentarios/{comment}/aprovar', [CommentModerationController::class, 'approve'])->name('comments.approve');
             Route::patch('/comentarios/{comment}/rejeitar', [CommentModerationController::class, 'reject'])->name('comments.reject');

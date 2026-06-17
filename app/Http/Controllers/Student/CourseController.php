@@ -144,9 +144,11 @@ class CourseController extends Controller
                 ->all();
 
             $sourceMaterialIds = DB::table('exam_subject_source_materials')
-                ->where('exam_id', $course->exam_id)
-                ->where('is_active', true)
-                ->pluck('source_material_id')
+                ->join('exam_subjects', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')
+                ->where('exam_subjects.exam_id', $course->exam_id)
+                ->where('exam_subjects.is_active', true)
+                ->where('exam_subject_source_materials.is_active', true)
+                ->pluck('exam_subject_source_materials.source_material_id')
                 ->filter()
                 ->map(fn ($id) => (int) $id)
                 ->unique()
