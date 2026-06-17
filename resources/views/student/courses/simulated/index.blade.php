@@ -24,7 +24,7 @@
                 @if($subjects->isEmpty())
                     <div class="alert alert-warning mb-0">Este curso ainda não possui disciplinas disponíveis para simulado.</div>
                 @else
-                    <form method="POST" action="{{ route('student.course.simulated.store', $course) }}">
+                    <form method="POST" action="{{ route('student.courses.simulated.store', $course) }}">
                         @csrf
                         <div class="mb-3">
                             <label class="form-label">Título do simulado</label>
@@ -84,9 +84,9 @@
                                         <td>@if($simulatedExam->finished_at)<span class="badge bg-success">Finalizado</span>@else<span class="badge bg-warning text-dark">Em andamento</span>@endif</td>
                                         <td class="text-end">
                                             @if($simulatedExam->finished_at)
-                                                <a href="{{ route('student.course.simulated.result', $simulatedExam) }}" class="btn btn-sm btn-outline-primary">Resultado</a>
+                                                <a href="{{ route('student.courses.simulated.result', $simulatedExam) }}" class="btn btn-sm btn-outline-primary">Resultado</a>
                                             @else
-                                                <a href="{{ route('student.course.simulated.show', $simulatedExam) }}" class="btn btn-sm btn-primary">Continuar</a>
+                                                <a href="{{ route('student.courses.simulated.show', $simulatedExam) }}" class="btn btn-sm btn-primary">Continuar</a>
                                             @endif
                                         </td>
                                     </tr>

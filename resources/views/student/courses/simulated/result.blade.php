@@ -5,7 +5,7 @@
 @section('content')
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div><h1 class="page-title">Resultado do simulado</h1><p class="page-subtitle">{{ $simulatedExam->title }} · {{ optional($simulatedExam->course)->title }}</p></div>
-        <div class="d-flex flex-wrap gap-2"><a href="{{ route('student.course.simulated.index', $simulatedExam->course_id) }}" class="btn btn-outline-primary">Simulados</a><a href="{{ route('student.courses.show', $simulatedExam->course_id) }}" class="btn btn-primary">Voltar ao curso</a></div>
+        <div class="d-flex flex-wrap gap-2"><a href="{{ route('student.courses.simulated.index', $simulatedExam->course_id) }}" class="btn btn-outline-primary">Simulados</a><a href="{{ route('student.courses.show', $simulatedExam->course_id) }}" class="btn btn-primary">Voltar ao curso</a></div>
     </div>
     <div class="row g-3 mb-4">
         <div class="col-md-3"><div class="stats-card"><div class="label">Questões</div><div class="value">{{ $items->count() }}</div></div></div>
