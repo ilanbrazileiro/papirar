@@ -44,11 +44,16 @@
                                 <td>{{ $question->subject->name ?? '-' }}</td>
                                 <td>{{ $question->topic->name ?? '-' }}</td>
                                 <td>{{ $question->sourceMaterial->title ?? '-' }}</td>
-                                <td style="min-width: 220px;">
-                                    @if($favorite->note)
-                                        <div class="small text-muted">{{ \Illuminate\Support\Str::limit($favorite->note, 120) }}</div>
+                                <td style="min-width: 280px;">
+                                    @if($question)
+                                        <form method="POST" action="{{ route('student.courses.favorites.note', [$course, $question]) }}" class="m-0">
+                                            @csrf
+                                            @method('PATCH')
+                                            <textarea name="note" class="form-control form-control-sm" rows="2" maxlength="3000" placeholder="Anote por que marcou esta questão...">{{ old('note', $favorite->note) }}</textarea>
+                                            <button class="btn btn-sm btn-outline-primary mt-2">Salvar anotação</button>
+                                        </form>
                                     @else
-                                        <span class="text-muted">Sem anotação</span>
+                                        <span class="text-muted">Questão indisponível</span>
                                     @endif
                                 </td>
                                 <td>

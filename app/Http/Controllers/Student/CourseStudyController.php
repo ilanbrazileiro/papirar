@@ -238,11 +238,11 @@ class CourseStudyController extends Controller
 
     private function questionViewData(StudySession $session, Question $question, StudySessionQuestion $currentItem, ?UserAnswer $userAnswer): array
     {
-        $isFavorited = QuestionFavorite::query()
+        $favorite = QuestionFavorite::query()
             ->where('user_id', Auth::id())
             ->where('course_id', $session->course_id)
             ->where('question_id', $question->id)
-            ->exists();
+            ->first();
 
         return [
             'session' => $session,
@@ -251,7 +251,8 @@ class CourseStudyController extends Controller
             'currentPosition' => $currentItem->position,
             'totalQuestions' => StudySessionQuestion::query()->where('study_session_id', $session->id)->count(),
             'userAnswer' => $userAnswer,
-            'isFavorited' => $isFavorited,
+            'favorite' => $favorite,
+            'isFavorited' => (bool) $favorite,
         ];
     }
 
