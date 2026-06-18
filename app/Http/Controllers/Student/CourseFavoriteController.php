@@ -7,7 +7,11 @@ use App\Models\Course;
 use App\Models\CourseAccess;
 use App\Models\Question;
 use App\Models\QuestionFavorite;
+use App\Models\StudySession;
+use App\Models\StudySessionQuestion;
+use App\Models\UserAnswer;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
@@ -19,13 +23,94 @@ class CourseFavoriteController extends Controller
         $this->authorizeCourseAccess($course);
 
         $favorites = QuestionFavorite::query()
-            ->with(['question.subject', 'question.topic', 'question.sourceMaterial'])
+            ->with(['question.subject', 'question.topic', 'question.sourceMaterial', 'question.activeVideoLesson'])
             ->where('user_id', Auth::id())
             ->where('course_id', $course->id)
             ->latest('id')
             ->paginate(20);
 
         return view('student.courses.favorites', compact('course', 'favorites'));
+    }
+
+    public function show(Course $course, Question $question): View
+    {
+        $this->authorizeCourseAccess($course);
+        $this->authorizeQuestionInCourse($course, $question);
+        $this->authorizeFavorite($course, $question);
+
+        $favorite = QuestionFavorite::query()
+            ->where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->where('question_id', $question->id)
+            ->firstOrFail();
+
+        $question = $this->loadQuestion((int) $question->id);
+
+        $lastAnswer = UserAnswer::query()
+            ->with('selectedAlternative')
+            ->where('user_id', Auth::id())
+            ->where('question_id', $question->id)
+            ->latest('answered_at')
+            ->latest('id')
+            ->first();
+
+        $answerStats = UserAnswer::query()
+            ->where('user_id', Auth::id())
+            ->where('question_id', $question->id)
+            ->selectRaw('COUNT(*) as total, SUM(CASE WHEN is_correct = 1 THEN 1 ELSE 0 END) as correct')
+            ->first();
+
+        return view('student.courses.favorite-question', compact('course', 'question', 'favorite', 'lastAnswer', 'answerStats'));
+    }
+
+    public function retry(Course $course, Question $question): RedirectResponse
+    {
+        $this->authorizeCourseAccess($course);
+        $this->authorizeQuestionInCourse($course, $question);
+        $this->authorizeFavorite($course, $question);
+
+        $session = StudySession::query()->create([
+            'user_id' => Auth::id(),
+            'course_id' => $course->id,
+            'corporation_id' => $course->corporation_id,
+            'exam_id' => $course->exam_id,
+            'subject_id' => $question->subject_id,
+            'topic_id' => $question->topic_id,
+            'source_material_id' => $question->source_material_id,
+            'mode' => 'train',
+            'started_at' => now(),
+        ]);
+
+        StudySessionQuestion::query()->create([
+            'study_session_id' => $session->id,
+            'question_id' => $question->id,
+            'position' => 1,
+        ]);
+
+        return redirect()->route('student.course-study.question', $session);
+    }
+
+
+    public function updateNote(Request $request, Course $course, Question $question): RedirectResponse
+    {
+        $this->authorizeCourseAccess($course);
+        $this->authorizeQuestionInCourse($course, $question);
+
+        $data = $request->validate([
+            'note' => ['nullable', 'string', 'max:3000'],
+        ]);
+
+        $favorite = QuestionFavorite::query()
+            ->where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->where('question_id', $question->id)
+            ->firstOrFail();
+
+        $favorite->update([
+            'note' => $data['note'] ?? null,
+        ]);
+
+        return back()->with('success', 'Anotação da questão favorita atualizada.');
     }
 
     public function toggle(Course $course, Question $question): RedirectResponse
@@ -51,6 +136,35 @@ class CourseFavoriteController extends Controller
         ]);
 
         return back()->with('success', 'Questão adicionada às favoritas.');
+    }
+
+    private function loadQuestion(int $questionId): Question
+    {
+        return Question::query()
+            ->with([
+                'corporation',
+                'exam',
+                'subject',
+                'topic',
+                'sourceMaterial',
+                'alternatives',
+                'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
+                'comments.user',
+                'difficultyVotes',
+                'activeVideoLesson',
+            ])
+            ->findOrFail($questionId);
+    }
+
+    private function authorizeFavorite(Course $course, Question $question): void
+    {
+        $isFavorite = QuestionFavorite::query()
+            ->where('user_id', Auth::id())
+            ->where('course_id', $course->id)
+            ->where('question_id', $question->id)
+            ->exists();
+
+        abort_unless($isFavorite, 404);
     }
 
     private function authorizeCourseAccess(Course $course): void

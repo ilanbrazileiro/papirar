@@ -30,7 +30,10 @@
                             <th>Disciplina</th>
                             <th>Tópico</th>
                             <th>Fonte</th>
+                            <th>Anotação</th>
+                            <th>Aula</th>
                             <th>Favoritada em</th>
+                            <th class="text-end">Ações</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -41,7 +44,34 @@
                                 <td>{{ $question->subject->name ?? '-' }}</td>
                                 <td>{{ $question->topic->name ?? '-' }}</td>
                                 <td>{{ $question->sourceMaterial->title ?? '-' }}</td>
+                                <td style="min-width: 220px;">
+                                    @if($favorite->note)
+                                        <div class="small text-muted">{{ \Illuminate\Support\Str::limit($favorite->note, 120) }}</div>
+                                    @else
+                                        <span class="text-muted">Sem anotação</span>
+                                    @endif
+                                </td>
+                                <td>
+                                    @if($question?->activeVideoLesson)
+                                        <span class="badge bg-success">Sim</span>
+                                    @else
+                                        <span class="text-muted">-</span>
+                                    @endif
+                                </td>
                                 <td>{{ optional($favorite->created_at)->format('d/m/Y H:i') }}</td>
+                                <td class="text-end">
+                                    @if($question)
+                                        <div class="d-flex justify-content-end gap-2 flex-wrap">
+                                            <a href="{{ route('student.courses.favorites.show', [$course, $question]) }}" class="btn btn-sm btn-outline-primary">
+                                                Ver gabarito
+                                            </a>
+                                            <form method="POST" action="{{ route('student.courses.favorites.retry', [$course, $question]) }}">
+                                                @csrf
+                                                <button class="btn btn-sm btn-primary">Refazer</button>
+                                            </form>
+                                        </div>
+                                    @endif
+                                </td>
                             </tr>
                         @endforeach
                     </tbody>

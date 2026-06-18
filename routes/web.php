@@ -134,8 +134,12 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::get('/cursos/{course}/estudar', [StudentCourseController::class, 'study'])->name('courses.study');
             Route::post('/cursos/{course}/estudar/iniciar', [CourseStudyController::class, 'start'])->name('course-study.start');
             Route::get('/cursos/{course}/desempenho', [CoursePerformanceController::class, 'show'])->name('courses.performance');
+            
             Route::get('/cursos/{course}/favoritas', [CourseFavoriteController::class, 'index'])->name('courses.favorites.index');
+            Route::get('/cursos/{course}/favoritas/questoes/{question}', [CourseFavoriteController::class, 'show'])->name('courses.favorites.show');
+            Route::post('/cursos/{course}/favoritas/questoes/{question}/refazer', [CourseFavoriteController::class, 'retry'])->name('courses.favorites.retry');
             Route::post('/cursos/{course}/questoes/{question}/favoritar', [CourseFavoriteController::class, 'toggle'])->name('courses.questions.favorite');
+            Route::patch('/cursos/{course}/favoritas/questoes/{question}/anotacao', [CourseFavoriteController::class, 'updateNote'])->name('courses.favorites.note');
 
             /*
              * Rotas do Lote 3 — Simulados por curso.
