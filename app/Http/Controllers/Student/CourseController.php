@@ -130,8 +130,14 @@ class CourseController extends Controller
             ->orderBy('name')
             ->get();
 
-        $topics = Topic::query()
-            ->whereIn('id', $scope['topic_ids'])
+        $topicsQuery = Topic::query()
+            ->whereIn('subject_id', $scope['subject_ids']);
+
+        if (!empty($scope['topic_ids'])) {
+            $topicsQuery->whereIn('id', $scope['topic_ids']);
+        }
+
+        $topics = $topicsQuery
             ->orderBy('name')
             ->get()
             ->groupBy('subject_id');

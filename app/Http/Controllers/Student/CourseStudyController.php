@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Course;
 use App\Models\CourseAccess;
 use App\Models\Question;
+use App\Models\QuestionFavorite;
 use App\Models\StudySession;
 use App\Models\StudySessionQuestion;
 use App\Models\UserAnswer;
@@ -23,20 +24,38 @@ class CourseStudyController extends Controller
         $scope = $this->resolveCourseScope($course);
 
         $data = $request->validate([
-            'subject_id' => ['nullable', 'integer', 'exists:subjects,id'],
-            'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
+            'subject_ids' => ['nullable', 'array'],
+            'subject_ids.*' => ['integer', 'exists:subjects,id'],
+            'topic_ids' => ['nullable', 'array'],
+            'topic_ids.*' => ['integer', 'exists:topics,id'],
             'source_material_id' => ['nullable', 'integer', 'exists:source_materials,id'],
             'difficulty' => ['nullable', 'in:easy,medium,hard'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
-            'mode' => ['required', 'in:train,review'],
+            'mode' => ['required', 'in:train,review,favorites'],
         ]);
 
-        if (!empty($data['subject_id']) && !in_array((int) $data['subject_id'], $scope['subject_ids'], true)) {
-            return back()->with('error', 'A disciplina selecionada não pertence a este curso.')->withInput();
+        $selectedSubjectIds = collect($data['subject_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        $selectedTopicIds = collect($data['topic_ids'] ?? [])
+            ->map(fn ($id) => (int) $id)
+            ->unique()
+            ->values()
+            ->all();
+
+        foreach ($selectedSubjectIds as $subjectId) {
+            if (!in_array($subjectId, $scope['subject_ids'], true)) {
+                return back()->with('error', 'Uma das disciplinas selecionadas não pertence a este curso.')->withInput();
+            }
         }
 
-        if (!empty($data['topic_id']) && !in_array((int) $data['topic_id'], $scope['topic_ids'], true)) {
-            return back()->with('error', 'O tópico selecionado não pertence a este curso.')->withInput();
+        foreach ($selectedTopicIds as $topicId) {
+            if (!empty($scope['topic_ids']) && !in_array($topicId, $scope['topic_ids'], true)) {
+                return back()->with('error', 'Um dos tópicos selecionados não pertence a este curso.')->withInput();
+            }
         }
 
         if (!empty($data['source_material_id']) && !in_array((int) $data['source_material_id'], $scope['source_material_ids'], true)) {
@@ -48,14 +67,20 @@ class CourseStudyController extends Controller
             ->when(!empty($scope['subject_ids']), fn ($q) => $q->whereIn('subject_id', $scope['subject_ids']))
             ->when(!empty($scope['topic_ids']), fn ($q) => $q->whereIn('topic_id', $scope['topic_ids']))
             ->when(!empty($scope['source_material_ids']), fn ($q) => $q->whereIn('source_material_id', $scope['source_material_ids']))
-            ->when(!empty($data['subject_id']), fn ($q) => $q->where('subject_id', $data['subject_id']))
-            ->when(!empty($data['topic_id']), fn ($q) => $q->where('topic_id', $data['topic_id']))
+            ->when(!empty($selectedSubjectIds), fn ($q) => $q->whereIn('subject_id', $selectedSubjectIds))
+            ->when(!empty($selectedTopicIds), fn ($q) => $q->whereIn('topic_id', $selectedTopicIds))
             ->when(!empty($data['source_material_id']), fn ($q) => $q->where('source_material_id', $data['source_material_id']))
             ->when(!empty($data['difficulty']), fn ($q) => $q->where('difficulty', $data['difficulty']))
             ->when($data['mode'] === 'review', function ($q) {
                 $q->whereHas('answers', function ($answer) {
                     $answer->where('user_id', Auth::id())
                         ->where('is_correct', false);
+                });
+            })
+            ->when($data['mode'] === 'favorites', function ($q) use ($course) {
+                $q->whereHas('favorites', function ($favorite) use ($course) {
+                    $favorite->where('user_id', Auth::id())
+                        ->where('course_id', $course->id);
                 });
             })
             ->inRandomOrder()
@@ -71,8 +96,8 @@ class CourseStudyController extends Controller
             'course_id' => $course->id,
             'corporation_id' => $course->corporation_id,
             'exam_id' => $course->exam_id,
-            'subject_id' => $data['subject_id'] ?? null,
-            'topic_id' => $data['topic_id'] ?? null,
+            'subject_id' => count($selectedSubjectIds) === 1 ? $selectedSubjectIds[0] : null,
+            'topic_id' => count($selectedTopicIds) === 1 ? $selectedTopicIds[0] : null,
             'source_material_id' => $data['source_material_id'] ?? null,
             'mode' => $data['mode'],
             'started_at' => now(),
@@ -103,29 +128,9 @@ class CourseStudyController extends Controller
             return redirect()->route('student.course-study.result', $session);
         }
 
-        $question = Question::query()
-            ->with([
-                'corporation',
-                'exam',
-                'subject',
-                'topic',
-                'sourceMaterial',
-                'alternatives',
-                'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
-                'comments.user',
-                'difficultyVotes',
-                'activeVideoLesson',
-            ])
-            ->findOrFail($currentItem->question_id);
+        $question = $this->loadQuestion((int) $currentItem->question_id);
 
-        return view('student.courses.question', [
-            'session' => $session,
-            'question' => $question,
-            'currentItem' => $currentItem,
-            'currentPosition' => $currentItem->position,
-            'totalQuestions' => StudySessionQuestion::query()->where('study_session_id', $session->id)->count(),
-            'userAnswer' => null,
-        ]);
+        return view('student.courses.question', $this->questionViewData($session, $question, $currentItem, null));
     }
 
     public function answer(Request $request, StudySession $session)
@@ -142,20 +147,7 @@ class CourseStudyController extends Controller
             ->where('question_id', $data['question_id'])
             ->firstOrFail();
 
-        $question = Question::query()
-            ->with([
-                'corporation',
-                'exam',
-                'subject',
-                'topic',
-                'sourceMaterial',
-                'alternatives',
-                'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
-                'comments.user',
-                'difficultyVotes',
-                'activeVideoLesson',
-            ])
-            ->findOrFail($data['question_id']);
+        $question = $this->loadQuestion((int) $data['question_id']);
 
         $selectedAlternative = $question->alternatives->firstWhere('id', $data['selected_alternative_id']);
         abort_if(!$selectedAlternative, 422, 'Alternativa inválida para esta questão.');
@@ -190,18 +182,7 @@ class CourseStudyController extends Controller
             ->where('question_id', $question->id)
             ->firstOrFail();
 
-        $question->load([
-            'corporation',
-            'exam',
-            'subject',
-            'topic',
-            'sourceMaterial',
-            'alternatives',
-            'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
-            'comments.user',
-            'difficultyVotes',
-            'activeVideoLesson',
-        ]);
+        $question = $this->loadQuestion((int) $question->id);
 
         $userAnswer = UserAnswer::query()
             ->where('study_session_id', $session->id)
@@ -209,14 +190,7 @@ class CourseStudyController extends Controller
             ->where('user_id', Auth::id())
             ->first();
 
-        return view('student.courses.question', [
-            'session' => $session,
-            'question' => $question,
-            'currentItem' => $currentItem,
-            'currentPosition' => $currentItem->position,
-            'totalQuestions' => StudySessionQuestion::query()->where('study_session_id', $session->id)->count(),
-            'userAnswer' => $userAnswer,
-        ]);
+        return view('student.courses.question', $this->questionViewData($session, $question, $currentItem, $userAnswer));
     }
 
     public function next(StudySession $session): RedirectResponse
@@ -242,6 +216,43 @@ class CourseStudyController extends Controller
         $accuracy = $total > 0 ? ($correct / $total) * 100 : 0;
 
         return view('student.courses.result', compact('session', 'answers', 'total', 'correct', 'incorrect', 'accuracy'));
+    }
+
+    private function loadQuestion(int $questionId): Question
+    {
+        return Question::query()
+            ->with([
+                'corporation',
+                'exam',
+                'subject',
+                'topic',
+                'sourceMaterial',
+                'alternatives',
+                'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
+                'comments.user',
+                'difficultyVotes',
+                'activeVideoLesson',
+            ])
+            ->findOrFail($questionId);
+    }
+
+    private function questionViewData(StudySession $session, Question $question, StudySessionQuestion $currentItem, ?UserAnswer $userAnswer): array
+    {
+        $isFavorited = QuestionFavorite::query()
+            ->where('user_id', Auth::id())
+            ->where('course_id', $session->course_id)
+            ->where('question_id', $question->id)
+            ->exists();
+
+        return [
+            'session' => $session,
+            'question' => $question,
+            'currentItem' => $currentItem,
+            'currentPosition' => $currentItem->position,
+            'totalQuestions' => StudySessionQuestion::query()->where('study_session_id', $session->id)->count(),
+            'userAnswer' => $userAnswer,
+            'isFavorited' => $isFavorited,
+        ];
     }
 
     private function authorizeSessionAccess(StudySession $session): void

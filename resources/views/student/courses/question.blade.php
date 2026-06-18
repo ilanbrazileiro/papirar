@@ -12,8 +12,20 @@
                 @if($question->topic) · {{ $question->topic->name }} @endif
             </p>
         </div>
-        <a href="{{ $session->course ? route('student.courses.show', $session->course) : route('student.courses.index') }}" class="btn btn-outline-primary">Voltar ao curso</a>
+        <div class="d-flex flex-wrap gap-2">
+            <form method="POST" action="{{ route('student.courses.questions.favorite', [$session->course_id, $question]) }}">
+                @csrf
+                <button class="btn {{ ($isFavorited ?? false) ? 'btn-warning' : 'btn-outline-warning' }}">
+                    {{ ($isFavorited ?? false) ? '★ Favoritada' : '☆ Favoritar' }}
+                </button>
+            </form>
+            <a href="{{ $session->course ? route('student.courses.show', $session->course) : route('student.courses.index') }}" class="btn btn-outline-primary">Voltar ao curso</a>
+        </div>
     </div>
+
+    @if(session('success'))
+        <div class="alert alert-success">{{ session('success') }}</div>
+    @endif
 
     <div class="question-card mb-4">
         <div class="d-flex flex-wrap gap-2 mb-3">
@@ -25,6 +37,9 @@
             @endif
             @if($question->activeVideoLesson)
                 <span class="meta-badge">Aula em vídeo disponível após responder</span>
+            @endif
+            @if($isFavorited ?? false)
+                <span class="meta-badge">Favoritada</span>
             @endif
         </div>
 
@@ -59,11 +74,16 @@
                 @csrf
                 <input type="hidden" name="question_id" value="{{ $question->id }}">
 
+                <div class="small-muted mb-3">Use a tesoura para riscar alternativas que você quer eliminar antes de responder.</div>
+
                 @foreach($question->alternatives->sortBy('letter') as $alternative)
-                    <label class="alt-card d-block mb-2">
-                        <input type="radio" name="selected_alternative_id" value="{{ $alternative->id }}" required class="me-2">
-                        <strong>{{ $alternative->letter }})</strong> {!! $alternative->text !!}
-                    </label>
+                    <div class="alt-card d-flex align-items-start gap-2 mb-2 js-alternative-row" data-alt-id="{{ $alternative->id }}">
+                        <button type="button" class="btn btn-sm btn-light border js-cut-alternative" title="Riscar alternativa" aria-label="Riscar alternativa">✂</button>
+                        <label class="d-flex align-items-start gap-2 mb-0 flex-grow-1">
+                            <input type="radio" name="selected_alternative_id" value="{{ $alternative->id }}" required class="mt-1">
+                            <span><strong>{{ $alternative->letter }})</strong> {!! $alternative->text !!}</span>
+                        </label>
+                    </div>
                 @endforeach
 
                 <div class="text-end mt-4">
@@ -73,3 +93,58 @@
         @endif
     </div>
 @endsection
+
+@push('styles')
+<style>
+    .alternative-cut {
+        opacity: .55;
+        background: #f8f9fa;
+    }
+
+    .alternative-cut label span {
+        text-decoration: line-through;
+    }
+</style>
+@endpush
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const storageKey = 'papirar-cut-question-{{ $question->id }}';
+    const rows = Array.from(document.querySelectorAll('.js-alternative-row'));
+
+    let cutIds = [];
+    try {
+        cutIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
+    } catch (e) {
+        cutIds = [];
+    }
+
+    function persist() {
+        localStorage.setItem(storageKey, JSON.stringify(cutIds));
+    }
+
+    rows.forEach(function (row) {
+        const altId = row.dataset.altId;
+        if (cutIds.includes(altId)) {
+            row.classList.add('alternative-cut');
+        }
+
+        const button = row.querySelector('.js-cut-alternative');
+        if (!button) return;
+
+        button.addEventListener('click', function () {
+            row.classList.toggle('alternative-cut');
+
+            if (row.classList.contains('alternative-cut')) {
+                if (!cutIds.includes(altId)) cutIds.push(altId);
+            } else {
+                cutIds = cutIds.filter(id => id !== altId);
+            }
+
+            persist();
+        });
+    });
+});
+</script>
+@endpush

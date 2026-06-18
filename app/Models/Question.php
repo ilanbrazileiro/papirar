@@ -87,6 +87,11 @@ class Question extends Model
         return $this->hasMany(UserAnswer::class);
     }
 
+    public function favorites(): HasMany
+    {
+        return $this->hasMany(QuestionFavorite::class);
+    }
+
     public function videoLesson(): HasOne
     {
         return $this->hasOne(QuestionVideoLesson::class);

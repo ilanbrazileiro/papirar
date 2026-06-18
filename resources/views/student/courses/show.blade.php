@@ -120,6 +120,7 @@
                     <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">Iniciar estudo</a>
                     <a href="{{ route('student.courses.simulated.index', $course) }}" class="btn btn-outline-primary">Criar simulado</a>
                     <a href="{{ route('student.courses.performance', $course) }}" class="btn btn-outline-primary">Ver desempenho</a>
+                    <a href="{{ route('student.courses.favorites.index', $course) }}" class="btn btn-outline-warning">Questões favoritas</a>
                 </div>
             </div>
 
