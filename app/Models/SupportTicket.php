@@ -17,6 +17,11 @@ class SupportTicket extends Model
         'category',
         'status',
         'priority',
+        'last_message_at',
+    ];
+
+    protected $casts = [
+        'last_message_at' => 'datetime',
     ];
 
     public function user(): BelongsTo
@@ -27,5 +32,27 @@ class SupportTicket extends Model
     public function messages(): HasMany
     {
         return $this->hasMany(SupportTicketMessage::class, 'ticket_id');
+    }
+
+    public function getCategoryLabelAttribute(): string
+    {
+        return match ($this->category) {
+            'suggestion' => 'Sugestão',
+            'technical' => 'Problema técnico',
+            'financial' => 'Problema financeiro',
+            'question_submission' => 'Envio de questões',
+            default => 'Atendimento',
+        };
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return match ($this->status) {
+            'open' => 'Aberto',
+            'in_progress' => 'Em andamento',
+            'resolved' => 'Resolvido',
+            'closed' => 'Fechado',
+            default => ucfirst((string) $this->status),
+        };
     }
 }

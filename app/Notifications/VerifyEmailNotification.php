@@ -24,16 +24,16 @@ class VerifyEmailNotification extends Notification
             [
                 'id' => $notifiable->getKey(),
                 'hash' => sha1($notifiable->getEmailForVerification()),
-            ]
+            ],
+            true
         );
 
         return (new MailMessage)
-            ->subject('Confirme seu e-mail no Papirar')
-            ->greeting('Olá, ' . $notifiable->name . '!')
-            ->line('Obrigado por se cadastrar no Papirar.')
-            ->line('Antes de continuar, confirme seu endereço de e-mail clicando no botão abaixo.')
-            ->action('Confirmar e-mail', $verificationUrl)
-            ->line('Depois de confirmar o e-mail, você ainda precisará contratar uma assinatura para começar a responder questões.')
-            ->line('Se você não criou essa conta, ignore esta mensagem.');
+            ->subject('Confirme seu e-mail no Papirar Concursos')
+            ->view('emails.auth.verify-email', [
+                'user' => $notifiable,
+                'verificationUrl' => $verificationUrl,
+                'expiresAt' => now()->addHours(24),
+            ]);
     }
 }
