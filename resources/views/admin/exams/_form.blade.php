@@ -23,7 +23,7 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label for="corporation_id" class="form-label">Corporação</label>
-                    <select name="corporation_id" id="corporation_id" class="form-select" required>
+                    <select name="corporation_id" id="corporation_id" class="form-control" required>
                         <option value="">Selecione...</option>
                         @foreach($corporations as $corporation)
                             <option value="{{ $corporation->id }}" @selected((int) old('corporation_id', $exam->corporation_id ?? 0) === (int) $corporation->id)>
@@ -50,7 +50,7 @@
 
                 <div class="col-md-3">
                     <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select">
+                    <select name="status" id="status" class="form-control">
                         <option value="published" @selected(old('status', $exam->status ?? 'published') === 'published')>Publicado</option>
                         <option value="planned" @selected(old('status', $exam->status ?? 'published') === 'planned')>Previsto</option>
                     </select>

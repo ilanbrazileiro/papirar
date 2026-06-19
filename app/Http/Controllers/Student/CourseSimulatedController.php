@@ -57,28 +57,24 @@ class CourseSimulatedController extends Controller
         }
 
         $questionsQuery = Question::query()
-            ->where('questions.status', 'published')
+            ->visibleToStudent()
             ->whereIn('questions.subject_id', $selectedSubjectIds)
             ->when(!empty($scope['topic_ids']), fn ($q) => $q->whereIn('questions.topic_id', $scope['topic_ids']))
             ->when(!empty($scope['source_material_ids']), fn ($q) => $q->whereIn('questions.source_material_id', $scope['source_material_ids']))
             ->when(!empty($data['difficulty']), fn ($q) => $q->where('questions.difficulty', $data['difficulty']));
 
         if ($course->corporation_id) {
-            $questionsQuery->where(function ($query) use ($course) {
-                $query->whereNull('questions.corporation_id')->orWhere('questions.corporation_id', $course->corporation_id);
-            });
+            $questionsQuery->where(fn ($query) => $query->whereNull('questions.corporation_id')->orWhere('questions.corporation_id', $course->corporation_id));
         }
 
         if ($course->exam_id) {
-            $questionsQuery->where(function ($query) use ($course) {
-                $query->whereNull('questions.exam_id')->orWhere('questions.exam_id', $course->exam_id);
-            });
+            $questionsQuery->where(fn ($query) => $query->whereNull('questions.exam_id')->orWhere('questions.exam_id', $course->exam_id));
         }
 
         $questions = $questionsQuery->inRandomOrder()->limit((int) $data['quantity'])->get();
 
         if ($questions->isEmpty()) {
-            return back()->with('error', 'Nenhuma questão publicada foi encontrada para este curso e disciplinas.')->withInput();
+            return back()->with('error', 'Nenhuma questão publicada ou revisada foi encontrada para este curso e disciplinas.')->withInput();
         }
 
         $title = trim((string) ($data['title'] ?? '')) ?: 'Simulado ' . now()->format('d/m/Y H:i');
@@ -116,20 +112,20 @@ class CourseSimulatedController extends Controller
             return $simulatedExam;
         });
 
-        return redirect()->route('student.course-simulated.show', $simulatedExam);
+        return redirect()->route('student.courses.simulated.show', ['course' => $course->id, 'simulatedExam' => $simulatedExam->id]);
     }
 
-    public function show(Request $request, SimulatedExam $simulatedExam): View|RedirectResponse
+    public function show(Request $request, Course $course, SimulatedExam $simulatedExam): View|RedirectResponse
     {
-        $this->authorizeSimulatedExam($simulatedExam);
+        $this->authorizeSimulatedExam($course, $simulatedExam);
 
         if ($this->finishIfExpired($simulatedExam)) {
-            return redirect()->route('student.course-simulated.result', $simulatedExam)
+            return redirect()->route('student.courses.simulated.result', [$course, $simulatedExam])
                 ->with('error', 'O tempo do simulado acabou. As questões não respondidas ficaram em branco.');
         }
 
         if (!is_null($simulatedExam->finished_at)) {
-            return redirect()->route('student.course-simulated.result', $simulatedExam);
+            return redirect()->route('student.courses.simulated.result', [$course, $simulatedExam]);
         }
 
         $items = SimulatedExamQuestion::query()
@@ -139,7 +135,7 @@ class CourseSimulatedController extends Controller
             ->get();
 
         if ($items->isEmpty()) {
-            return redirect()->route('student.course-simulated.index', $simulatedExam->course_id)->with('error', 'Simulado sem questões.');
+            return redirect()->route('student.courses.simulated.index', $course)->with('error', 'Simulado sem questões.');
         }
 
         $requestedPosition = max(1, (int) $request->get('question', 1));
@@ -147,6 +143,7 @@ class CourseSimulatedController extends Controller
         $currentPosition = (int) $currentItem->position;
 
         return view('student.courses.simulated.show', [
+            'course' => $course,
             'simulatedExam' => $simulatedExam->load('course'),
             'items' => $items,
             'currentItem' => $currentItem,
@@ -160,12 +157,12 @@ class CourseSimulatedController extends Controller
         ]);
     }
 
-    public function saveAnswer(Request $request, SimulatedExam $simulatedExam): RedirectResponse
+    public function saveAnswer(Request $request, Course $course, SimulatedExam $simulatedExam): RedirectResponse
     {
-        $this->authorizeSimulatedExam($simulatedExam);
+        $this->authorizeSimulatedExam($course, $simulatedExam);
 
         if (!is_null($simulatedExam->finished_at) || $this->finishIfExpired($simulatedExam)) {
-            return redirect()->route('student.course-simulated.result', $simulatedExam)->with('error', 'Este simulado já foi finalizado.');
+            return redirect()->route('student.courses.simulated.result', [$course, $simulatedExam])->with('error', 'Este simulado já foi finalizado.');
         }
 
         $data = $request->validate([
@@ -192,22 +189,23 @@ class CourseSimulatedController extends Controller
 
         $targetPosition = !empty($data['next_position']) ? (int) $data['next_position'] : ($item->position + 1);
 
-        return redirect()->route('student.course-simulated.show', [
+        return redirect()->route('student.courses.simulated.show', [
+            'course' => $course->id,
             'simulatedExam' => $simulatedExam->id,
             'question' => $targetPosition,
         ])->with('success', 'Resposta salva.');
     }
 
-    public function finish(SimulatedExam $simulatedExam): RedirectResponse
+    public function finish(Course $course, SimulatedExam $simulatedExam): RedirectResponse
     {
-        $this->authorizeSimulatedExam($simulatedExam);
+        $this->authorizeSimulatedExam($course, $simulatedExam);
         $this->finishExam($simulatedExam);
-        return redirect()->route('student.course-simulated.result', $simulatedExam);
+        return redirect()->route('student.courses.simulated.result', [$course, $simulatedExam]);
     }
 
-    public function result(SimulatedExam $simulatedExam): View
+    public function result(Course $course, SimulatedExam $simulatedExam): View
     {
-        $this->authorizeSimulatedExam($simulatedExam);
+        $this->authorizeSimulatedExam($course, $simulatedExam);
         $this->finishIfExpired($simulatedExam);
 
         $items = SimulatedExamQuestion::query()
@@ -235,6 +233,7 @@ class CourseSimulatedController extends Controller
             });
 
         return view('student.courses.simulated.result', [
+            'course' => $course,
             'simulatedExam' => $simulatedExam->fresh(['course', 'corporation', 'exam', 'subject']),
             'items' => $items,
             'answeredCount' => $answeredCount,
@@ -249,22 +248,18 @@ class CourseSimulatedController extends Controller
             ->where('user_id', Auth::id())
             ->where('course_id', $course->id)
             ->where('status', CourseAccess::STATUS_ACTIVE)
-            ->where(function ($query) {
-                $query->whereNull('starts_at')->orWhere('starts_at', '<=', now());
-            })
-            ->where(function ($query) {
-                $query->whereNull('ends_at')->orWhere('ends_at', '>=', now());
-            })
+            ->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()))
+            ->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))
             ->exists();
 
         abort_unless($hasAccess, 403);
     }
 
-    private function authorizeSimulatedExam(SimulatedExam $simulatedExam): void
+    private function authorizeSimulatedExam(Course $course, SimulatedExam $simulatedExam): void
     {
-        abort_unless($simulatedExam->user_id === Auth::id(), 403);
-        abort_unless($simulatedExam->course_id, 403);
-        $this->authorizeCourseAccess($simulatedExam->course);
+        abort_unless((int) $simulatedExam->user_id === (int) Auth::id(), 403);
+        abort_unless((int) $simulatedExam->course_id === (int) $course->id, 403);
+        $this->authorizeCourseAccess($course);
     }
 
     private function resolveCourseScope(Course $course): array
@@ -273,17 +268,7 @@ class CourseSimulatedController extends Controller
             return [
                 'subject_ids' => DB::table('exam_subjects')->where('exam_id', $course->exam_id)->where('is_active', true)->pluck('subject_id')->map(fn ($id) => (int) $id)->values()->all(),
                 'topic_ids' => DB::table('exam_subject_topics')->join('exam_subjects', 'exam_subject_topics.exam_subject_id', '=', 'exam_subjects.id')->where('exam_subjects.exam_id', $course->exam_id)->where('exam_subjects.is_active', true)->where('exam_subject_topics.is_active', true)->pluck('exam_subject_topics.topic_id')->map(fn ($id) => (int) $id)->unique()->values()->all(),
-                'source_material_ids' => DB::table('exam_subject_source_materials')
-                    ->join('exam_subjects', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')
-                    ->where('exam_subjects.exam_id', $course->exam_id)
-                    ->where('exam_subjects.is_active', true)
-                    ->where('exam_subject_source_materials.is_active', true)
-                    ->pluck('exam_subject_source_materials.source_material_id')
-                    ->filter()
-                    ->map(fn ($id) => (int) $id)
-                    ->unique()
-                    ->values()
-                    ->all(),
+                'source_material_ids' => DB::table('exam_subject_source_materials')->join('exam_subjects', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')->where('exam_subjects.exam_id', $course->exam_id)->where('exam_subjects.is_active', true)->where('exam_subject_source_materials.is_active', true)->pluck('exam_subject_source_materials.source_material_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all(),
             ];
         }
 

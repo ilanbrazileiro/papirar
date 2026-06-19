@@ -177,7 +177,7 @@ class CourseController extends Controller
         }
 
         return Question::query()
-            ->where('status', 'published')
+            ->visibleToStudent()
             ->when(!empty($scope['subject_ids']), fn ($q) => $q->whereIn('subject_id', $scope['subject_ids']))
             ->when(!empty($scope['topic_ids']), fn ($q) => $q->whereIn('topic_id', $scope['topic_ids']))
             ->when(!empty($scope['source_material_ids']), fn ($q) => $q->whereIn('source_material_id', $scope['source_material_ids']))

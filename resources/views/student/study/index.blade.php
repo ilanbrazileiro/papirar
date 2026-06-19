@@ -20,7 +20,7 @@
             <div class="row g-4">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Corporação</label>
-                    <select name="corporation_id" class="form-select form-select-lg">
+                    <select name="corporation_id" class="form-control form-control-lg">
                         <option value="">Todas</option>
                         @foreach($corporations as $corporation)
                             <option value="{{ $corporation->id }}" @selected(old('corporation_id', $savedFilter->corporation_id) == $corporation->id)>
@@ -32,7 +32,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Modo</label>
-                    <select name="mode" class="form-select form-select-lg" required>
+                    <select name="mode" class="form-control form-control-lg" required>
                         <option value="train" @selected(old('mode', $savedFilter->mode) === 'train')>Treino</option>
                         <option value="exam" @selected(old('mode', $savedFilter->mode) === 'exam')>Simulado rápido</option>
                         <option value="review" @selected(old('mode', $savedFilter->mode) === 'review')>Revisão de erros</option>
@@ -41,7 +41,7 @@
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Disciplina</label>
-                    <select name="subject_id" class="form-select">
+                    <select name="subject_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($subjects as $subject)
                             <option value="{{ $subject->id }}" @selected(old('subject_id', $savedFilter->subject_id) == $subject->id)>
@@ -53,7 +53,7 @@
 
                 <div class="col-md-4">
                     <label class="form-label fw-semibold">Assunto</label>
-                    <select name="topic_id" class="form-select">
+                    <select name="topic_id" class="form-control">
                         <option value="">Todos</option>
                         @foreach($topics as $topic)
                             <option value="{{ $topic->id }}" @selected(old('topic_id', $savedFilter->topic_id) == $topic->id)>
@@ -70,7 +70,7 @@
 
                 <div class="col-md-12">
                     <label class="form-label fw-semibold">Fonte / Bibliografia</label>
-                    <select name="source_material_id" class="form-select">
+                    <select name="source_material_id" class="form-control">
                         <option value="">Todas as fontes</option>
                         @foreach($sourceMaterials as $material)
                             <option value="{{ $material->id }}" @selected(old('source_material_id', $savedFilter->source_material_id) == $material->id)>
@@ -89,7 +89,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Dificuldade</label>
-                    <select name="difficulty" class="form-select">
+                    <select name="difficulty" class="form-control">
                         <option value="">Todas</option>
                         <option value="easy" @selected(old('difficulty', $savedFilter->difficulty) === 'easy')>Fácil</option>
                         <option value="medium" @selected(old('difficulty', $savedFilter->difficulty) === 'medium')>Média</option>
@@ -99,7 +99,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Origem</label>
-                    <select name="source_type" class="form-select">
+                    <select name="source_type" class="form-control">
                         <option value="">Todas</option>
                         <option value="exam" @selected(old('source_type', $savedFilter->source_type) === 'exam')>Prova oficial</option>
                         <option value="authored" @selected(old('source_type', $savedFilter->source_type) === 'authored')>Autoral</option>

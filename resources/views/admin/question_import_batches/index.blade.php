@@ -23,7 +23,7 @@
                 </div>
                 <div class="col-md-4">
                     <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
+                    <select name="status" class="form-control">
                         <option value="">Todos</option>
                         @foreach(['uploaded' => 'Enviado', 'validating' => 'Validando', 'ready' => 'Pronto para importar', 'importing' => 'Importando', 'imported' => 'Importado', 'partial' => 'Parcial', 'failed' => 'Falhou', 'cancelled' => 'Cancelado'] as $value => $label)
                             <option value="{{ $value }}" @selected(request('status') === $value)>{{ $label }}</option>

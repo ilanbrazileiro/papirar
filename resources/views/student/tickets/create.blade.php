@@ -17,7 +17,7 @@
                     <div class="row g-3">
                         <div class="col-md-6">
                             <label class="form-label">Categoria</label>
-                            <select name="category" class="form-select" required>
+                            <select name="category" class="form-control" required>
                                 <option value="">Selecione</option>
                                 <option value="suggestion" @selected(old('category') === 'suggestion')>Sugestão</option>
                                 <option value="technical" @selected(old('category') === 'technical')>Problema técnico</option>

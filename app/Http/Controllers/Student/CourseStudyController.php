@@ -20,7 +20,6 @@ class CourseStudyController extends Controller
     public function start(Request $request, Course $course): RedirectResponse
     {
         $this->authorizeCourseAccess($course);
-
         $scope = $this->resolveCourseScope($course);
 
         $data = $request->validate([
@@ -34,17 +33,8 @@ class CourseStudyController extends Controller
             'mode' => ['required', 'in:train,review,favorites'],
         ]);
 
-        $selectedSubjectIds = collect($data['subject_ids'] ?? [])
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        $selectedTopicIds = collect($data['topic_ids'] ?? [])
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
+        $selectedSubjectIds = collect($data['subject_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values()->all();
+        $selectedTopicIds = collect($data['topic_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values()->all();
 
         foreach ($selectedSubjectIds as $subjectId) {
             if (!in_array($subjectId, $scope['subject_ids'], true)) {
@@ -63,7 +53,7 @@ class CourseStudyController extends Controller
         }
 
         $questions = Question::query()
-            ->where('status', 'published')
+            ->visibleToStudent()
             ->when(!empty($scope['subject_ids']), fn ($q) => $q->whereIn('subject_id', $scope['subject_ids']))
             ->when(!empty($scope['topic_ids']), fn ($q) => $q->whereIn('topic_id', $scope['topic_ids']))
             ->when(!empty($scope['source_material_ids']), fn ($q) => $q->whereIn('source_material_id', $scope['source_material_ids']))
@@ -72,16 +62,10 @@ class CourseStudyController extends Controller
             ->when(!empty($data['source_material_id']), fn ($q) => $q->where('source_material_id', $data['source_material_id']))
             ->when(!empty($data['difficulty']), fn ($q) => $q->where('difficulty', $data['difficulty']))
             ->when($data['mode'] === 'review', function ($q) {
-                $q->whereHas('answers', function ($answer) {
-                    $answer->where('user_id', Auth::id())
-                        ->where('is_correct', false);
-                });
+                $q->whereHas('answers', fn ($answer) => $answer->where('user_id', Auth::id())->where('is_correct', false));
             })
             ->when($data['mode'] === 'favorites', function ($q) use ($course) {
-                $q->whereHas('favorites', function ($favorite) use ($course) {
-                    $favorite->where('user_id', Auth::id())
-                        ->where('course_id', $course->id);
-                });
+                $q->whereHas('favorites', fn ($favorite) => $favorite->where('user_id', Auth::id())->where('course_id', $course->id));
             })
             ->inRandomOrder()
             ->limit($data['quantity'])
@@ -99,7 +83,7 @@ class CourseStudyController extends Controller
             'subject_id' => count($selectedSubjectIds) === 1 ? $selectedSubjectIds[0] : null,
             'topic_id' => count($selectedTopicIds) === 1 ? $selectedTopicIds[0] : null,
             'source_material_id' => $data['source_material_id'] ?? null,
-            'mode' => $data['mode'],
+            'mode' => 'train',
             'started_at' => now(),
         ]);
 
@@ -117,175 +101,87 @@ class CourseStudyController extends Controller
     public function showQuestion(StudySession $session)
     {
         $this->authorizeSessionAccess($session);
-
-        $currentItem = StudySessionQuestion::query()
-            ->where('study_session_id', $session->id)
-            ->whereNull('answered_at')
-            ->orderBy('position')
-            ->first();
-
-        if (!$currentItem) {
-            return redirect()->route('student.course-study.result', $session);
-        }
-
+        $currentItem = StudySessionQuestion::query()->where('study_session_id', $session->id)->whereNull('answered_at')->orderBy('position')->first();
+        if (!$currentItem) return redirect()->route('student.course-study.result', $session);
         $question = $this->loadQuestion((int) $currentItem->question_id);
-
         return view('student.courses.question', $this->questionViewData($session, $question, $currentItem, null));
     }
 
     public function answer(Request $request, StudySession $session)
     {
         $this->authorizeSessionAccess($session);
-
         $data = $request->validate([
             'question_id' => ['required', 'integer', 'exists:questions,id'],
             'selected_alternative_id' => ['required', 'integer', 'exists:alternatives,id'],
         ]);
-
-        $currentItem = StudySessionQuestion::query()
-            ->where('study_session_id', $session->id)
-            ->where('question_id', $data['question_id'])
-            ->firstOrFail();
-
+        $currentItem = StudySessionQuestion::query()->where('study_session_id', $session->id)->where('question_id', $data['question_id'])->firstOrFail();
         $question = $this->loadQuestion((int) $data['question_id']);
-
         $selectedAlternative = $question->alternatives->firstWhere('id', $data['selected_alternative_id']);
         abort_if(!$selectedAlternative, 422, 'Alternativa inválida para esta questão.');
-
-        UserAnswer::query()->updateOrCreate(
-            [
-                'user_id' => Auth::id(),
-                'question_id' => $question->id,
-                'study_session_id' => $session->id,
-            ],
-            [
-                'selected_alternative_id' => $selectedAlternative->id,
-                'is_correct' => (bool) $selectedAlternative->is_correct,
-                'answered_at' => now(),
-            ]
-        );
-
-        $currentItem->update(['answered_at' => now()]);
-
-        return redirect()->route('student.course-study.review', [
-            'session' => $session->id,
-            'question' => $question->id,
+        UserAnswer::query()->updateOrCreate([
+            'user_id' => Auth::id(),
+            'question_id' => $question->id,
+            'study_session_id' => $session->id,
+        ], [
+            'selected_alternative_id' => $selectedAlternative->id,
+            'is_correct' => (bool) $selectedAlternative->is_correct,
+            'answered_at' => now(),
         ]);
+        $currentItem->update(['answered_at' => now()]);
+        return redirect()->route('student.course-study.review', ['session' => $session->id, 'question' => $question->id]);
     }
 
     public function review(StudySession $session, Question $question)
     {
         $this->authorizeSessionAccess($session);
-
-        $currentItem = StudySessionQuestion::query()
-            ->where('study_session_id', $session->id)
-            ->where('question_id', $question->id)
-            ->firstOrFail();
-
+        $currentItem = StudySessionQuestion::query()->where('study_session_id', $session->id)->where('question_id', $question->id)->firstOrFail();
         $question = $this->loadQuestion((int) $question->id);
-
-        $userAnswer = UserAnswer::query()
-            ->where('study_session_id', $session->id)
-            ->where('question_id', $question->id)
-            ->where('user_id', Auth::id())
-            ->first();
-
+        $userAnswer = UserAnswer::query()->where('study_session_id', $session->id)->where('question_id', $question->id)->where('user_id', Auth::id())->first();
         return view('student.courses.question', $this->questionViewData($session, $question, $currentItem, $userAnswer));
     }
 
     public function next(StudySession $session): RedirectResponse
     {
         $this->authorizeSessionAccess($session);
-
         return redirect()->route('student.course-study.question', $session);
     }
 
     public function result(StudySession $session)
     {
         $this->authorizeSessionAccess($session);
-
-        $answers = UserAnswer::query()
-            ->with(['question.subject', 'question.topic', 'question.sourceMaterial'])
-            ->where('study_session_id', $session->id)
-            ->where('user_id', Auth::id())
-            ->get();
-
+        $answers = UserAnswer::query()->with(['question.subject', 'question.topic', 'question.sourceMaterial'])->where('study_session_id', $session->id)->where('user_id', Auth::id())->get();
         $total = StudySessionQuestion::query()->where('study_session_id', $session->id)->count();
         $correct = $answers->where('is_correct', true)->count();
         $incorrect = $answers->where('is_correct', false)->count();
         $accuracy = $total > 0 ? ($correct / $total) * 100 : 0;
-
         return view('student.courses.result', compact('session', 'answers', 'total', 'correct', 'incorrect', 'accuracy'));
     }
 
     private function loadQuestion(int $questionId): Question
     {
         return Question::query()
-            ->with([
-                'corporation',
-                'exam',
-                'subject',
-                'topic',
-                'sourceMaterial',
-                'alternatives',
-                'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
-                'comments.user',
-                'difficultyVotes',
-                'activeVideoLesson',
-            ])
+            ->with(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives', 'comments' => fn ($q) => $q->where('status', 'approved')->latest(), 'comments.user', 'difficultyVotes', 'activeVideoLesson'])
+            ->visibleToStudent()
             ->findOrFail($questionId);
     }
 
     private function questionViewData(StudySession $session, Question $question, StudySessionQuestion $currentItem, ?UserAnswer $userAnswer): array
     {
-        $favorite = QuestionFavorite::query()
-            ->where('user_id', Auth::id())
-            ->where('course_id', $session->course_id)
-            ->where('question_id', $question->id)
-            ->first();
-
-        return [
-            'session' => $session,
-            'question' => $question,
-            'currentItem' => $currentItem,
-            'currentPosition' => $currentItem->position,
-            'totalQuestions' => StudySessionQuestion::query()->where('study_session_id', $session->id)->count(),
-            'userAnswer' => $userAnswer,
-            'favorite' => $favorite,
-            'isFavorited' => (bool) $favorite,
-        ];
+        $favorite = QuestionFavorite::query()->where('user_id', Auth::id())->where('course_id', $session->course_id)->where('question_id', $question->id)->first();
+        return ['session' => $session, 'question' => $question, 'currentItem' => $currentItem, 'currentPosition' => $currentItem->position, 'totalQuestions' => StudySessionQuestion::query()->where('study_session_id', $session->id)->count(), 'userAnswer' => $userAnswer, 'favorite' => $favorite, 'isFavorited' => (bool) $favorite];
     }
 
     private function authorizeSessionAccess(StudySession $session): void
     {
         abort_unless($session->user_id === Auth::id(), 403);
         abort_unless($session->course_id, 403);
-
-        $hasAccess = CourseAccess::query()
-            ->where('user_id', Auth::id())
-            ->where('course_id', $session->course_id)
-            ->where('status', CourseAccess::STATUS_ACTIVE)
-            ->where(function ($query) {
-                $query->whereNull('ends_at')
-                    ->orWhere('ends_at', '>=', now());
-            })
-            ->exists();
-
+        $hasAccess = CourseAccess::query()->where('user_id', Auth::id())->where('course_id', $session->course_id)->where('status', CourseAccess::STATUS_ACTIVE)->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))->exists();
         abort_unless($hasAccess, 403);
     }
 
     private function authorizeCourseAccess(Course $course): void
     {
-        $hasAccess = CourseAccess::query()
-            ->where('user_id', Auth::id())
-            ->where('course_id', $course->id)
-            ->where('status', CourseAccess::STATUS_ACTIVE)
-            ->where(function ($query) {
-                $query->whereNull('ends_at')
-                    ->orWhere('ends_at', '>=', now());
-            })
-            ->exists();
-
+        $hasAccess = CourseAccess::query()->where('user_id', Auth::id())->where('course_id', $course->id)->where('status', CourseAccess::STATUS_ACTIVE)->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))->exists();
         abort_unless($hasAccess, 403);
     }
 
@@ -293,59 +189,15 @@ class CourseStudyController extends Controller
     {
         if ($course->inherit_exam_scope && $course->exam_id) {
             return [
-                'subject_ids' => DB::table('exam_subjects')
-                    ->where('exam_id', $course->exam_id)
-                    ->where('is_active', true)
-                    ->pluck('subject_id')
-                    ->map(fn ($id) => (int) $id)
-                    ->values()
-                    ->all(),
-                'topic_ids' => DB::table('exam_subject_topics')
-                    ->join('exam_subjects', 'exam_subject_topics.exam_subject_id', '=', 'exam_subjects.id')
-                    ->where('exam_subjects.exam_id', $course->exam_id)
-                    ->where('exam_subjects.is_active', true)
-                    ->where('exam_subject_topics.is_active', true)
-                    ->pluck('exam_subject_topics.topic_id')
-                    ->map(fn ($id) => (int) $id)
-                    ->unique()
-                    ->values()
-                    ->all(),
-                'source_material_ids' => DB::table('exam_subject_source_materials')
-                    ->join('exam_subjects', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')
-                    ->where('exam_subjects.exam_id', $course->exam_id)
-                    ->where('exam_subjects.is_active', true)
-                    ->where('exam_subject_source_materials.is_active', true)
-                    ->pluck('exam_subject_source_materials.source_material_id')
-                    ->filter()
-                    ->map(fn ($id) => (int) $id)
-                    ->unique()
-                    ->values()
-                    ->all(),
+                'subject_ids' => DB::table('exam_subjects')->where('exam_id', $course->exam_id)->where('is_active', true)->pluck('subject_id')->map(fn ($id) => (int) $id)->values()->all(),
+                'topic_ids' => DB::table('exam_subject_topics')->join('exam_subjects', 'exam_subject_topics.exam_subject_id', '=', 'exam_subjects.id')->where('exam_subjects.exam_id', $course->exam_id)->where('exam_subjects.is_active', true)->where('exam_subject_topics.is_active', true)->pluck('exam_subject_topics.topic_id')->map(fn ($id) => (int) $id)->unique()->values()->all(),
+                'source_material_ids' => DB::table('exam_subject_source_materials')->join('exam_subjects', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')->where('exam_subjects.exam_id', $course->exam_id)->where('exam_subjects.is_active', true)->where('exam_subject_source_materials.is_active', true)->pluck('exam_subject_source_materials.source_material_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all(),
             ];
         }
-
         return [
-            'subject_ids' => DB::table('course_subjects')
-                ->where('course_id', $course->id)
-                ->where('is_active', true)
-                ->pluck('subject_id')
-                ->map(fn ($id) => (int) $id)
-                ->values()
-                ->all(),
-            'topic_ids' => DB::table('course_topics')
-                ->where('course_id', $course->id)
-                ->where('is_active', true)
-                ->pluck('topic_id')
-                ->map(fn ($id) => (int) $id)
-                ->values()
-                ->all(),
-            'source_material_ids' => DB::table('course_source_materials')
-                ->where('course_id', $course->id)
-                ->where('is_active', true)
-                ->pluck('source_material_id')
-                ->map(fn ($id) => (int) $id)
-                ->values()
-                ->all(),
+            'subject_ids' => DB::table('course_subjects')->where('course_id', $course->id)->where('is_active', true)->pluck('subject_id')->map(fn ($id) => (int) $id)->values()->all(),
+            'topic_ids' => DB::table('course_topics')->where('course_id', $course->id)->where('is_active', true)->pluck('topic_id')->map(fn ($id) => (int) $id)->values()->all(),
+            'source_material_ids' => DB::table('course_source_materials')->where('course_id', $course->id)->where('is_active', true)->pluck('source_material_id')->map(fn ($id) => (int) $id)->values()->all(),
         ];
     }
 }

@@ -73,7 +73,7 @@ class QuestionController extends Controller
             'question_type' => 'multiple_choice',
             'difficulty' => 'medium',
             'source_type' => 'authored',
-            'status' => 'draft',
+            'status' => Question::STATUS_DRAFT,
         ]);
 
         $question->setRelation('alternatives', collect([
@@ -348,7 +348,12 @@ class QuestionController extends Controller
             'source_type' => ['required', Rule::in(['exam', 'authored', 'adapted'])],
             'source_reference' => ['nullable', 'string', 'max:255'],
             'commented_answer' => ['nullable', 'string'],
-            'status' => ['required', Rule::in(['draft', 'published', 'archived'])],
+            'status' => ['required', Rule::in([
+                Question::STATUS_DRAFT,
+                Question::STATUS_PUBLISHED,
+                Question::STATUS_REVIEWED,
+                Question::STATUS_ARCHIVED,
+            ])],
             'alternatives' => ['required', 'array', 'size:5'],
             'alternatives.*.letter' => ['required', Rule::in(['A', 'B', 'C', 'D', 'E'])],
             'alternatives.*.text' => ['required', 'string'],

@@ -4,7 +4,7 @@
             @method($method)
         @endif
         <div class="row g-3">
-            <div class="col-md-6"><label class="form-label">Corporação</label><select class="form-select"
+            <div class="col-md-6"><label class="form-label">Corporação</label><select class="form-control"
                     name="corporation_id">
                     <option value="">Questão geral / sem corporação específica</option>
                     @foreach ($corporations as $item)
@@ -12,21 +12,21 @@
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-6"><label class="form-label">Prova</label><select class="form-select" name="exam_id">
+            <div class="col-md-6"><label class="form-label">Prova</label><select class="form-control" name="exam_id">
                     <option value="">Selecione</option>
                     @foreach ($exams as $item)
                         <option value="{{ $item->id }}" @selected(old('exam_id', $question->exam_id ?? null) == $item->id)>{{ $item->title }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-6"><label class="form-label">Disciplina</label><select class="form-select"
+            <div class="col-md-6"><label class="form-label">Disciplina</label><select class="form-control"
                     name="subject_id" required>
                     @foreach ($subjects as $item)
                         <option value="{{ $item->id }}" @selected(old('subject_id', $question->subject_id ?? null) == $item->id)>{{ $item->name }}</option>
                     @endforeach
                 </select>
             </div>
-            <div class="col-md-6"><label class="form-label">Assunto</label><select class="form-select" name="topic_id">
+            <div class="col-md-6"><label class="form-label">Assunto</label><select class="form-control" name="topic_id">
                     <option value="">Selecione</option>
                     @foreach ($topics as $item)
                         <option value="{{ $item->id }}" @selected(old('topic_id', $question->topic_id ?? null) == $item->id)>{{ $item->name }}</option>
@@ -35,13 +35,13 @@
             </div>
             <div class="col-md-4"><label class="form-label">Tipo</label><input class="form-control" name="question_type"
                     value="{{ old('question_type', $question->question_type ?? 'multiple_choice') }}" required></div>
-            <div class="col-md-4"><label class="form-label">Dificuldade</label><select class="form-select"
+            <div class="col-md-4"><label class="form-label">Dificuldade</label><select class="form-control"
                     name="difficulty" required>
                     <option value="easy" @selected(old('difficulty', $question->difficulty ?? '') === 'easy')>Fácil</option>
                     <option value="medium" @selected(old('difficulty', $question->difficulty ?? '') === 'medium')>Média</option>
                     <option value="hard" @selected(old('difficulty', $question->difficulty ?? '') === 'hard')>Difícil</option>
                 </select></div>
-            <div class="col-md-4"><label class="form-label">Status</label><select class="form-select" name="status"
+            <div class="col-md-4"><label class="form-label">Status</label><select class="form-control" name="status"
                     required>
                     <option value="draft" @selected(old('status', $question->status ?? '') === 'draft')>Rascunho</option>
                     <option value="published" @selected(old('status', $question->status ?? '') === 'published')>Publicada</option>

@@ -16,7 +16,12 @@ class QuestionBulkStatusController extends Controller
         $data = $request->validate([
             'question_ids' => ['required', 'array', 'min:1'],
             'question_ids.*' => ['integer', 'exists:questions,id'],
-            'status' => ['required', Rule::in(['draft', 'published', 'archived'])],
+            'status' => ['required', Rule::in([
+                Question::STATUS_DRAFT,
+                Question::STATUS_PUBLISHED,
+                Question::STATUS_REVIEWED,
+                Question::STATUS_ARCHIVED,
+            ])],
         ], [
             'question_ids.required' => 'Selecione pelo menos uma questão.',
             'question_ids.min' => 'Selecione pelo menos uma questão.',
@@ -34,9 +39,11 @@ class QuestionBulkStatusController extends Controller
             ->update($payload);
 
         $label = match ($data['status']) {
-            'draft' => 'rascunho',
-            'published' => 'publicada',
-            'archived' => 'arquivada',
+            Question::STATUS_DRAFT => 'rascunho',
+            Question::STATUS_PUBLISHED => 'publicada',
+            Question::STATUS_REVIEWED => 'revisada',
+            Question::STATUS_ARCHIVED => 'arquivada',
+            default => $data['status'],
         };
 
         return back()->with('success', "{$total} questão(ões) marcada(s) como {$label}.");

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -11,6 +12,23 @@ use Illuminate\Database\Eloquent\Relations\HasOne;
 class Question extends Model
 {
     use HasFactory;
+
+    public const STATUS_DRAFT = 'draft';
+    public const STATUS_PUBLISHED = 'published';
+    public const STATUS_REVIEWED = 'reviewed';
+    public const STATUS_ARCHIVED = 'archived';
+
+    public const STUDENT_VISIBLE_STATUSES = [
+        self::STATUS_PUBLISHED,
+        self::STATUS_REVIEWED,
+    ];
+
+    public const STATUS_LABELS = [
+        self::STATUS_DRAFT => 'Rascunho',
+        self::STATUS_PUBLISHED => 'Publicada',
+        self::STATUS_REVIEWED => 'Revisada',
+        self::STATUS_ARCHIVED => 'Arquivada',
+    ];
 
     protected $fillable = [
         'corporation_id',
@@ -36,6 +54,16 @@ class Question extends Model
         'source_material_id' => 'integer',
         'created_by' => 'integer',
     ];
+
+    public function scopeVisibleToStudent(Builder $query): Builder
+    {
+        return $query->whereIn('status', self::STUDENT_VISIBLE_STATUSES);
+    }
+
+    public function getStatusLabelAttribute(): string
+    {
+        return self::STATUS_LABELS[$this->status] ?? ucfirst((string) $this->status);
+    }
 
     public function corporation(): BelongsTo
     {

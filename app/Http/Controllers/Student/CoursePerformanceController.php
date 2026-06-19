@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\Question;
 use Illuminate\Contracts\Database\Query\Builder as QueryBuilder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -106,14 +107,7 @@ class CoursePerformanceController extends Controller
             ->where('study_sessions.course_id', $course->id)
             ->orderByDesc('user_answers.answered_at')
             ->limit(10)
-            ->select([
-                'questions.id as question_id',
-                'questions.statement',
-                'subjects.name as subject_name',
-                'topics.name as topic_name',
-                'user_answers.is_correct',
-                'user_answers.answered_at',
-            ])
+            ->select(['questions.id as question_id', 'questions.statement', 'subjects.name as subject_name', 'topics.name as topic_name', 'user_answers.is_correct', 'user_answers.answered_at'])
             ->get()
             ->map(function ($row) {
                 $row->short_statement = Str::limit(strip_tags((string) $row->statement), 120);
@@ -132,12 +126,7 @@ class CoursePerformanceController extends Controller
             ->orderByDesc('wrong_count')
             ->orderByDesc('last_wrong_at')
             ->limit(10)
-            ->select([
-                'questions.id as question_id',
-                'questions.statement',
-                'subjects.name as subject_name',
-                'topics.name as topic_name',
-            ])
+            ->select(['questions.id as question_id', 'questions.statement', 'subjects.name as subject_name', 'topics.name as topic_name'])
             ->selectRaw('COUNT(*) as wrong_count')
             ->selectRaw('MAX(user_answers.answered_at) as last_wrong_at')
             ->get()
@@ -153,27 +142,7 @@ class CoursePerformanceController extends Controller
             ->limit(5)
             ->get();
 
-        return view('student.courses.performance', compact(
-            'course',
-            'availableQuestions',
-            'trainingAnswered',
-            'trainingCorrect',
-            'trainingWrong',
-            'trainingAccuracy',
-            'distinctAnsweredQuestions',
-            'unansweredQuestions',
-            'training',
-            'simulated',
-            'simulatedTotal',
-            'simulatedFinished',
-            'simulatedAccuracy',
-            'bySubject',
-            'byTopic',
-            'byDifficulty',
-            'recentAnswers',
-            'reviewQuestions',
-            'latestSimulated'
-        ));
+        return view('student.courses.performance', compact('course', 'availableQuestions', 'trainingAnswered', 'trainingCorrect', 'trainingWrong', 'trainingAccuracy', 'distinctAnsweredQuestions', 'unansweredQuestions', 'training', 'simulated', 'simulatedTotal', 'simulatedFinished', 'simulatedAccuracy', 'bySubject', 'byTopic', 'byDifficulty', 'recentAnswers', 'reviewQuestions', 'latestSimulated'));
     }
 
     private function withAccuracy(object $row): object
@@ -182,132 +151,45 @@ class CoursePerformanceController extends Controller
         $row->correct = (int) ($row->correct ?? 0);
         $row->wrong = max(0, $row->answered - $row->correct);
         $row->accuracy = $this->percentage($row->correct, $row->answered);
-
         return $row;
     }
 
     private function percentage(int $part, int $total): float
     {
-        if ($total <= 0) {
-            return 0.0;
-        }
-
-        return round(($part / $total) * 100, 2);
+        return $total <= 0 ? 0.0 : round(($part / $total) * 100, 2);
     }
 
     private function courseQuestionQuery(Course $course): QueryBuilder
     {
-        $query = DB::table('questions')->where('questions.status', 'published');
+        $query = DB::table('questions')->whereIn('questions.status', Question::STUDENT_VISIBLE_STATUSES);
 
         if ($course->corporation_id) {
-            $query->where(function ($q) use ($course) {
-                $q->where('questions.corporation_id', $course->corporation_id)
-                    ->orWhereNull('questions.corporation_id');
-            });
+            $query->where(fn ($q) => $q->where('questions.corporation_id', $course->corporation_id)->orWhereNull('questions.corporation_id'));
         }
 
         if ($course->inherit_exam_scope && $course->exam_id) {
-            $query->where(function ($q) use ($course) {
-                $q->where('questions.exam_id', $course->exam_id)
-                    ->orWhereNull('questions.exam_id');
-            });
+            $query->where(fn ($q) => $q->where('questions.exam_id', $course->exam_id)->orWhereNull('questions.exam_id'));
 
-            $subjectIds = DB::table('exam_subjects')
-                ->where('exam_id', $course->exam_id)
-                ->where('is_active', true)
-                ->pluck('subject_id')
-                ->filter()
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
+            $subjectIds = DB::table('exam_subjects')->where('exam_id', $course->exam_id)->where('is_active', true)->pluck('subject_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+            if (!empty($subjectIds)) $query->whereIn('questions.subject_id', $subjectIds);
 
-            if (!empty($subjectIds)) {
-                $query->whereIn('questions.subject_id', $subjectIds);
-            }
+            $topicIds = DB::table('exam_subject_topics')->join('exam_subjects', 'exam_subject_topics.exam_subject_id', '=', 'exam_subjects.id')->where('exam_subjects.exam_id', $course->exam_id)->where('exam_subjects.is_active', true)->where('exam_subject_topics.is_active', true)->pluck('exam_subject_topics.topic_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+            if (!empty($topicIds)) $query->where(fn ($q) => $q->whereIn('questions.topic_id', $topicIds)->orWhereNull('questions.topic_id'));
 
-            $topicIds = DB::table('exam_subject_topics')
-                ->join('exam_subjects', 'exam_subject_topics.exam_subject_id', '=', 'exam_subjects.id')
-                ->where('exam_subjects.exam_id', $course->exam_id)
-                ->where('exam_subjects.is_active', true)
-                ->where('exam_subject_topics.is_active', true)
-                ->pluck('exam_subject_topics.topic_id')
-                ->filter()
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
-
-            if (!empty($topicIds)) {
-                $query->where(function ($q) use ($topicIds) {
-                    $q->whereIn('questions.topic_id', $topicIds)
-                        ->orWhereNull('questions.topic_id');
-                });
-            }
-
-            $sourceMaterialIds = DB::table('exam_subject_source_materials')
-                ->join('exam_subjects', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')
-                ->where('exam_subjects.exam_id', $course->exam_id)
-                ->where('exam_subjects.is_active', true)
-                ->where('exam_subject_source_materials.is_active', true)
-                ->pluck('exam_subject_source_materials.source_material_id')
-                ->filter()
-                ->map(fn ($id) => (int) $id)
-                ->unique()
-                ->values()
-                ->all();
-
-            if (!empty($sourceMaterialIds)) {
-                $query->where(function ($q) use ($sourceMaterialIds) {
-                    $q->whereIn('questions.source_material_id', $sourceMaterialIds)
-                        ->orWhereNull('questions.source_material_id');
-                });
-            }
+            $sourceMaterialIds = DB::table('exam_subject_source_materials')->join('exam_subjects', 'exam_subject_source_materials.exam_subject_id', '=', 'exam_subjects.id')->where('exam_subjects.exam_id', $course->exam_id)->where('exam_subjects.is_active', true)->where('exam_subject_source_materials.is_active', true)->pluck('exam_subject_source_materials.source_material_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+            if (!empty($sourceMaterialIds)) $query->where(fn ($q) => $q->whereIn('questions.source_material_id', $sourceMaterialIds)->orWhereNull('questions.source_material_id'));
 
             return $query;
         }
 
-        $subjectIds = DB::table('course_subjects')
-            ->where('course_id', $course->id)
-            ->where('is_active', true)
-            ->pluck('subject_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
+        $subjectIds = DB::table('course_subjects')->where('course_id', $course->id)->where('is_active', true)->pluck('subject_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+        if (!empty($subjectIds)) $query->whereIn('questions.subject_id', $subjectIds);
 
-        if (!empty($subjectIds)) {
-            $query->whereIn('questions.subject_id', $subjectIds);
-        }
+        $topicIds = DB::table('course_topics')->where('course_id', $course->id)->where('is_active', true)->pluck('topic_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+        if (!empty($topicIds)) $query->whereIn('questions.topic_id', $topicIds);
 
-        $topicIds = DB::table('course_topics')
-            ->where('course_id', $course->id)
-            ->where('is_active', true)
-            ->pluck('topic_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        if (!empty($topicIds)) {
-            $query->whereIn('questions.topic_id', $topicIds);
-        }
-
-        $sourceMaterialIds = DB::table('course_source_materials')
-            ->where('course_id', $course->id)
-            ->where('is_active', true)
-            ->pluck('source_material_id')
-            ->filter()
-            ->map(fn ($id) => (int) $id)
-            ->unique()
-            ->values()
-            ->all();
-
-        if (!empty($sourceMaterialIds)) {
-            $query->whereIn('questions.source_material_id', $sourceMaterialIds);
-        }
+        $sourceMaterialIds = DB::table('course_source_materials')->where('course_id', $course->id)->where('is_active', true)->pluck('source_material_id')->filter()->map(fn ($id) => (int) $id)->unique()->values()->all();
+        if (!empty($sourceMaterialIds)) $query->whereIn('questions.source_material_id', $sourceMaterialIds);
 
         return $query;
     }

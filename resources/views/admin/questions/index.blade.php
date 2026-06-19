@@ -11,12 +11,15 @@
                 {{ $isDraftPage ?? false ? 'Revise e publique questões ainda não liberadas para os alunos.' : 'Gerencie as questões com filtros, vínculos e status de publicação.' }}
             </p>
         </div>
-        <div class="d-flex gap-2">
+        <div class="btn-group">
             <a href="{{ route('admin.questions.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Nova questão
             </a>
-            <a href="{{ route('admin.questions.drafts') }}" class="btn btn-outline-warning">
+            <a href="{{ route('admin.questions.drafts') }}" class="btn btn-danger">
                 <i class="fas fa-edit"></i> Rascunhos
+            </a>
+            <a href="{{ route('admin.questions.index') }}?status=reviewed" class="btn btn-success">
+                <i class="fas fa-check-circle"></i> Revisadas
             </a>
             <a href="{{ route('admin.questions.index') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-list"></i> Todas
@@ -50,7 +53,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Corporação</label>
-                    <select name="corporation_id" class="form-select">
+                    <select name="corporation_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($corporations as $corporation)
                             <option value="{{ $corporation->id }}" @selected((int)($corporationId ?? 0) === (int)$corporation->id)>{{ $corporation->name }}</option>
@@ -59,7 +62,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Disciplina</label>
-                    <select name="subject_id" class="form-select">
+                    <select name="subject_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($subjects as $subject)
                             <option value="{{ $subject->id }}" @selected((int)($subjectId ?? 0) === (int)$subject->id)>{{ $subject->name }}</option>
@@ -68,7 +71,7 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label">Fonte / Bibliografia</label>
-                    <select name="source_material_id" class="form-select">
+                    <select name="source_material_id" class="form-control">
                         <option value="">Todas</option>
                         @foreach($sourceMaterials as $material)
                             <option value="{{ $material->id }}" @selected((int)($sourceMaterialId ?? 0) === (int)$material->id)>{{ $material->title }}</option>
@@ -78,17 +81,18 @@
                 @unless($isDraftPage ?? false)
                     <div class="col-md-1">
                         <label class="form-label">Status</label>
-                        <select name="status" class="form-select">
+                        <select name="status" class="form-control">
                             <option value="">Todos</option>
                             <option value="draft" @selected(($status ?? '') === 'draft')>Rascunho</option>
                             <option value="published" @selected(($status ?? '') === 'published')>Publicada</option>
+                            <option value="reviewed" @selected(($status ?? '') === 'reviewed')>Revisada</option>
                             <option value="archived" @selected(($status ?? '') === 'archived')>Arquivada</option>
                         </select>
                     </div>
                 @endunless
                 <div class="col-md-1">
                     <label class="form-label">Dificuldade</label>
-                    <select name="difficulty" class="form-select">
+                    <select name="difficulty" class="form-control">
                         <option value="">Todas</option>
                         <option value="easy" @selected(($difficulty ?? '') === 'easy')>Fácil</option>
                         <option value="medium" @selected(($difficulty ?? '') === 'medium')>Média</option>
@@ -111,10 +115,11 @@
                 <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
                     <div class="d-flex flex-wrap gap-2 align-items-center">
                         <strong>Ações em lote:</strong>
-                        <select name="status" class="form-select form-select-sm" style="width: 180px;">
+                        <select name="status" class="form-control form-control-sm" style="width: 200px;">
                             <option value="">Alterar status...</option>
                             <option value="draft">Marcar como rascunho</option>
                             <option value="published">Publicar</option>
+                            <option value="reviewed">Marcar como revisada</option>
                             <option value="archived">Arquivar</option>
                         </select>
                         <button type="submit" class="btn btn-sm btn-primary" onclick="return confirmBulkStatusChange();">
@@ -164,9 +169,11 @@
                                     <td>{{ ucfirst($question->difficulty) }}</td>
                                     <td>
                                         @if($question->status === 'published')
-                                            <span class="badge bg-success">Publicada</span>
+                                            <span class="badge bg-info text-dark">Publicada</span>
+                                        @elseif($question->status === 'reviewed')
+                                            <span class="badge bg-success">Revisada</span>
                                         @elseif($question->status === 'draft')
-                                            <span class="badge bg-warning text-dark">Rascunho</span>
+                                            <span class="badge bg-danger">Rascunho</span>
                                         @else
                                             <span class="badge bg-secondary">Arquivada</span>
                                         @endif

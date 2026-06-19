@@ -116,7 +116,7 @@
             <div class="row">
                 <div class="col-md-6 mb-3">
                     <label for="corporation_id" class="form-label">Corporação</label>
-                    <select name="corporation_id" id="corporation_id" class="form-select @error('corporation_id') is-invalid @enderror">
+                    <select name="corporation_id" id="corporation_id" class="form-control @error('corporation_id') is-invalid @enderror">
                         <option value="">Questão geral / sem corporação específica</option>
                         @foreach($corporations as $corporation)
                             <option value="{{ $corporation->id }}" @selected((string) old('corporation_id', $question->corporation_id ?? '') === (string) $corporation->id)>
@@ -131,7 +131,7 @@
 
                 <div class="col-md-6 mb-3">
                     <label for="subject_id" class="form-label">Disciplina <span class="text-danger">*</span></label>
-                    <select name="subject_id" id="subject_id" class="form-select @error('subject_id') is-invalid @enderror">
+                    <select name="subject_id" id="subject_id" class="form-control @error('subject_id') is-invalid @enderror">
                         <option value="">Selecione</option>
                         @foreach($subjects as $subject)
                             <option value="{{ $subject->id }}" @selected((string) old('subject_id', $question->subject_id ?? '') === (string) $subject->id)>
@@ -146,7 +146,7 @@
 
                 <div class="col-md-6 mb-3">
                     <label for="topic_id" class="form-label">Assunto</label>
-                    <select name="topic_id" id="topic_id" class="form-select @error('topic_id') is-invalid @enderror">
+                    <select name="topic_id" id="topic_id" class="form-control @error('topic_id') is-invalid @enderror">
                         <option value="">Selecione uma disciplina primeiro</option>
                         @if(old('topic_id', $question->topic_id ?? null) && isset($selectedTopic) && $selectedTopic)
                             <option value="{{ $selectedTopic->id }}" selected>{{ $selectedTopic->name }}</option>
@@ -160,7 +160,7 @@
 
                 <div class="col-md-6 mb-3">
                     <label for="exam_id" class="form-label">Concurso / prova de origem</label>
-                    <select name="exam_id" id="exam_id" class="form-select @error('exam_id') is-invalid @enderror">
+                    <select name="exam_id" id="exam_id" class="form-control @error('exam_id') is-invalid @enderror">
                         <option value="">Sem prova de origem</option>
                         @if(old('exam_id', $question->exam_id ?? null) && isset($selectedExam) && $selectedExam)
                             <option value="{{ $selectedExam->id }}" selected>
@@ -180,7 +180,7 @@
             <div class="row mt-3">
                 <div class="col-md-4 mb-3">
                     <label for="difficulty" class="form-label">Dificuldade</label>
-                    <select name="difficulty" id="difficulty" class="form-select @error('difficulty') is-invalid @enderror">
+                    <select name="difficulty" id="difficulty" class="form-control @error('difficulty') is-invalid @enderror">
                         <option value="easy" @selected(old('difficulty', $question->difficulty ?? 'medium') === 'easy')>Fácil</option>
                         <option value="medium" @selected(old('difficulty', $question->difficulty ?? 'medium') === 'medium')>Média</option>
                         <option value="hard" @selected(old('difficulty', $question->difficulty ?? 'medium') === 'hard')>Difícil</option>
@@ -192,7 +192,7 @@
 
                 <div class="col-md-4 mb-3">
                     <label for="source_type" class="form-label">Origem</label>
-                    <select name="source_type" id="source_type" class="form-select @error('source_type') is-invalid @enderror">
+                    <select name="source_type" id="source_type" class="form-control @error('source_type') is-invalid @enderror">
                         <option value="exam" @selected(old('source_type', $question->source_type ?? 'authored') === 'exam')>Prova oficial</option>
                         <option value="authored" @selected(old('source_type', $question->source_type ?? 'authored') === 'authored')>Autoral</option>
                         <option value="adapted" @selected(old('source_type', $question->source_type ?? 'authored') === 'adapted')>Adaptada</option>
@@ -204,11 +204,15 @@
 
                 <div class="col-md-4 mb-3">
                     <label for="status" class="form-label">Status</label>
-                    <select name="status" id="status" class="form-select @error('status') is-invalid @enderror">
+                    <select name="status" id="status" class="form-control @error('status') is-invalid @enderror">
                         <option value="draft" @selected(old('status', $question->status ?? 'draft') === 'draft')>Rascunho</option>
                         <option value="published" @selected(old('status', $question->status ?? 'draft') === 'published')>Publicada</option>
+                        <option value="reviewed" @selected(old('status', $question->status ?? 'draft') === 'reviewed')>Revisada</option>
                         <option value="archived" @selected(old('status', $question->status ?? 'draft') === 'archived')>Arquivada</option>
                     </select>
+                    <div class="form-text">
+                        Publicada e revisada aparecem para o aluno. Rascunho e arquivada não aparecem.
+                    </div>
                     @error('status')
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror

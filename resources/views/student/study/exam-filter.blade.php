@@ -33,7 +33,7 @@
             <div class="row g-4">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Corporação</label>
-                    <select name="corporation_id" id="corporation_id" class="form-select form-select-lg" required>
+                    <select name="corporation_id" id="corporation_id" class="form-control form-control-lg" required>
                         <option value="">Selecione...</option>
                         @foreach($corporations as $corporation)
                             <option value="{{ $corporation->id }}" @selected(old('corporation_id') == $corporation->id)>
@@ -45,7 +45,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Concurso</label>
-                    <select name="exam_id" id="exam_id" class="form-select form-select-lg" required disabled>
+                    <select name="exam_id" id="exam_id" class="form-control form-control-lg" required disabled>
                         <option value="">Selecione a corporação primeiro</option>
                     </select>
                     <div class="small-muted mt-1">Concursos previstos e publicados aparecem aqui.</div>
@@ -65,7 +65,7 @@
             <div class="row g-4 mt-1">
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Quantidade</label>
-                    <select name="quantity" class="form-select" required>
+                    <select name="quantity" class="form-control" required>
                         @foreach([10, 20, 30, 50, 100] as $quantity)
                             <option value="{{ $quantity }}" @selected(old('quantity', 20) == $quantity)>{{ $quantity }} questões</option>
                         @endforeach
@@ -74,7 +74,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Modo</label>
-                    <select name="mode" class="form-select" required>
+                    <select name="mode" class="form-control" required>
                         <option value="train" @selected(old('mode', 'train') === 'train')>Treino</option>
                         <option value="exam" @selected(old('mode') === 'exam')>Simulado rápido</option>
                         <option value="review" @selected(old('mode') === 'review')>Revisão de erros</option>

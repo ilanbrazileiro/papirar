@@ -8,7 +8,7 @@
         </div>
 
         <form method="GET" action="{{ route('admin.tickets.index') }}" class="d-flex gap-2">
-            <select name="status" class="form-select">
+            <select name="status" class="form-control">
                 <option value="">Todos os status</option>
                 <option value="open" @selected(request('status') === 'open')>Aberto</option>
                 <option value="in_progress" @selected(request('status') === 'in_progress')>Em andamento</option>

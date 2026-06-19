@@ -43,7 +43,7 @@
 
                 <div class="col-md-8">
                     <label class="form-label">Plano vinculado</label>
-                    <select name="plan_id" class="form-select">
+                    <select name="plan_id" class="form-control">
                         <option value="">Liberação manual</option>
                         @foreach($plans as $plan)
                             <option value="{{ $plan->id }}">{{ $plan->name }} - R$ {{ number_format((float) $plan->price, 2, ',', '.') }} / {{ $plan->duration_days }} dias</option>
