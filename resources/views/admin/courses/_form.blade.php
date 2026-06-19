@@ -9,6 +9,15 @@
     </div>
 @endif
 
+<div class="alert alert-info d-flex align-items-start mb-4">
+    <div class="mr-3 me-3"><i class="fas fa-info-circle"></i></div>
+    <div>
+        <strong>Campos do card comercial:</strong> a capa do curso, descrição curta, chamada, selo e benefícios ficam no bloco
+        <strong>Card comercial do curso</strong>, logo abaixo dos dados básicos. Esses dados aparecem em <code>/aluno/cursos</code>,
+        <code>/aluno/assinaturas</code> e na dashboard do aluno sem curso ativo.
+    </div>
+</div>
+
 <form method="POST" action="{{ $course->exists ? route('admin.courses.update', $course) : route('admin.courses.store') }}" enctype="multipart/form-data">
     @csrf
     @if($course->exists)
@@ -86,10 +95,6 @@
                     <div class="text-muted small mt-1">Quando houver concurso vinculado, o curso pode herdar disciplinas, tópicos e fontes já cadastrados no concurso.</div>
                 </div>
 
-                <div class="col-12">
-                    <label for="short_description" class="form-label">Descrição curta</label>
-                    <input type="text" name="short_description" id="short_description" class="form-control" value="{{ old('short_description', $course->short_description ?? '') }}" maxlength="255" placeholder="Resumo para cards e listagens">
-                </div>
 
                 <div class="col-12">
                     <label for="description" class="form-label">Descrição completa</label>
@@ -139,6 +144,7 @@
         </div>
     </div>
 
+    <div id="card-comercial-curso"></div>
     @include('admin.courses._marketing_block')
 
     <div class="card mb-4">

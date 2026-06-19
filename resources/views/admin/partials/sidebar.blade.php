@@ -4,6 +4,10 @@
     $questionMenuOpen = request()->routeIs('admin.questions.*')
         || request()->routeIs('admin.question-import-batches.*')
         || request()->is('admin/questions*');
+    $relatorioMenuOpen = request()->routeIs('admin.reports.*')
+        || request()->routeIs('admin.reports.courses.*')
+        || request()->routeIs('admin.reports.questions.*')
+        || request()->is('admin/reports*');
 @endphp
 
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -110,6 +114,12 @@
                                     <p>Todas</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="{{ route('admin.questions.similar.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Similares</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
                 @endif
@@ -203,11 +213,34 @@
                         </li>
                     @endif
                     <li class="nav-item">
-                        <a href="{{ route('admin.reports.courses.index') }}" class="nav-link {{ request()->routeIs('admin.reports.courses.*') ? 'active' : '' }}">
+                        <li class="nav-item {{ $relatorioMenuOpen ? 'menu-open' : '' }}">
+                        <a href="#" class="nav-link {{ $relatorioMenuOpen ? 'active' : '' }}">
                             <i class="nav-icon fas fa-chart-line"></i>
-                            <p>Relatórios de cursos</p>
+                            <p>Relatórios
+                                <i class="right fas fa-angle-left"></i>
+                            </p>
                         </a>
+                        <ul class="nav-item nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('admin.reports.courses.index') }}" class="nav-link {{ request()->routeIs('admin.reports.courses.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Cursos</p>
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a href="{{ route('admin.reports.questions.index') }}" class="nav-link {{ request()->routeIs('admin.reports.questions.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Questões</p>
+                                </a>
+                            </li>
+                        </ul>
                     </li>
+
+ 
+
+
+
+
 
                     @if(Route::has('admin.customers.index'))
                         <li class="nav-item">
