@@ -14,6 +14,7 @@ use App\Models\Subject;
 use App\Models\Topic;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -68,6 +69,7 @@ class CourseController extends Controller
     public function store(Request $request)
     {
         $data = $this->validatedData($request);
+        $data = $this->handleCourseCoverUpload($request, $data);
 
         DB::transaction(function () use ($request, $data) {
             $course = Course::create($data);
@@ -104,6 +106,7 @@ class CourseController extends Controller
     public function update(Request $request, Course $course)
     {
         $data = $this->validatedData($request, $course->id);
+        $data = $this->handleCourseCoverUpload($request, $data, $course);
 
         DB::transaction(function () use ($request, $course, $data) {
             $course->update($data);
@@ -122,6 +125,10 @@ class CourseController extends Controller
             return redirect()
                 ->route('admin.courses.index')
                 ->with('error', 'Este curso possui acessos vinculados e não pode ser removido. Desative o curso se ele não deve mais ser vendido.');
+        }
+
+        if ($course->cover_image_path) {
+            Storage::disk('public')->delete($course->cover_image_path);
         }
 
         $course->delete();
@@ -234,6 +241,14 @@ class CourseController extends Controller
             ],
             'short_description' => ['nullable', 'string', 'max:255'],
             'description' => ['nullable', 'string'],
+            'cover_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remove_cover_image' => ['nullable', 'boolean'],
+            'sales_headline' => ['nullable', 'string', 'max:180'],
+            'sales_badge' => ['nullable', 'string', 'max:80'],
+            'sales_bullets_text' => ['nullable', 'string', 'max:1500'],
+            'target_audience' => ['nullable', 'string', 'max:180'],
+            'workload_label' => ['nullable', 'string', 'max:80'],
+            'guarantee_text' => ['nullable', 'string', 'max:180'],
             'course_type' => ['required', Rule::in(array_keys(Course::typeOptions()))],
             'price' => ['required', 'numeric', 'min:0', 'max:999999.99'],
             'quarterly_price' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
@@ -284,6 +299,12 @@ class CourseController extends Controller
             'slug' => $slug,
             'short_description' => $validated['short_description'] ?? null,
             'description' => $validated['description'] ?? null,
+            'sales_headline' => $validated['sales_headline'] ?? null,
+            'sales_badge' => $validated['sales_badge'] ?? null,
+            'sales_bullets' => $this->normalizeSalesBullets($validated['sales_bullets_text'] ?? null),
+            'target_audience' => $validated['target_audience'] ?? null,
+            'workload_label' => $validated['workload_label'] ?? null,
+            'guarantee_text' => $validated['guarantee_text'] ?? null,
             'course_type' => $validated['course_type'],
             'price' => round((float) $validated['price'], 2),
             'quarterly_price' => $this->nullableMoney($validated['quarterly_price'] ?? null),
@@ -295,6 +316,36 @@ class CourseController extends Controller
             'trial_days' => $trialDays,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
         ];
+    }
+
+    private function normalizeSalesBullets(?string $text): ?array
+    {
+        $bullets = collect(preg_split('/\r\n|\r|\n/', (string) $text))
+            ->map(fn ($item) => trim($item))
+            ->filter()
+            ->take(8)
+            ->values()
+            ->all();
+
+        return empty($bullets) ? null : $bullets;
+    }
+
+    private function handleCourseCoverUpload(Request $request, array $data, ?Course $course = null): array
+    {
+        if ($request->boolean('remove_cover_image') && $course?->cover_image_path) {
+            Storage::disk('public')->delete($course->cover_image_path);
+            $data['cover_image_path'] = null;
+        }
+
+        if ($request->hasFile('cover_image')) {
+            if ($course?->cover_image_path) {
+                Storage::disk('public')->delete($course->cover_image_path);
+            }
+
+            $data['cover_image_path'] = $request->file('cover_image')->store('courses/covers', 'public');
+        }
+
+        return $data;
     }
 
     private function nullableMoney($value): ?float

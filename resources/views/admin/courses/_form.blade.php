@@ -9,7 +9,7 @@
     </div>
 @endif
 
-<form method="POST" action="{{ $course->exists ? route('admin.courses.update', $course) : route('admin.courses.store') }}">
+<form method="POST" action="{{ $course->exists ? route('admin.courses.update', $course) : route('admin.courses.store') }}" enctype="multipart/form-data">
     @csrf
     @if($course->exists)
         @method('PUT')
@@ -138,6 +138,8 @@
             </div>
         </div>
     </div>
+
+    @include('admin.courses._marketing_block')
 
     <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">

@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Support\Facades\Storage;
 
 class Course extends Model
 {
@@ -30,6 +31,13 @@ class Course extends Model
         'slug',
         'short_description',
         'description',
+        'cover_image_path',
+        'sales_headline',
+        'sales_badge',
+        'sales_bullets',
+        'target_audience',
+        'workload_label',
+        'guarantee_text',
         'course_type',
         'price',
         'quarterly_price',
@@ -45,6 +53,7 @@ class Course extends Model
     protected $casts = [
         'corporation_id' => 'integer',
         'exam_id' => 'integer',
+        'sales_bullets' => 'array',
         'price' => 'decimal:2',
         'quarterly_price' => 'decimal:2',
         'semiannual_price' => 'decimal:2',
@@ -228,5 +237,61 @@ class Course extends Model
         $days = (int) ($this->trial_days ?: 7);
 
         return max(1, min($days, 30));
+    }
+
+    public function coverImageUrl(): ?string
+    {
+        if (!$this->cover_image_path) {
+            return null;
+        }
+
+        if (str_starts_with($this->cover_image_path, 'http://') || str_starts_with($this->cover_image_path, 'https://')) {
+            return $this->cover_image_path;
+        }
+
+        return Storage::disk('public')->url($this->cover_image_path);
+    }
+
+    public function salesBulletsList(): array
+    {
+        $bullets = $this->sales_bullets;
+
+        if (is_string($bullets)) {
+            $decoded = json_decode($bullets, true);
+            $bullets = is_array($decoded) ? $decoded : [];
+        }
+
+        return collect($bullets ?: [])
+            ->map(fn ($item) => trim((string) $item))
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    public function salesBulletsText(): string
+    {
+        return implode("\n", $this->salesBulletsList());
+    }
+
+    public function commercialHeadline(): string
+    {
+        return $this->sales_headline ?: ($this->short_description ?: 'Curso direcionado para sua preparação.');
+    }
+
+    public function bestCommercialPriceLabel(): string
+    {
+        if ($this->hasSemiannualPrice()) {
+            return 'Semestral por R$ ' . number_format((float) $this->semiannual_price, 2, ',', '.');
+        }
+
+        if ($this->hasQuarterlyPrice()) {
+            return 'Trimestral por R$ ' . number_format((float) $this->quarterly_price, 2, ',', '.');
+        }
+
+        if ((float) $this->price > 0) {
+            return 'Mensal por R$ ' . number_format((float) $this->price, 2, ',', '.');
+        }
+
+        return 'Preço indisponível';
     }
 }
