@@ -3,86 +3,103 @@
 namespace App\Http\Controllers\Student;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
+use App\Models\CourseAccess;
 use App\Models\PaymentTransaction;
 use App\Models\Subscription;
-use App\Models\SubscriptionPlan;
-use App\Services\Billing\MercadoPagoService;
-use App\Services\Billing\SubscriptionService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class SubscriptionController extends Controller
 {
-    public function __construct(
-        protected SubscriptionService $subscriptionService,
-        protected MercadoPagoService $mercadoPagoService,
-    ) {
-    }
-
     public function index(Request $request): View
     {
         $user = Auth::user();
 
-        $plans = SubscriptionPlan::query()
-            ->where('active', true)
-            ->where('is_public', true)
-            ->orderBy('price')
+        $activeCourseAccesses = CourseAccess::query()
+            ->with('course')
+            ->where('user_id', $user->id)
+            ->where('status', CourseAccess::STATUS_ACTIVE)
+            ->where(function ($query) {
+                $query->whereNull('ends_at')
+                    ->orWhere('ends_at', '>=', now());
+            })
+            ->latest('ends_at')
             ->get();
 
-        $currentSubscription = $this->subscriptionService->getActiveSubscriptionForUser($user)
-            ?? Subscription::query()->with('plan')->where('user_id', $user->id)->latest('id')->first();
+        $activeCourseIds = $activeCourseAccesses
+            ->pluck('course_id')
+            ->filter()
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+
+        $availableCourses = Course::query()
+            ->active()
+            ->public()
+            ->whereNotIn('id', $activeCourseIds ?: [0])
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get();
+
+        $allCoursesForRenewal = Course::query()
+            ->active()
+            ->public()
+            ->whereIn('id', $activeCourseIds ?: [0])
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get()
+            ->keyBy('id');
+
+        $pendingTransactions = PaymentTransaction::query()
+            ->with('course')
+            ->where('user_id', $user->id)
+            ->whereNotNull('course_id')
+            ->where('status', PaymentTransaction::STATUS_PENDING)
+            ->latest('id')
+            ->limit(5)
+            ->get();
 
         $paymentStatus = $request->query('payment');
 
-        return view('student.subscriptions.index', compact('plans', 'currentSubscription', 'paymentStatus'));
+        return view('student.subscriptions.index', [
+            'activeCourseAccesses' => $activeCourseAccesses,
+            'availableCourses' => $availableCourses,
+            'allCoursesForRenewal' => $allCoursesForRenewal,
+            'pendingTransactions' => $pendingTransactions,
+            'paymentStatus' => $paymentStatus,
+            'needsEmailVerification' => ! $user->hasVerifiedEmail(),
+        ]);
     }
 
+    /**
+     * Rota antiga de checkout de assinatura geral.
+     *
+     * O modelo atual do Papirar vende acesso por curso. Os botões da tela de assinatura
+     * devem usar student.courses.checkout, que recebe o curso e o ciclo de cobrança.
+     */
     public function checkout(Request $request): RedirectResponse
     {
         $validated = $request->validate([
-            'plan_id' => ['required', 'integer', 'exists:subscription_plans,id'],
+            'course_id' => ['required', 'integer', 'exists:courses,id'],
+            'billing_cycle' => ['required', 'string'],
         ]);
 
-        try {
-            $plan = SubscriptionPlan::query()
-                ->where('active', true)
-                ->where('is_public', true)
-                ->findOrFail((int) $validated['plan_id']);
-
-            $checkout = $this->subscriptionService->checkout(
-                Auth::user(),
-                $plan->id,
-                $this->mercadoPagoService
-            );
-
-            $checkoutUrl = $checkout['checkout']['init_point'] ?? $checkout['checkout']['sandbox_init_point'] ?? null;
-
-            if (! $checkoutUrl) {
-                return back()->with('error', 'Não foi possível obter a URL de pagamento.');
-            }
-
-            return redirect()->away($checkoutUrl);
-        } catch (\Throwable $e) {
-            Log::error('Erro ao iniciar checkout da assinatura.', [
-                'user_id' => Auth::id(),
-                'plan_id' => $validated['plan_id'] ?? null,
-                'exception' => $e->getMessage(),
-            ]);
-
-            return back()->withInput()->with('error', 'Não foi possível iniciar o pagamento da assinatura.');
-        }
+        return redirect()
+            ->route('student.courses.index')
+            ->with('info', 'Escolha o curso e o período diretamente nos cards de assinatura.');
     }
 
     public function history(): View
     {
         $subscriptions = Subscription::query()
-            ->with(['plan', 'transactions' => function ($query) {
+            ->with(['course', 'transactions' => function ($query) {
                 $query->latest('id');
             }])
             ->where('user_id', Auth::id())
+            ->whereNotNull('course_id')
             ->latest('id')
             ->paginate(15);
 
@@ -95,63 +112,14 @@ class SubscriptionController extends Controller
 
         abort_unless((int) $subscription->user_id === (int) $user->id, 403);
 
-        $subscription->load(['plan', 'transactions' => function ($query) {
-            $query->latest('id');
-        }]);
-
-        if ($subscription->isActive()) {
-            return redirect()
-                ->route('student.subscriptions.history')
-                ->with('info', 'Essa assinatura já está ativa.');
-        }
-
-        if (! $subscription->plan || ! $subscription->plan->active || ! $subscription->plan->is_public) {
+        if ($subscription->course_id) {
             return redirect()
                 ->route('student.subscriptions.index')
-                ->with('error', 'Este plano não está mais disponível para pagamento.');
+                ->with('info', 'Para renovar ou ampliar, escolha novamente o curso e o período desejado.');
         }
 
-        try {
-            $pendingTransaction = $subscription->transactions
-                ->first(fn (PaymentTransaction $transaction) => $transaction->status === PaymentTransaction::STATUS_PENDING);
-
-            $existingCheckoutUrl = $pendingTransaction?->checkoutUrl();
-
-            if ($existingCheckoutUrl) {
-                return redirect()->away($existingCheckoutUrl);
-            }
-
-            $targetSubscription = $subscription;
-
-            if ($subscription->status !== Subscription::STATUS_PENDING) {
-                $targetSubscription = $this->subscriptionService->createPendingSubscription($user, $subscription->plan);
-            }
-
-            $checkout = $this->subscriptionService->createCheckoutForSubscription(
-                $user,
-                $targetSubscription,
-                $this->mercadoPagoService
-            );
-
-            $checkoutUrl = $checkout['checkout']['init_point'] ?? $checkout['checkout']['sandbox_init_point'] ?? null;
-
-            if (! $checkoutUrl) {
-                return redirect()
-                    ->route('student.subscriptions.history')
-                    ->with('error', 'Não foi possível gerar uma nova tentativa de pagamento.');
-            }
-
-            return redirect()->away($checkoutUrl);
-        } catch (\Throwable $e) {
-            Log::error('Erro ao retomar/tentar novamente pagamento de assinatura.', [
-                'user_id' => $user->id,
-                'subscription_id' => $subscription->id,
-                'exception' => $e->getMessage(),
-            ]);
-
-            return redirect()
-                ->route('student.subscriptions.history')
-                ->with('error', 'Não foi possível retomar o pagamento agora.');
-        }
+        return redirect()
+            ->route('student.subscriptions.index')
+            ->with('error', 'Essa assinatura pertence ao modelo antigo e não pode ser renovada por aqui.');
     }
 }

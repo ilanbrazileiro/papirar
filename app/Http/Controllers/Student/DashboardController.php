@@ -46,7 +46,7 @@ class DashboardController extends Controller
             ->whereNotIn('id', $activeCourseIds ?: [0])
             ->orderBy('sort_order')
             ->orderBy('title')
-            ->limit(4)
+            ->limit(6)
             ->get();
 
         $answersCount = UserAnswer::query()->where('user_id', $userId)->count();

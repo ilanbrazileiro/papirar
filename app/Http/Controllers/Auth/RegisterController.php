@@ -3,8 +3,6 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\Course;
-use App\Models\CourseAccess;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Notifications\VerifyEmailNotification;
@@ -14,27 +12,21 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
 {
     public function create()
     {
-        $trialCourses = $this->availableTrialCourses();
-
-        return view('auth/register', compact('trialCourses'));
+        return view('auth/register');
     }
 
     public function store(Request $request): RedirectResponse
     {
-        $trialCourseIds = $this->availableTrialCourses()->pluck('id')->map(fn ($id) => (int) $id)->all();
-
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:150'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
             'password' => ['required', 'confirmed', Password::min(6)],
-            'course_id' => ['required', 'integer', Rule::in($trialCourseIds)],
             'seguranca' => ['nullable', 'max:0'],
         ], [
             'name.required' => 'Informe seu nome.',
@@ -44,20 +36,11 @@ class RegisterController extends Controller
             'email.unique' => 'Este e-mail já está cadastrado.',
             'password.required' => 'Informe uma senha.',
             'password.confirmed' => 'As senhas não conferem.',
-            'course_id.required' => 'Escolha o curso que deseja testar.',
-            'course_id.in' => 'O curso escolhido não está disponível para teste gratuito.',
             'seguranca.max' => 'Cadastro inválido.',
         ]);
 
-        $course = Course::query()
-            ->active()
-            ->public()
-            ->trialAvailable()
-            ->whereKey($data['course_id'])
-            ->firstOrFail();
-
-        $user = DB::transaction(function () use ($data, $course) {
-            $user = User::query()->create([
+        $user = DB::transaction(function () use ($data) {
+            return User::query()->create([
                 'name' => trim($data['name']),
                 'email' => mb_strtolower(trim($data['email'])),
                 'password' => Hash::make($data['password']),
@@ -65,24 +48,6 @@ class RegisterController extends Controller
                 'is_active' => 1,
                 'email_verified_at' => null,
             ]);
-
-            $startsAt = now();
-            $endsAt = $startsAt->copy()->addDays($course->trialDaysForAccess());
-
-            CourseAccess::query()->create([
-                'user_id' => $user->id,
-                'course_id' => $course->id,
-                'subscription_id' => null,
-                'status' => CourseAccess::STATUS_ACTIVE,
-                'access_type' => CourseAccess::TYPE_TRIAL,
-                'starts_at' => $startsAt,
-                'ends_at' => $endsAt,
-                'canceled_at' => null,
-                'cancel_at_period_end' => false,
-                'bonus_days' => 0,
-            ]);
-
-            return $user;
         });
 
         $user->notify(new VerifyEmailNotification());
@@ -110,18 +75,7 @@ class RegisterController extends Controller
         $request->session()->put('auth_session_token', $sessionToken);
 
         return redirect()
-            ->route('student.courses.index')
-            ->with('success', 'Cadastro realizado com sucesso. Você recebeu ' . $course->trialDaysForAccess() . ' dias gratuitos no curso ' . $course->title . '.');
-    }
-
-    private function availableTrialCourses()
-    {
-        return Course::query()
-            ->active()
-            ->public()
-            ->trialAvailable()
-            ->orderBy('sort_order')
-            ->orderBy('title')
-            ->get();
+            ->route('student.dashboard')
+            ->with('success', 'Cadastro realizado com sucesso. Confirme seu e-mail e escolha um curso para começar.');
     }
 }

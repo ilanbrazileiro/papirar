@@ -5,7 +5,7 @@ Criar conta | Papirar Concursos
 @endsection
 
 @section('meta_description')
-Crie sua conta no Papirar Concursos, escolha um curso e teste gratuitamente por 7 dias.
+Crie sua conta gratuita no Papirar Concursos e conheça os cursos disponíveis para sua preparação.
 @endsection
 
 @section('robots')
@@ -15,32 +15,16 @@ noindex, follow
 @section('content')
 <section class="auth-page">
     <div class="auth-card">
-        <span class="eyebrow">Teste grátis</span>
+        <span class="eyebrow">Conta gratuita</span>
         <h1>Crie sua conta</h1>
-        <p>Escolha um curso e receba acesso gratuito por 7 dias para testar o Papirar.</p>
-
-        @if(($trialCourses ?? collect())->isEmpty())
-            <div class="alert alert-warning">
-                Nenhum curso está disponível para teste gratuito no momento. Tente novamente mais tarde.
-            </div>
-        @endif
+        <p>
+            Cadastre-se para acessar sua área do aluno, conhecer os cursos disponíveis e escolher a preparação ideal para o seu concurso.
+        </p>
 
         <form method="POST" action="{{ \Illuminate\Support\Facades\Route::has('register') ? route('register') : url('/cadastro') }}" class="auth-form">
             @csrf
 
-            <label>Curso para teste gratuito
-                <select name="course_id" required {{ ($trialCourses ?? collect())->isEmpty() ? 'disabled' : '' }}>
-                    <option value="">Selecione um curso</option>
-                    @foreach($trialCourses ?? [] as $course)
-                        <option value="{{ $course->id }}" @selected((int) old('course_id') === (int) $course->id)>
-                            {{ $course->title }} — {{ $course->trialDaysForAccess() }} dias grátis
-                        </option>
-                    @endforeach
-                </select>
-            </label>
-            @error('course_id')
-                <div class="text-danger small">{{ $message }}</div>
-            @enderror
+            <input type="text" name="seguranca" value="" tabindex="-1" autocomplete="off" style="position:absolute;left:-9999px;opacity:0;">
 
             <label>Nome
                 <input type="text" name="name" value="{{ old('name') }}" required autofocus>
@@ -67,7 +51,7 @@ noindex, follow
                 <input type="password" name="password_confirmation" required>
             </label>
 
-            <button class="btn btn-primary full" type="submit" {{ ($trialCourses ?? collect())->isEmpty() ? 'disabled' : '' }}>
+            <button class="btn btn-primary full" type="submit">
                 Criar conta gratuita
             </button>
         </form>

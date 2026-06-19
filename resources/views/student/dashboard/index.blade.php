@@ -3,27 +3,53 @@
 @section('title', 'Dashboard do aluno')
 
 @section('content')
+    @if($needsEmailVerification ?? false)
+        <div class="card-soft p-4 mb-4 border border-warning-subtle" style="background: linear-gradient(135deg, rgba(255, 193, 7, .18), rgba(255,255,255,1));">
+            <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">
+                <div>
+                    <div class="small text-uppercase fw-semibold text-warning-emphasis mb-2">Confirmação de e-mail pendente</div>
+                    <h2 class="h4 fw-bold mb-2">Confirme seu e-mail para validar sua conta.</h2>
+                    <p class="mb-0 text-muted">
+                        Enviamos um link de confirmação para o seu e-mail. Verifique a caixa de entrada e também o spam.
+                        Essa etapa aumenta a segurança da sua conta e evita problemas no acesso aos cursos.
+                    </p>
+                </div>
+                <form method="POST" action="{{ route('auth.verification.resend') }}">
+                    @csrf
+                    <button class="btn btn-warning">Reenviar confirmação</button>
+                </form>
+            </div>
+        </div>
+    @endif
+
     <div class="card-soft p-4 p-lg-5 mb-4 border border-primary-subtle" style="background: linear-gradient(135deg, rgba(13, 110, 253, .10), rgba(255, 255, 255, 1));">
         <div class="row align-items-center g-4">
             <div class="col-lg-8">
                 <div class="small text-uppercase fw-semibold text-primary mb-2">Papirar Concursos</div>
-                <h1 class="page-title mb-2">Estude por curso, com foco no edital que importa.</h1>
-                <p class="page-subtitle mb-3">
-                    Acesse questões organizadas por curso, resolva treinos direcionados, crie simulados e acompanhe sua evolução até a aprovação.
-                </p>
 
                 @if($needsCourse ?? false)
-                    <div class="alert alert-info mb-0">
-                        <strong>Escolha um curso para começar.</strong><br>
-                        Seu acesso ao Papirar é organizado por cursos. Veja os cursos disponíveis e escolha o melhor caminho para sua preparação.
+                    <h1 class="page-title mb-2">Escolha seu curso e comece a treinar com foco.</h1>
+                    <p class="page-subtitle mb-3">
+                        No Papirar, o acesso é organizado por curso. Você escolhe a preparação que faz sentido para seu objetivo e acompanha sua evolução com questões, simulados e desempenho por conteúdo.
+                    </p>
+
+                    <div class="d-flex flex-wrap gap-2">
+                        <a href="{{ route('student.subscriptions.index') }}" class="btn btn-primary">Ver cursos disponíveis</a>
+                        <a href="{{ route('student.courses.index') }}" class="btn btn-outline-primary">Conhecer a plataforma</a>
                     </div>
                 @else
+                    <h1 class="page-title mb-2">Continue sua preparação pelo curso certo.</h1>
+                    <p class="page-subtitle mb-3">
+                        Acesse seus cursos ativos, resolva questões direcionadas, refaça favoritas e acompanhe sua evolução.
+                    </p>
+
                     <div class="d-flex flex-wrap gap-2">
                         <a href="{{ route('student.courses.index') }}" class="btn btn-primary">Continuar estudando</a>
-                        <a href="#meus-cursos" class="btn btn-outline-primary">Ver meus cursos</a>
+                        <a href="{{ route('student.subscriptions.index') }}" class="btn btn-outline-primary">Renovar ou ampliar</a>
                     </div>
                 @endif
             </div>
+
             <div class="col-lg-4">
                 <div class="card border-0 shadow-sm rounded-4">
                     <div class="card-body">
@@ -37,20 +63,6 @@
             </div>
         </div>
     </div>
-
-    @if($needsEmailVerification ?? false)
-        <div class="alert alert-warning d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-4" role="alert">
-            <div>
-                <strong>Confirme seu e-mail.</strong><br>
-                Enviamos uma mensagem para sua caixa de entrada. Confirme seu endereço de e-mail para validar sua conta.
-            </div>
-
-            <form method="POST" action="{{ route('auth.verification.resend') }}">
-                @csrf
-                <button class="btn btn-outline-warning">Reenviar e-mail</button>
-            </form>
-        </div>
-    @endif
 
     @if(($pendingTransactions ?? collect())->count())
         <div class="card-soft p-4 mb-4 border border-warning-subtle bg-warning-subtle bg-opacity-25">
@@ -89,10 +101,13 @@
                                 <div class="col-md-6">
                                     <div class="border rounded-4 p-3 bg-white h-100">
                                         <div class="fw-semibold">{{ $access->course->title }}</div>
-                                        <div class="small-muted mb-3">Acesso até: {{ $access->ends_at ? $access->ends_at->format('d/m/Y') : 'Sem limite' }}</div>
-                                        <div class="d-flex gap-2">
+                                        <div class="small-muted mb-3">
+                                            Acesso até: {{ $access->ends_at ? $access->ends_at->format('d/m/Y') : 'Sem limite' }}
+                                        </div>
+                                        <div class="d-flex flex-wrap gap-2">
                                             <a href="{{ route('student.courses.show', $access->course) }}" class="btn btn-sm btn-primary">Entrar</a>
                                             <a href="{{ route('student.courses.study', $access->course) }}" class="btn btn-sm btn-outline-primary">Estudar</a>
+                                            <a href="{{ route('student.subscriptions.index') }}" class="btn btn-sm btn-outline-secondary">Renovar</a>
                                         </div>
                                     </div>
                                 </div>
@@ -100,7 +115,11 @@
                         @endforeach
                     </div>
                 @else
-                    <div class="small-muted">Você ainda não possui cursos ativos.</div>
+                    <div class="border rounded-4 p-4 bg-white">
+                        <div class="fw-semibold mb-1">Você ainda não possui cursos ativos.</div>
+                        <div class="small-muted mb-3">Escolha um curso para liberar treinos, simulados, comentários e desempenho.</div>
+                        <a href="{{ route('student.subscriptions.index') }}" class="btn btn-primary">Ver cursos disponíveis</a>
+                    </div>
                 @endif
             </div>
 
@@ -145,11 +164,11 @@
                         @foreach($recommendedCourses as $course)
                             <div class="border rounded-4 p-3 bg-white">
                                 <div class="fw-semibold">{{ $course->title }}</div>
-                                <div class="small-muted mb-2">{{ $course->short_description ?: 'Curso com questões direcionadas para sua preparação.' }}</div>
+                                <div class="small-muted mb-2">{{ $course->short_description ?: $course->commercialHeadline() }}</div>
                                 @if($course->price)
                                     <div class="small mb-3">A partir de <strong>R$ {{ number_format((float) $course->price, 2, ',', '.') }}</strong></div>
                                 @endif
-                                <a href="{{ route('student.courses.index') }}" class="btn btn-sm btn-outline-primary w-100">Conhecer curso</a>
+                                <a href="{{ route('student.subscriptions.index') }}" class="btn btn-sm btn-outline-primary w-100">Assinar curso</a>
                             </div>
                         @endforeach
                     </div>
@@ -164,7 +183,7 @@
                     <li class="py-2">Questões organizadas por curso e edital.</li>
                     <li class="py-2">Treino com disciplinas e tópicos específicos.</li>
                     <li class="py-2">Simulados dentro do escopo do curso.</li>
-                    <li class="py-2">Favoritos para revisar questões importantes.</li>
+                    <li class="py-2">Favoritos e anotações para revisar questões importantes.</li>
                     <li class="py-2">Acompanhamento de desempenho por curso.</li>
                 </ul>
             </div>
