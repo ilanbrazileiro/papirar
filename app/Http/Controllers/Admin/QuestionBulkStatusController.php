@@ -38,14 +38,14 @@ class QuestionBulkStatusController extends Controller
             ->whereIn('id', $data['question_ids'])
             ->update($payload);
 
-        $label = match ($data['status']) {
-            Question::STATUS_DRAFT => 'rascunho',
-            Question::STATUS_PUBLISHED => 'publicada',
-            Question::STATUS_REVIEWED => 'revisada',
-            Question::STATUS_ARCHIVED => 'arquivada',
-            default => $data['status'],
+        $message = match ($data['status']) {
+            Question::STATUS_DRAFT => "{$total} questão(ões) retornaram para rascunho. Elas não aparecem para o aluno.",
+            Question::STATUS_PUBLISHED => "{$total} questão(ões) foram publicadas. Elas aparecem para o aluno e ficam pendentes de revisão editorial.",
+            Question::STATUS_REVIEWED => "{$total} questão(ões) foram marcadas como revisadas. Elas aparecem para o aluno e foram validadas editorialmente.",
+            Question::STATUS_ARCHIVED => "{$total} questão(ões) foram arquivadas. Elas não aparecem para o aluno.",
+            default => "{$total} questão(ões) atualizada(s).",
         };
 
-        return back()->with('success', "{$total} questão(ões) marcada(s) como {$label}.");
+        return back()->with('success', $message);
     }
 }

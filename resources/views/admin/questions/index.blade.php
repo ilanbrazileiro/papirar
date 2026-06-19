@@ -1,25 +1,43 @@
 @extends('layouts.admin')
 
-@section('title', $isDraftPage ?? false ? 'Questões em rascunho' : 'Questões')
+@php
+    $currentStatus = $status ?? '';
+    $pageTitle = match ($currentStatus) {
+        'draft' => 'Questões em rascunho',
+        'published' => 'Questões publicadas',
+        'reviewed' => 'Questões revisadas',
+        'archived' => 'Questões arquivadas',
+        default => 'Controle editorial de questões',
+    };
+
+    $statusBadgeClass = function (?string $status) {
+        return match ($status) {
+            'draft' => 'bg-danger',
+            'published' => 'bg-warning text-dark',
+            'reviewed' => 'bg-success',
+            'archived' => 'bg-secondary',
+            default => 'bg-light text-dark',
+        };
+    };
+@endphp
+
+@section('title', $pageTitle)
 
 @section('content')
 <div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center mb-3">
+    <div class="d-flex flex-wrap justify-content-between align-items-start gap-3 mb-3">
         <div>
-            <h1 class="h3 mb-1">{{ $isDraftPage ?? false ? 'Questões em rascunho' : 'Questões' }}</h1>
+            <h1 class="h3 mb-1">{{ $pageTitle }}</h1>
             <p class="text-muted mb-0">
-                {{ $isDraftPage ?? false ? 'Revise e publique questões ainda não liberadas para os alunos.' : 'Gerencie as questões com filtros, vínculos e status de publicação.' }}
+                Controle o ciclo editorial: rascunho não aparece, publicada aparece e aguarda revisão, revisada aparece e já foi validada, arquivada sai da área do aluno.
             </p>
         </div>
         <div class="btn-group">
             <a href="{{ route('admin.questions.create') }}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Nova questão
             </a>
-            <a href="{{ route('admin.questions.drafts') }}" class="btn btn-danger">
-                <i class="fas fa-edit"></i> Rascunhos
-            </a>
-            <a href="{{ route('admin.questions.index') }}?status=reviewed" class="btn btn-success">
-                <i class="fas fa-check-circle"></i> Revisadas
+            <a href="{{ route('admin.questions.index', ['status' => 'published']) }}" class="btn btn-warning">
+                <i class="fas fa-eye"></i> Pendentes de revisão
             </a>
             <a href="{{ route('admin.questions.index') }}" class="btn btn-outline-secondary">
                 <i class="fas fa-list"></i> Todas
@@ -44,9 +62,62 @@
         </div>
     @endif
 
+    <div class="row g-3 mb-3">
+        @foreach($statusCards as $card)
+            <div class="col-xl col-md-4 col-sm-6">
+                <a href="{{ $card['url'] }}" class="text-decoration-none">
+                    <div class="card h-100 border-{{ $currentStatus === $card['key'] ? $card['class'] : 'light' }} shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <div class="text-muted small">{{ $card['title'] }}</div>
+                                    <div class="h3 mb-1 text-dark">{{ number_format($card['count'], 0, ',', '.') }}</div>
+                                </div>
+                                <span class="badge bg-{{ $card['class'] }}">
+                                    <i class="{{ $card['icon'] }}"></i>
+                                </span>
+                            </div>
+                            <p class="small text-muted mb-0">{{ $card['description'] }}</p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        @endforeach
+    </div>
+
+    <div class="card mb-3 border-0 shadow-sm">
+        <div class="card-body">
+            <div class="row g-3 align-items-center">
+                <div class="col-lg-4">
+                    <h5 class="mb-1">Revisão editorial</h5>
+                    <p class="text-muted mb-0">
+                        {{ number_format($pendingReviewCount ?? 0, 0, ',', '.') }} questão(ões) publicadas ainda precisam ser revisadas.
+                    </p>
+                </div>
+                <div class="col-lg-5">
+                    <div class="d-flex justify-content-between small mb-1">
+                        <span>Questões visíveis já revisadas</span>
+                        <strong>{{ $reviewProgress ?? 0 }}%</strong>
+                    </div>
+                    <div class="progress" style="height: 12px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: {{ $reviewProgress ?? 0 }}%;" aria-valuenow="{{ $reviewProgress ?? 0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    <small class="text-muted">
+                        Base: publicadas + revisadas visíveis para o aluno.
+                    </small>
+                </div>
+                <div class="col-lg-3 text-lg-end">
+                    <a href="{{ route('admin.questions.index', ['status' => 'published']) }}" class="btn btn-outline-warning">
+                        Revisar pendentes
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="card mb-3">
         <div class="card-body">
-            <form method="GET" action="{{ $isDraftPage ?? false ? route('admin.questions.drafts') : route('admin.questions.index') }}" class="row g-3 align-items-end">
+            <form method="GET" action="{{ route('admin.questions.index') }}" class="row g-3 align-items-end">
                 <div class="col-md-3">
                     <label class="form-label">Buscar</label>
                     <input type="text" name="search" value="{{ $search ?? '' }}" class="form-control" placeholder="Enunciado, fonte ou referência">
@@ -78,18 +149,16 @@
                         @endforeach
                     </select>
                 </div>
-                @unless($isDraftPage ?? false)
-                    <div class="col-md-1">
-                        <label class="form-label">Status</label>
-                        <select name="status" class="form-control">
-                            <option value="">Todos</option>
-                            <option value="draft" @selected(($status ?? '') === 'draft')>Rascunho</option>
-                            <option value="published" @selected(($status ?? '') === 'published')>Publicada</option>
-                            <option value="reviewed" @selected(($status ?? '') === 'reviewed')>Revisada</option>
-                            <option value="archived" @selected(($status ?? '') === 'archived')>Arquivada</option>
-                        </select>
-                    </div>
-                @endunless
+                <div class="col-md-1">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-control">
+                        <option value="">Todos</option>
+                        <option value="draft" @selected(($status ?? '') === 'draft')>Rascunho</option>
+                        <option value="published" @selected(($status ?? '') === 'published')>Publicada</option>
+                        <option value="reviewed" @selected(($status ?? '') === 'reviewed')>Revisada</option>
+                        <option value="archived" @selected(($status ?? '') === 'archived')>Arquivada</option>
+                    </select>
+                </div>
                 <div class="col-md-1">
                     <label class="form-label">Dificuldade</label>
                     <select name="difficulty" class="form-control">
@@ -115,18 +184,18 @@
                 <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
                     <div class="d-flex flex-wrap gap-2 align-items-center">
                         <strong>Ações em lote:</strong>
-                        <select name="status" class="form-control form-control-sm" style="width: 200px;">
+                        <select name="status" class="form-control form-control-sm" style="width: 260px;">
                             <option value="">Alterar status...</option>
-                            <option value="draft">Marcar como rascunho</option>
-                            <option value="published">Publicar</option>
-                            <option value="reviewed">Marcar como revisada</option>
-                            <option value="archived">Arquivar</option>
+                            <option value="draft">Voltar para rascunho — não aparece</option>
+                            <option value="published">Publicar — aparece e aguarda revisão</option>
+                            <option value="reviewed">Marcar como revisada — aparece e validada</option>
+                            <option value="archived">Arquivar — não aparece</option>
                         </select>
                         <button type="submit" class="btn btn-sm btn-primary" onclick="return confirmBulkStatusChange();">
                             Aplicar nas selecionadas
                         </button>
                     </div>
-                    <small class="text-muted">Selecione uma ou mais questões na tabela abaixo.</small>
+                    <small class="text-muted">Use “Publicada” como pendente de revisão; use “Revisada” após validação editorial.</small>
                 </div>
             </div>
 
@@ -139,11 +208,10 @@
                                     <input type="checkbox" class="form-check-input" id="select-all-questions">
                                 </th>
                                 <th>ID</th>
-                                <th>Corporação</th>
                                 <th>Disciplina</th>
+                                <th>Tópico</th>
                                 <th>Concurso</th>
                                 <th>Fonte</th>
-                                <th>Dificuldade</th>
                                 <th>Status</th>
                                 <th>Enunciado</th>
                                 <th class="text-end">Ações</th>
@@ -156,8 +224,11 @@
                                         <input type="checkbox" name="question_ids[]" value="{{ $question->id }}" class="form-check-input question-checkbox">
                                     </td>
                                     <td>#{{ $question->id }}</td>
-                                    <td>{{ $question->corporation->name ?? '-' }}</td>
-                                    <td>{{ $question->subject->name ?? '-' }}</td>
+                                    <td>
+                                        <div>{{ $question->subject->name ?? '-' }}</div>
+                                        <small class="text-muted">{{ $question->corporation->name ?? 'Sem corporação' }}</small>
+                                    </td>
+                                    <td>{{ $question->topic->name ?? '-' }}</td>
                                     <td>{{ $question->exam->title ?? '-' }}</td>
                                     <td>
                                         @if($question->sourceMaterial)
@@ -166,19 +237,24 @@
                                             -
                                         @endif
                                     </td>
-                                    <td>{{ ucfirst($question->difficulty) }}</td>
                                     <td>
+                                        <span class="badge {{ $statusBadgeClass($question->status) }}">
+                                            {{ $question->status_label }}
+                                        </span>
                                         @if($question->status === 'published')
-                                            <span class="badge bg-info text-dark">Publicada</span>
+                                            <div><small class="text-warning">Pendente de revisão</small></div>
                                         @elseif($question->status === 'reviewed')
-                                            <span class="badge bg-success">Revisada</span>
+                                            <div><small class="text-success">Validada</small></div>
                                         @elseif($question->status === 'draft')
-                                            <span class="badge bg-danger">Rascunho</span>
-                                        @else
-                                            <span class="badge bg-secondary">Arquivada</span>
+                                            <div><small class="text-muted">Oculta para aluno</small></div>
+                                        @elseif($question->status === 'archived')
+                                            <div><small class="text-muted">Oculta para aluno</small></div>
                                         @endif
                                     </td>
-                                    <td>{{ \Illuminate\Support\Str::limit(strip_tags($question->statement), 120) }}</td>
+                                    <td>
+                                        <div>{{ \Illuminate\Support\Str::limit(strip_tags($question->statement), 120) }}</div>
+                                        <small class="text-muted">Dificuldade: {{ ucfirst($question->difficulty) }}</small>
+                                    </td>
                                     <td class="text-end">
                                         <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
                                         <a href="{{ route('admin.questions.edit', $question) }}" class="btn btn-sm btn-outline-primary">Editar</a>
@@ -225,6 +301,12 @@
     function confirmBulkStatusChange() {
         const selected = document.querySelectorAll('.question-checkbox:checked').length;
         const status = document.querySelector('#bulk-status-form select[name="status"]')?.value;
+        const labels = {
+            draft: 'voltar para rascunho. Elas não aparecerão para o aluno',
+            published: 'publicar. Elas aparecerão para o aluno e ficarão pendentes de revisão',
+            reviewed: 'marcar como revisadas. Elas aparecerão para o aluno como validadas',
+            archived: 'arquivar. Elas deixarão de aparecer para o aluno'
+        };
 
         if (!selected) {
             alert('Selecione pelo menos uma questão.');
@@ -236,7 +318,7 @@
             return false;
         }
 
-        return confirm('Deseja alterar o status das questões selecionadas?');
+        return confirm('Deseja ' + labels[status] + '?');
     }
 </script>
 @endpush
