@@ -40,7 +40,26 @@
 @endpush
 
 @section('content')
-    
+    @php
+        $paymentStatus = $paymentStatus ?? request('status');
+        $pendingTransactions = $pendingTransactions ?? collect();
+        $courseAccesses = $courseAccesses ?? collect();
+        $availableCourses = $availableCourses ?? collect();
+        $recentTransactions = $recentTransactions ?? collect();
+        $courseQuestionCounts = $courseQuestionCounts ?? [];
+    @endphp
+    <div class="courses-hero mb-4">
+        <div class="hero-eyebrow">Papirar Concursos</div>
+        <h1>Escolha o curso certo e treine com direção.</h1>
+        <p class="mb-0">Cursos organizados por conteúdo, questões comentadas, simulados e acompanhamento de desempenho para concursos militares.</p>
+        <div class="hero-proof">
+            <span>Questões por curso</span>
+            <span>Comentários e revisão</span>
+            <span>Simulados direcionados</span>
+            <span>Favoritas com anotações</span>
+        </div>
+    </div>
+
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h2 class="page-title mb-1">Meus cursos</h2>
@@ -109,6 +128,21 @@
         </div>
     @endif
 
+    <div class="trust-strip mb-4">
+        <div class="item">
+            <strong>Treino direcionado</strong>
+            <span class="small-muted">Cada curso usa o conteúdo certo para o objetivo do aluno.</span>
+        </div>
+        <div class="item">
+            <strong>Revisão inteligente</strong>
+            <span class="small-muted">Favoritas, anotações e questões erradas para voltar no que importa.</span>
+        </div>
+        <div class="item">
+            <strong>Simulados por curso</strong>
+            <span class="small-muted">O aluno treina com foco no curso que comprou.</span>
+        </div>
+    </div>
+
     <div class="section-title mb-3">Cursos ativos</div>
 
     @if($courseAccesses->isEmpty())
@@ -147,7 +181,9 @@
     @else
         <div class="row g-4 mb-5">
             @foreach($availableCourses as $course)
-                @php($questionCount = $courseQuestionCounts[$course->id] ?? 0)
+                @php
+                    $questionCount = $courseQuestionCounts[$course->id] ?? 0;
+                @endphp
                 <div class="col-md-6 col-xl-4">
                     @include('student.courses.partials.commercial-card', [
                         'course' => $course,
@@ -166,7 +202,20 @@
             <a href="{{ route('student.purchases.index') }}" class="btn btn-sm btn-outline-primary">Histórico completo</a>
         </div>
 
-        @if($recentTransactions->isEmpty())
+        @php
+            $transactionStatusLabels = [
+                'pending' => 'Pendente',
+                'paid' => 'Pago',
+                'approved' => 'Pago',
+                'failed' => 'Falhou',
+                'rejected' => 'Rejeitado',
+                'refunded' => 'Reembolsado',
+                'canceled' => 'Cancelado',
+                'cancelled' => 'Cancelado',
+            ];
+        @endphp
+
+        @if(($recentTransactions ?? collect())->isEmpty())
             <p class="small-muted mb-0">Nenhuma compra registrada ainda.</p>
         @else
             <div class="table-responsive">
@@ -181,18 +230,9 @@
                     </thead>
                     <tbody>
                         @foreach($recentTransactions as $transaction)
-                            @php
-                                $statusLabel = [
-                                    'pending' => 'Pendente',
-                                    'paid' => 'Pago',
-                                    'failed' => 'Falhou',
-                                    'refunded' => 'Reembolsado',
-                                    'canceled' => 'Cancelado',
-                                ][$transaction->status] ?? $transaction->status;
-                            @endphp
                             <tr>
                                 <td>{{ $transaction->course->title ?? 'Curso removido' }}</td>
-                                <td>{{ $statusLabel }}</td>
+                                <td>{{ $transactionStatusLabels[$transaction->status] ?? ucfirst((string) $transaction->status) }}</td>
                                 <td>R$ {{ number_format((float) $transaction->amount, 2, ',', '.') }}</td>
                                 <td>{{ optional($transaction->created_at)->format('d/m/Y H:i') }}</td>
                             </tr>
