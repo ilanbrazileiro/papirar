@@ -37,6 +37,32 @@ class QuestionImportController extends Controller
         }
     }
 
+    public function storeDirect(Request $request, QuestionCsvImportService $importService): RedirectResponse
+    {
+        $data = $request->validate([
+            'csv_content' => ['required', 'string', 'min:20'],
+        ], [
+            'csv_content.required' => 'Cole o conteúdo do CSV antes de analisar.',
+            'csv_content.min' => 'O conteúdo colado parece incompleto. Cole o cabeçalho e pelo menos uma linha de questão.',
+        ]);
+
+        try {
+            $batch = $importService->createPreviewFromText(
+                $data['csv_content'],
+                (int) auth()->id(),
+                'csv_colado_'.now()->format('Ymd_His').'.csv'
+            );
+
+            return redirect()
+                ->route('admin.question-import-batches.review', $batch)
+                ->with('success', 'CSV colado analisado. Revise as linhas antes de confirmar a importação.');
+        } catch (\Throwable $e) {
+            return back()
+                ->withInput()
+                ->with('error', 'Não foi possível analisar o CSV colado: '.$e->getMessage());
+        }
+    }
+
     public function downloadTemplate(): StreamedResponse
     {
         return Storage::disk('local')->download(

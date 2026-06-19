@@ -240,6 +240,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::get('questions/imports', [QuestionImportBatchController::class, 'index'])->name('question-import-batches.index');
             Route::get('questions/imports/{questionImportBatch}', [QuestionImportBatchController::class, 'show'])->name('question-import-batches.show');
             Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
+            Route::post('questions/import/direct', [QuestionImportController::class, 'storeDirect'])->name('questions.import.direct');
             Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');
             Route::get('questions/import/template', [QuestionImportController::class, 'downloadTemplate'])->name('questions.import.template');
             Route::get('questions/ajax/exams', [QuestionController::class, 'ajaxExams'])->name('questions.ajax.exams');

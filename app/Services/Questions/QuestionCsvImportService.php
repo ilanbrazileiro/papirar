@@ -2,7 +2,6 @@
 
 namespace App\Services\Questions;
 
-use App\Models\Alternative;
 use App\Models\Corporation;
 use App\Models\Exam;
 use App\Models\Question;
@@ -27,9 +26,34 @@ class QuestionCsvImportService
             throw new RuntimeException('Não foi possível abrir o arquivo enviado.');
         }
 
+        return $this->createPreviewFromHandle($handle, $userId, $file->getClientOriginalName());
+    }
+
+    public function createPreviewFromText(string $content, int $userId, string $filename = 'csv_colado.csv'): QuestionImportBatch
+    {
+        $content = trim((string) $content);
+
+        if ($content === '') {
+            throw new RuntimeException('Cole o conteúdo do CSV antes de analisar.');
+        }
+
+        $handle = fopen('php://temp', 'r+');
+
+        if (!$handle) {
+            throw new RuntimeException('Não foi possível preparar o conteúdo colado para análise.');
+        }
+
+        fwrite($handle, $content);
+        rewind($handle);
+
+        return $this->createPreviewFromHandle($handle, $userId, $filename);
+    }
+
+    private function createPreviewFromHandle($handle, int $userId, string $filename): QuestionImportBatch
+    {
         $batch = QuestionImportBatch::query()->create([
             'user_id' => $userId,
-            'filename' => $file->getClientOriginalName(),
+            'filename' => $filename,
             'status' => 'validating',
             'total_rows' => 0,
             'valid_rows' => 0,
@@ -52,8 +76,8 @@ class QuestionCsvImportService
                 'batch_id' => $batch->id,
                 'row_number' => 1,
                 'status' => 'error',
-                'raw_data' => ['message' => 'Arquivo vazio ou cabeçalho inválido.'],
-                'error_message' => 'Arquivo vazio ou cabeçalho inválido.',
+                'raw_data' => ['message' => 'CSV vazio ou cabeçalho inválido.'],
+                'error_message' => 'CSV vazio ou cabeçalho inválido.',
             ]);
 
             return $batch;
@@ -127,7 +151,7 @@ class QuestionCsvImportService
                         'raw_data' => $payload,
                         'normalized_statement' => $normalizedStatement,
                         'error_message' => $duplicateInFile
-                            ? 'Possível duplicidade dentro do próprio arquivo CSV.'
+                            ? 'Possível duplicidade dentro do próprio CSV colado/arquivo.'
                             : 'Questão com enunciado idêntico já encontrada no banco.',
                         'duplicate_question_id' => $duplicateQuestionId ?: null,
                     ]);
