@@ -37,7 +37,7 @@ class LoginController extends Controller
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
-                    'email' => 'Login ou senha inválidos ou conta inativa.',
+                    'email' => 'Login ou senha inválidos.',
                 ]);
         }
 

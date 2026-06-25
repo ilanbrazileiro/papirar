@@ -26,7 +26,7 @@ class RegisterController extends Controller
         $data = $request->validate([
             'name' => ['required', 'string', 'min:3', 'max:150'],
             'email' => ['required', 'email', 'max:190', 'unique:users,email'],
-            'password' => ['required', 'confirmed', Password::min(6)],
+            'password' => ['required', 'confirmed', 'min:6'],
             'seguranca' => ['nullable', 'max:0'],
         ], [
             'name.required' => 'Informe seu nome.',
@@ -36,6 +36,7 @@ class RegisterController extends Controller
             'email.unique' => 'Este e-mail já está cadastrado.',
             'password.required' => 'Informe uma senha.',
             'password.confirmed' => 'As senhas não conferem.',
+            'password.min' => 'As senhas devem possuir pelo menos 6 caracteres.',
             'seguranca.max' => 'Cadastro inválido.',
         ]);
 

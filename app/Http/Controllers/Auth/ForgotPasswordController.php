@@ -20,7 +20,7 @@ class ForgotPasswordController extends Controller
         $data = $request->validate([
             'email' => ['required', 'email'],
         ], [
-            'email.required' => 'Informe o e-mail.',
+            'email.required' => 'Informe seu melhor e-mail.',
             'email.email' => 'Informe um e-mail válido.',
         ]);
 
@@ -32,11 +32,14 @@ class ForgotPasswordController extends Controller
             return back()
                 ->withInput()
                 ->withErrors([
-                    //'email' => 'Não foi possível enviar o link de recuperação agora.',
-                    'email' => __($status),
+                    'email' => match ($status) {
+                        Password::INVALID_USER => 'Não encontramos uma conta cadastrada com este e-mail.',
+                        Password::RESET_THROTTLED => 'Aguarde alguns minutos antes de tentar novamente.',
+                        default => 'Não foi possível enviar o link de recuperação agora.',
+                    },
                 ]);
         }
 
-        return back()->with('success', 'Se o e-mail estiver cadastrado, enviamos as instruções de recuperação.');
+        return back()->with('success', 'Enviamos as instruções de recuperação para o seu e-mail.');
     }
 }

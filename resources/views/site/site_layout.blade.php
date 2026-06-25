@@ -25,19 +25,7 @@
 <body class="@yield('body_class', 'site-page')">
     @include('site.site_topbar')
 
-    @if (session('success') || session('status') || session('error'))
-        <div class="site-alert-wrap">
-            @if (session('success'))
-                <div class="site-alert site-alert-success">{{ session('success') }}</div>
-            @endif
-            @if (session('status'))
-                <div class="site-alert site-alert-success">{{ session('status') }}</div>
-            @endif
-            @if (session('error'))
-                <div class="site-alert site-alert-error">{{ session('error') }}</div>
-            @endif
-        </div>
-    @endif
+   
 
     <main>
         @yield('content')

@@ -27,12 +27,13 @@ class ResetPasswordController extends Controller
         $data = $request->validate([
             'token' => ['required', 'string'],
             'email' => ['required', 'email'],
-            'password' => ['required', 'confirmed', PasswordRule::min(6)],
+            'password' => ['required', 'confirmed', 'min:6'],
         ], [
             'email.required' => 'Informe o e-mail.',
             'email.email' => 'Informe um e-mail válido.',
             'password.required' => 'Informe a nova senha.',
             'password.confirmed' => 'As senhas não conferem.',
+            'password.min' => 'A senha deve conter no mínimo 6 caracteres.',
         ]);
 
         $status = Password::reset(
@@ -56,7 +57,12 @@ class ResetPasswordController extends Controller
             return back()
                 ->withInput($request->only('email'))
                 ->withErrors([
-                    'email' => 'Não foi possível redefinir a senha com esse link.',
+                    'email' => match ($status) {
+                        Password::INVALID_USER => 'Não encontramos uma conta cadastrada com este e-mail.',
+                        Password::INVALID_TOKEN => 'Este link de redefinição de senha é inválido ou expirou.',
+                        Password::RESET_THROTTLED => 'Aguarde alguns minutos antes de tentar novamente.',
+                        default => 'Não foi possível redefinir a senha com esse link.',
+                    },
                 ]);
         }
 
