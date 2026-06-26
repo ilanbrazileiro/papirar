@@ -6,6 +6,12 @@
     $coverUrl = $course->coverImageUrl();
     $bullets = $course->salesBulletsList();
     $badge = $course->sales_badge ?: ($mode === 'active' ? 'Curso ativo' : 'Curso disponível');
+
+    $trialUsedCourseIds = collect($trialUsedCourseIds ?? []);
+    $canStartTrial = $mode !== 'active'
+        && (bool) $course->is_trial_available
+        && (int) $course->trial_days > 0
+        && ! $trialUsedCourseIds->contains((int) $course->id);
 @endphp
 
 <div class="course-commercial-card h-100 d-flex flex-column overflow-hidden">
@@ -39,8 +45,10 @@
                 <span class="label">Acesso</span>
                 @if($access)
                     <strong>{{ $access->ends_at ? $access->ends_at->format('d/m/Y') : 'Sem limite' }}</strong>
+                @elseif($canStartTrial)
+                    <strong>{{ $course->trialDaysForAccess() }} dias grátis</strong>
                 @else
-                    <strong>{{ $course->trial_days ?: 7 }} dias teste</strong>
+                    <strong>Assinatura</strong>
                 @endif
             </div>
         </div>
@@ -83,21 +91,34 @@
             </div>
 
             <div class="mt-auto">
-                @if(empty($cycles))
-                    <button class="btn btn-outline-secondary w-100" disabled>Preço indisponível</button>
-                @else
-                    <div class="d-grid gap-2">
+                <div class="d-grid gap-2">
+                    @if($canStartTrial)
+                        <form method="POST" action="{{ route('student.courses.trial.start', $course) }}">
+                            @csrf
+                            <button class="btn btn-warning w-100" onclick="return confirm('Deseja iniciar o teste gratuito deste curso por {{ $course->trialDaysForAccess() }} dias?');">
+                                Testar por {{ $course->trialDaysForAccess() }} dias
+                            </button>
+                        </form>
+                    @elseif((bool) $course->is_trial_available && (int) $course->trial_days > 0)
+                        <button class="btn btn-outline-secondary w-100" disabled>
+                            Teste gratuito já utilizado
+                        </button>
+                    @endif
+
+                    @if(empty($cycles))
+                        <button class="btn btn-outline-secondary w-100" disabled>Preço indisponível</button>
+                    @else
                         @foreach($cycles as $cycle => $label)
                             <form method="POST" action="{{ route('student.courses.checkout', $course) }}">
                                 @csrf
                                 <input type="hidden" name="billing_cycle" value="{{ $cycle }}">
-                                <button class="btn {{ $loop->first ? 'btn-primary' : 'btn-outline-primary' }} w-100">
+                                <button class="btn {{ $loop->first && ! $canStartTrial ? 'btn-primary' : 'btn-outline-primary' }} w-100">
                                     Assinar {{ $label }} — R$ {{ number_format($course->priceForBillingCycle($cycle), 2, ',', '.') }}
                                 </button>
                             </form>
                         @endforeach
-                    </div>
-                @endif
+                    @endif
+                </div>
             </div>
         @endif
     </div>

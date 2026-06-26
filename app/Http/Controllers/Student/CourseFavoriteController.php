@@ -109,10 +109,12 @@ class CourseFavoriteController extends Controller
         return back()->with('success', 'Anotação da questão favorita atualizada.');
     }
 
-    public function toggle(Course $course, Question $question): RedirectResponse
+    public function toggle(Request $request, Course $course, Question $question): RedirectResponse
     {
         $this->authorizeCourseAccess($course);
         $this->authorizeQuestionInCourse($course, $question);
+
+        $redirectTo = $this->safeRedirectUrl((string) $request->input('redirect_to'));
 
         $favorite = QuestionFavorite::query()
             ->where('user_id', Auth::id())
@@ -122,7 +124,10 @@ class CourseFavoriteController extends Controller
 
         if ($favorite) {
             $favorite->delete();
-            return back()->with('success', 'Questão removida das favoritas.');
+
+            return redirect()
+                ->to($redirectTo ?: url()->previous())
+                ->with('success', 'Questão removida das favoritas.');
         }
 
         QuestionFavorite::query()->create([
@@ -131,7 +136,29 @@ class CourseFavoriteController extends Controller
             'question_id' => $question->id,
         ]);
 
-        return back()->with('success', 'Questão adicionada às favoritas.');
+        return redirect()
+            ->to($redirectTo ?: (url()->previous() . '#favorite-note-card'))
+            ->with('success', 'Questão adicionada às favoritas. Escreva uma anotação para lembrar por que ela merece revisão.');
+    }
+
+    private function safeRedirectUrl(?string $url): ?string
+    {
+        if (!$url) {
+            return null;
+        }
+
+        $appUrl = rtrim((string) config('app.url'), '/');
+        $currentHost = request()->getSchemeAndHttpHost();
+
+        if (str_starts_with($url, $currentHost) || ($appUrl && str_starts_with($url, $appUrl))) {
+            return $url;
+        }
+
+        if (str_starts_with($url, '/')) {
+            return url($url);
+        }
+
+        return null;
     }
 
     private function loadQuestion(int $questionId): Question

@@ -15,7 +15,8 @@
         <div class="d-flex flex-wrap gap-2">
             <form method="POST" action="{{ route('student.courses.questions.favorite', [$session->course_id, $question]) }}">
                 @csrf
-                <button class="btn {{ ($isFavorited ?? false) ? 'btn-warning' : 'btn-outline-warning' }}">
+                <input type="hidden" name="redirect_to" value="{{ url()->current() }}#favorite-note-card">
+                <button type="submit" class="btn {{ ($isFavorited ?? false) ? 'btn-warning' : 'btn-outline-warning' }}">
                     {{ ($isFavorited ?? false) ? '★ Favoritada' : '☆ Favoritar' }}
                 </button>
             </form>
@@ -23,35 +24,23 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-
-    @if($favorite ?? false)
+     @if($favorite ?? false)
         <div class="card-soft p-4 mb-4 border border-warning-subtle" id="favorite-note-card">
             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
                 <div>
                     <div class="section-title mb-1">Anotação da favorita</div>
-                    <p class="small-muted mb-0">
-                        Registre por que esta questão merece atenção. A anotação ficará salva na sua lista de favoritas.
-                    </p>
+                    <p class="small-muted mb-0">Registre por que esta questão merece atenção. A anotação ficará salva na sua lista de favoritas.</p>
                 </div>
-                <a href="{{ route('student.courses.favorites.index', $session->course_id) }}" class="btn btn-sm btn-outline-secondary align-self-start">
-                    Ver favoritas
-                </a>
+                <a href="{{ route('student.courses.favorites.index', $session->course_id) }}" class="btn btn-sm btn-outline-secondary align-self-start">Ver favoritas</a>
             </div>
 
             <form method="POST" action="{{ route('student.courses.favorites.note', [$session->course_id, $question]) }}" class="mt-3">
                 @csrf
                 @method('PATCH')
-
                 <textarea name="note" rows="3" class="form-control" maxlength="3000" placeholder="Ex.: Errei porque confundi o conceito; revisar antes da prova; questão boa para fixar este tópico.">{{ old('note', $favorite->note) }}</textarea>
-
                 @error('note')
                     <div class="text-danger small mt-1">{{ $message }}</div>
                 @enderror
-
                 <div class="d-flex flex-column flex-sm-row gap-2 justify-content-between align-items-sm-center mt-3">
                     <span class="small-muted">Você pode salvar a anotação e continuar o estudo normalmente.</span>
                     <button class="btn btn-outline-primary">Salvar anotação</button>
@@ -96,7 +85,7 @@
                 <div class="papirar-katex">{!! $question->commented_answer ?: 'Comentário ainda não cadastrado.' !!}</div>
             </div>
 
-            @include('student.courses.partials.video-lesson', ['question' => $question])
+            @includeIf('student.courses.partials.video-lesson', ['question' => $question])
 
             <form method="POST" action="{{ route('student.course-study.next', $session) }}" class="mt-4 text-end">
                 @csrf
@@ -106,7 +95,6 @@
             <form method="POST" action="{{ route('student.course-study.answer', $session) }}">
                 @csrf
                 <input type="hidden" name="question_id" value="{{ $question->id }}">
-
                 <div class="small-muted mb-3">Use a tesoura para riscar alternativas que você quer eliminar antes de responder.</div>
 
                 @foreach($question->alternatives->sortBy('letter') as $alternative)
@@ -129,14 +117,8 @@
 
 @push('styles')
 <style>
-    .alternative-cut {
-        opacity: .55;
-        background: #f8f9fa;
-    }
-
-    .alternative-cut label span {
-        text-decoration: line-through;
-    }
+    .alternative-cut { opacity: .55; background: #f8f9fa; }
+    .alternative-cut label span { text-decoration: line-through; }
 </style>
 @endpush
 
@@ -145,36 +127,21 @@
 document.addEventListener('DOMContentLoaded', function () {
     const storageKey = 'papirar-cut-question-{{ $question->id }}';
     const rows = Array.from(document.querySelectorAll('.js-alternative-row'));
-
     let cutIds = [];
-    try {
-        cutIds = JSON.parse(localStorage.getItem(storageKey) || '[]');
-    } catch (e) {
-        cutIds = [];
-    }
-
-    function persist() {
-        localStorage.setItem(storageKey, JSON.stringify(cutIds));
-    }
-
+    try { cutIds = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { cutIds = []; }
+    function persist() { localStorage.setItem(storageKey, JSON.stringify(cutIds)); }
     rows.forEach(function (row) {
         const altId = row.dataset.altId;
-        if (cutIds.includes(altId)) {
-            row.classList.add('alternative-cut');
-        }
-
+        if (cutIds.includes(altId)) row.classList.add('alternative-cut');
         const button = row.querySelector('.js-cut-alternative');
         if (!button) return;
-
         button.addEventListener('click', function () {
             row.classList.toggle('alternative-cut');
-
             if (row.classList.contains('alternative-cut')) {
                 if (!cutIds.includes(altId)) cutIds.push(altId);
             } else {
                 cutIds = cutIds.filter(id => id !== altId);
             }
-
             persist();
         });
     });

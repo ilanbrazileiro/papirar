@@ -37,6 +37,13 @@ class SubscriptionController extends Controller
             ->map(fn ($id) => (int) $id)
             ->values()
             ->all();
+        
+        $trialUsedCourseIds = CourseAccess::query()
+            ->where('user_id', $user->id)
+            ->where('access_type', CourseAccess::TYPE_TRIAL)
+            ->pluck('course_id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
 
         $availableCourses = Course::query()
             ->active()
@@ -94,6 +101,7 @@ class SubscriptionController extends Controller
             'recentTransactions' => $recentTransactions,
             'courseQuestionCounts' => $courseQuestionCounts,
             'paymentStatus' => $paymentStatus,
+            'trialUsedCourseIds' => $trialUsedCourseIds,
             'needsEmailVerification' => ! $user->hasVerifiedEmail(),
         ]);
     }

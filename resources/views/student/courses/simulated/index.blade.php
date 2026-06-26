@@ -1,140 +1,177 @@
 @extends('layouts.student')
 
-@section('title', 'Meus cursos')
+@section('title', 'Simulados do curso')
 
 @section('content')
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
-            <h1 class="page-title">Meus cursos</h1>
-            <p class="page-subtitle">Acesse seus cursos ativos ou assine um novo curso.</p>
-        </div>
-        <a href="{{ route('student.dashboard') }}" class="btn btn-outline-primary">Voltar ao dashboard</a>
-    </div>
-
-    @if($paymentStatus === 'success')
-        <div class="alert alert-success">Pagamento aprovado ou em processamento. O acesso será liberado automaticamente após confirmação do Mercado Pago.</div>
-    @elseif($paymentStatus === 'pending')
-        <div class="alert alert-warning">Pagamento pendente. Assim que for confirmado, o acesso será atualizado.</div>
-    @elseif($paymentStatus === 'failure')
-        <div class="alert alert-danger">Pagamento não concluído. Tente novamente ou escolha outro período.</div>
-    @endif
-
-    @if(session('success'))
-        <div class="alert alert-success">{{ session('success') }}</div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger">{{ session('error') }}</div>
-    @endif
-
-    <div class="section-title mb-3">Cursos ativos</div>
-
-    @if($courseAccesses->isEmpty())
-        <div class="card-soft p-4 mb-4">
-            <div class="section-title mb-2">Nenhum curso ativo encontrado</div>
-            <p class="small-muted mb-0">
-                Você ainda não possui acesso ativo a cursos. Escolha um curso disponível abaixo para assinar.
+            <h1 class="page-title">Simulados</h1>
+            <p class="page-subtitle">
+                {{ $course->title }} · Monte simulados com as disciplinas disponíveis neste curso.
             </p>
         </div>
-    @else
-        <div class="row g-4 mb-5">
-            @foreach($courseAccesses as $access)
-                @php
-                    $course = $access->course;
-                    $questionCount = $course ? ($courseQuestionCounts[$course->id] ?? 0) : 0;
-                @endphp
 
-                @if($course)
-                    <div class="col-md-6 col-xl-4">
-                        <div class="card-soft p-4 h-100 d-flex flex-column">
-                            <div class="d-flex justify-content-between gap-3 mb-3">
-                                <div>
-                                    <div class="section-title mb-1">{{ $course->title }}</div>
-                                    <div class="small-muted">{{ $course->typeLabel() }}</div>
-                                </div>
-                                <span class="badge text-bg-success align-self-start">Ativo</span>
-                            </div>
+        <div class="d-flex flex-wrap gap-2">
+            <a href="{{ route('student.courses.show', $course) }}" class="btn btn-outline-primary">Voltar ao curso</a>
+            <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">Estudar por questões</a>
+        </div>
+    </div>
 
-                            @if($course->short_description)
-                                <p class="small-muted">{{ $course->short_description }}</p>
-                            @endif
+    <div class="row g-4">
+        <div class="col-lg-5">
+            <div class="card-soft p-4">
+                <div class="section-title">Criar novo simulado</div>
+                <p class="small-muted">
+                    Selecione as disciplinas, quantidade de questões, dificuldade e tempo de prova.
+                </p>
 
-                            <div class="row g-2 mb-3">
-                                <div class="col-6">
-                                    <div class="stats-card p-3">
-                                        <div class="label">Questões</div>
-                                        <div class="value fs-4">{{ $questionCount }}</div>
-                                    </div>
-                                </div>
-                                <div class="col-6">
-                                    <div class="stats-card p-3">
-                                        <div class="label">Acesso até</div>
-                                        <div class="fw-bold mt-2">
-                                            {{ $access->ends_at ? $access->ends_at->format('d/m/Y') : 'Sem limite' }}
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
+                <form method="POST" action="{{ route('student.courses.simulated.store', $course) }}">
+                    @csrf
 
-                            <div class="mt-auto d-grid gap-2">
-                                <a href="{{ route('student.courses.show', $course) }}" class="btn btn-primary">Entrar no curso</a>
-                                <a href="{{ route('student.courses.study', $course) }}" class="btn btn-outline-primary">Estudar agora</a>
-                            </div>
-                        </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Título do simulado</label>
+                        <input type="text" name="title" class="form-control" value="{{ old('title') }}" placeholder="Ex.: Simulado CHOAE 01">
+                        @error('title')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
                     </div>
-                @endif
-            @endforeach
-        </div>
-    @endif
 
-    <div class="section-title mb-3">Cursos disponíveis para assinatura</div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Disciplinas</label>
 
-    @if($availableCourses->isEmpty())
-        <div class="card-soft p-4">
-            <p class="small-muted mb-0">Nenhum curso público disponível para assinatura no momento.</p>
-        </div>
-    @else
-        <div class="row g-4">
-            @foreach($availableCourses as $course)
-                @php
-                    $questionCount = $courseQuestionCounts[$course->id] ?? 0;
-                    $cycles = $course->availableBillingCycles();
-                @endphp
-
-                <div class="col-md-6 col-xl-4">
-                    <div class="card-soft p-4 h-100 d-flex flex-column">
-                        <div class="section-title mb-1">{{ $course->title }}</div>
-                        <div class="small-muted mb-3">{{ $course->typeLabel() }}</div>
-
-                        @if($course->short_description)
-                            <p class="small-muted">{{ $course->short_description }}</p>
+                        @if($subjects->isEmpty())
+                            <div class="alert alert-warning rounded-4 mb-0">
+                                Este curso ainda não possui disciplinas vinculadas para criação de simulados.
+                            </div>
+                        @else
+                            <div class="border rounded-4 p-3 bg-white" style="max-height: 260px; overflow:auto;">
+                                @foreach($subjects as $subject)
+                                    <label class="d-flex align-items-center gap-2 py-2 mb-0">
+                                        <input
+                                            type="checkbox"
+                                            name="subject_ids[]"
+                                            value="{{ $subject->id }}"
+                                            @checked(in_array($subject->id, old('subject_ids', [])))
+                                        >
+                                        <span>{{ $subject->name }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
                         @endif
 
-                        <div class="stats-card p-3 mb-3">
-                            <div class="label">Questões disponíveis</div>
-                            <div class="value fs-4">{{ $questionCount }}</div>
+                        @error('subject_ids')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                        @error('subject_ids.*')
+                            <div class="text-danger small mt-1">{{ $message }}</div>
+                        @enderror
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Questões</label>
+                            <input type="number" name="quantity" class="form-control" min="1" max="120" value="{{ old('quantity', 20) }}" required>
+                            @error('quantity')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
 
-                        <div class="mt-auto">
-                            @if(empty($cycles))
-                                <button class="btn btn-outline-secondary w-100" disabled>Preço indisponível</button>
-                            @else
-                                <div class="d-grid gap-2">
-                                    @foreach($cycles as $cycle => $label)
-                                        <form method="POST" action="{{ route('student.courses.checkout', $course) }}">
-                                            @csrf
-                                            <input type="hidden" name="billing_cycle" value="{{ $cycle }}">
-                                            <button class="btn btn-outline-primary w-100">
-                                                Assinar {{ $label }} — R$ {{ number_format($course->priceForBillingCycle($cycle), 2, ',', '.') }}
-                                            </button>
-                                        </form>
-                                    @endforeach
-                                </div>
-                            @endif
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Tempo</label>
+                            <input type="number" name="duration_minutes" class="form-control" min="5" max="300" value="{{ old('duration_minutes', 60) }}" required>
+                            <div class="small-muted mt-1">em minutos</div>
+                            @error('duration_minutes')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold">Dificuldade</label>
+                            <select name="difficulty" class="form-select">
+                                <option value="">Todas</option>
+                                <option value="easy" @selected(old('difficulty') === 'easy')>Fácil</option>
+                                <option value="medium" @selected(old('difficulty') === 'medium')>Média</option>
+                                <option value="hard" @selected(old('difficulty') === 'hard')>Difícil</option>
+                            </select>
+                            @error('difficulty')
+                                <div class="text-danger small mt-1">{{ $message }}</div>
+                            @enderror
                         </div>
                     </div>
-                </div>
-            @endforeach
+
+                    <div class="d-grid mt-4">
+                        <button class="btn btn-primary" @disabled($subjects->isEmpty())>
+                            Criar simulado
+                        </button>
+                    </div>
+                </form>
+            </div>
         </div>
-    @endif
+
+        <div class="col-lg-7">
+            <div class="card-soft p-4">
+                <div class="d-flex flex-column flex-md-row justify-content-between gap-3 mb-3">
+                    <div>
+                        <div class="section-title mb-1">Simulados criados</div>
+                        <div class="small-muted">Histórico dos simulados deste curso.</div>
+                    </div>
+                </div>
+
+                @if($simulatedExams->isEmpty())
+                    <div class="border rounded-4 p-4 bg-white">
+                        <div class="fw-semibold mb-1">Nenhum simulado criado ainda.</div>
+                        <div class="small-muted">Use o formulário ao lado para criar o primeiro simulado deste curso.</div>
+                    </div>
+                @else
+                    <div class="table-responsive">
+                        <table class="table align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Título</th>
+                                    <th>Questões</th>
+                                    <th>Tempo</th>
+                                    <th>Status</th>
+                                    <th>Acerto</th>
+                                    <th class="text-end">Ações</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($simulatedExams as $simulatedExam)
+                                    <tr>
+                                        <td>
+                                            <div class="fw-semibold">{{ $simulatedExam->title }}</div>
+                                            <div class="small-muted">
+                                                Criado em {{ optional($simulatedExam->created_at)->format('d/m/Y H:i') }}
+                                            </div>
+                                        </td>
+                                        <td>{{ $simulatedExam->total_questions }}</td>
+                                        <td>{{ $simulatedExam->duration_minutes }} min</td>
+                                        <td>
+                                            @if($simulatedExam->finished_at)
+                                                <span class="badge bg-success">Finalizado</span>
+                                            @else
+                                                <span class="badge bg-warning text-dark">Em andamento</span>
+                                            @endif
+                                        </td>
+                                        <td>{{ number_format((float) $simulatedExam->accuracy, 2, ',', '.') }}%</td>
+                                        <td class="text-end">
+                                            @if($simulatedExam->finished_at)
+                                                <a href="{{ route('student.courses.simulated.result', [$course, $simulatedExam]) }}" class="btn btn-sm btn-outline-primary">Resultado</a>
+                                            @else
+                                                <a href="{{ route('student.courses.simulated.show', [$course, $simulatedExam]) }}" class="btn btn-sm btn-primary">Continuar</a>
+                                            @endif
+                                        </td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-3">
+                        {{ $simulatedExams->links() }}
+                    </div>
+                @endif
+            </div>
+        </div>
+    </div>
 @endsection

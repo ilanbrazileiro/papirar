@@ -4,10 +4,6 @@
 
 @section('content')
 <div class="container-fluid">
-    @if(session('error'))
-        <div class="alert alert-warning">{{ session('error') }}</div>
-    @endif
-
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h1 class="h3 mb-1">Resultado do simulado</h1>

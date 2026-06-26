@@ -36,6 +36,13 @@ class CourseController extends Controller
             ->values()
             ->all();
 
+        $trialUsedCourseIds = CourseAccess::query()
+            ->where('user_id', Auth::id())
+            ->where('access_type', CourseAccess::TYPE_TRIAL)
+            ->pluck('course_id')
+            ->map(fn ($id) => (int) $id)
+            ->values();
+
         $availableCourses = Course::query()
             ->active()
             ->public()
@@ -81,6 +88,7 @@ class CourseController extends Controller
             'courseQuestionCounts',
             'paymentStatus',
             'pendingTransactions',
+            'trialUsedCourseIds',
             'recentTransactions'
         ));
     }
