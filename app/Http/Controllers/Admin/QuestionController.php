@@ -10,6 +10,7 @@ use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
+use App\Models\ExamBoard;
 use App\Services\Questions\QuestionDuplicateChecker;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
@@ -26,6 +27,7 @@ class QuestionController extends Controller
         $status = trim((string) $request->get('status', ''));
         $difficulty = trim((string) $request->get('difficulty', ''));
         $corporationId = $request->integer('corporation_id');
+        $examBoardId = $request->integer('exam_board_id');
         $subjectId = $request->integer('subject_id');
         $sourceMaterialId = $request->integer('source_material_id');
 
@@ -34,6 +36,10 @@ class QuestionController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('statement', 'like', "%{$search}%")
                         ->orWhere('source_reference', 'like', "%{$search}%")
+                        ->orWhereHas('examBoard', function ($boardQuery) use ($search) {
+                                $boardQuery->where('name', 'like', "%{$search}%")
+                                    ->orWhere('slug', 'like', "%{$search}%");
+                            })
                         ->orWhereHas('sourceMaterial', function ($sourceQuery) use ($search) {
                             $sourceQuery->where('title', 'like', "%{$search}%")
                                 ->orWhere('reference_code', 'like', "%{$search}%");
@@ -42,11 +48,12 @@ class QuestionController extends Controller
             })
             ->when($difficulty !== '', fn ($q) => $q->where('difficulty', $difficulty))
             ->when($corporationId, fn ($q) => $q->where('corporation_id', $corporationId))
+            ->when($examBoardId, fn ($q) => $q->where('exam_board_id', $examBoardId))
             ->when($subjectId, fn ($q) => $q->where('subject_id', $subjectId))
             ->when($sourceMaterialId, fn ($q) => $q->where('source_material_id', $sourceMaterialId));
 
         $questions = (clone $baseQuery)
-            ->with(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial'])
+            ->with(['corporation', 'exam', 'examBoard', 'subject', 'topic', 'sourceMaterial'])
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->orderByDesc('id')
             ->paginate(15)
@@ -121,6 +128,8 @@ class QuestionController extends Controller
             'corporationId' => $corporationId,
             'subjectId' => $subjectId,
             'sourceMaterialId' => $sourceMaterialId,
+            'examBoardId' => $examBoardId,
+            'examBoards' => ExamBoard::query()->where('active', true)->orderBy('name')->get(),
             'corporations' => Corporation::query()->orderBy('name')->get(),
             'subjects' => Subject::query()->orderBy('name')->get(),
             'sourceMaterials' => SourceMaterial::query()->with(['corporation', 'subject'])->orderBy('title')->get(),
@@ -156,6 +165,7 @@ class QuestionController extends Controller
             'corporations' => Corporation::query()->orderBy('name')->get(),
             'subjects' => Subject::query()->orderBy('name')->get(),
             'sourceMaterials' => SourceMaterial::query()->active()->orderBy('title')->get(),
+            'examBoards' => ExamBoard::query()->where('active', true)->orderBy('name')->get(),
             'selectedExam' => null,
             'selectedTopic' => null,
             'selectedSourceMaterial' => null,
@@ -176,6 +186,7 @@ class QuestionController extends Controller
             $question = Question::query()->create([
                 'corporation_id' => $data['corporation_id'] ?? null,
                 'exam_id' => $data['exam_id'] ?? null,
+                'exam_board_id' => $data['exam_board_id'] ?? null,
                 'subject_id' => $data['subject_id'],
                 'topic_id' => $data['topic_id'] ?? null,
                 'statement' => $data['statement'],
@@ -203,7 +214,7 @@ class QuestionController extends Controller
 
     public function show(Question $question)
     {
-        $question->load(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives']);
+        $question->load(['corporation', 'exam', 'subject', 'topic', 'examBoard', 'sourceMaterial', 'alternatives']);
 
         return view('admin.questions.show', compact('question'));
     }
@@ -230,6 +241,7 @@ class QuestionController extends Controller
             'corporations' => Corporation::query()->orderBy('name')->get(),
             'subjects' => Subject::query()->orderBy('name')->get(),
             'sourceMaterials' => SourceMaterial::query()->active()->orderBy('title')->get(),
+            'examBoards' => ExamBoard::query()->where('active', true)->orderBy('name')->get(),
             'selectedExam' => $question->exam,
             'selectedTopic' => $question->topic,
             'selectedSourceMaterial' => $question->sourceMaterial,
@@ -250,6 +262,7 @@ class QuestionController extends Controller
             $question->update([
                 'corporation_id' => $data['corporation_id'] ?? null,
                 'exam_id' => $data['exam_id'] ?? null,
+                'exam_board_id' => $data['exam_board_id'] ?? null,
                 'subject_id' => $data['subject_id'],
                 'topic_id' => $data['topic_id'] ?? null,
                 'statement' => $data['statement'],
@@ -397,6 +410,7 @@ class QuestionController extends Controller
         $request->merge([
             'corporation_id' => $this->emptyToNull($request->input('corporation_id')),
             'exam_id' => $this->emptyToNull($request->input('exam_id')),
+            'exam_board_id' => $this->emptyToNull($request->input('exam_board_id')),
             'topic_id' => $this->emptyToNull($request->input('topic_id')),
             'source_material_id' => $this->emptyToNull($request->input('source_material_id')),
             'question_type' => $request->input('question_type') ?: 'multiple_choice',
@@ -406,6 +420,7 @@ class QuestionController extends Controller
         $validated = $request->validate([
             'corporation_id' => ['nullable', 'integer', 'exists:corporations,id'],
             'exam_id' => ['nullable', 'integer', 'exists:exams,id'],
+            'exam_board_id' => ['nullable', 'integer', 'exists:exam_boards,id'],
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
             'source_material_id' => ['nullable', 'integer', 'exists:source_materials,id'],

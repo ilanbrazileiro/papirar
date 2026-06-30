@@ -149,6 +149,19 @@
                         @endforeach
                     </select>
                 </div>
+               
+                <div class="col-md-2">
+                    <label class="form-label">Banca</label>
+                    <select name="exam_board_id" class="form-control">
+                        <option value="">Todas</option>
+                        @foreach($examBoards as $examBoard)
+                            <option value="{{ $examBoard->id }}" @selected((int)($examBoardId ?? 0) === (int)$examBoard->id)>
+                                {{ $examBoard->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
                 <div class="col-md-1">
                     <label class="form-label">Status</label>
                     <select name="status" class="form-control">
@@ -211,7 +224,7 @@
                                 <th>Disciplina</th>
                                 <th>Tópico</th>
                                 <th>Concurso</th>
-                                <th>Fonte</th>
+                                <th>Banca</th>
                                 <th>Status</th>
                                 <th>Enunciado</th>
                                 <th class="text-end">Ações</th>
@@ -230,13 +243,7 @@
                                     </td>
                                     <td>{{ $question->topic->name ?? '-' }}</td>
                                     <td>{{ $question->exam->title ?? '-' }}</td>
-                                    <td>
-                                        @if($question->sourceMaterial)
-                                            <span title="{{ $question->sourceMaterial->title }}">{{ \Illuminate\Support\Str::limit($question->sourceMaterial->title, 35) }}</span>
-                                        @else
-                                            -
-                                        @endif
-                                    </td>
+                                    <td>{{ $question->examBoard->name ?? '-' }}</td>
                                     <td>
                                         <span class="badge {{ $statusBadgeClass($question->status) }}">
                                             {{ $question->status_label }}

@@ -10,6 +10,7 @@ use App\Models\QuestionImportBatchRow;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
+use App\Models\ExamBoard;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
@@ -128,6 +129,7 @@ class QuestionCsvImportService
 
             if ($headerType === 'legacy') {
                 $payload['source_material_id'] = null;
+                $payload['exam_board_id'] = null;
             }
 
             try {
@@ -224,6 +226,7 @@ class QuestionCsvImportService
                     'exam_id' => $data['exam_id'] ?? null,
                     'subject_id' => $data['subject_id'],
                     'topic_id' => $data['topic_id'] ?? null,
+                    'exam_board_id' => $data['exam_board_id'] ?? null,
                     'statement' => $data['statement'],
                     'question_type' => $data['question_type'],
                     'difficulty' => $data['difficulty'],
@@ -318,6 +321,10 @@ class QuestionCsvImportService
 
     private function detectHeaderType(array $header): ?string
     {
+        if ($header === $this->expectedHeaderWithExamBoard()) {
+            return 'new';
+        }
+
         if ($header === $this->expectedHeaderWithSourceMaterial()) {
             return 'new';
         }
@@ -336,6 +343,31 @@ class QuestionCsvImportService
             'exam_id',
             'subject_id',
             'topic_id',
+            'statement',
+            'question_type',
+            'difficulty',
+            'source_type',
+            'source_reference',
+            'source_material_id',
+            'commented_answer',
+            'status',
+            'alternative_a',
+            'alternative_b',
+            'alternative_c',
+            'alternative_d',
+            'alternative_e',
+            'correct_letter',
+        ];
+    }
+
+    private function expectedHeaderWithExamBoard(): array
+    {
+        return [
+            'corporation_id',
+            'exam_id',
+            'subject_id',
+            'topic_id',
+            'exam_board_id',
             'statement',
             'question_type',
             'difficulty',
@@ -382,6 +414,7 @@ class QuestionCsvImportService
         $examId = isset($row['exam_id']) && trim((string) $row['exam_id']) !== '' ? (int) $row['exam_id'] : null;
         $subjectId = $this->nullableInt($row['subject_id']);
         $topicId = $this->nullableInt($row['topic_id']);
+        $examBoardId = $this->nullableInt($row['exam_board_id'] ?? null);
         $sourceMaterialId = $this->nullableInt($row['source_material_id'] ?? null);
         $statement = trim((string) $row['statement']);
         $questionType = trim((string) $row['question_type']);
@@ -401,6 +434,10 @@ class QuestionCsvImportService
 
         if ($examId && !Exam::query()->whereKey($examId)->exists()) {
             throw new RuntimeException("Linha {$line}: exam_id inválido ou inexistente.");
+        }
+
+        if ($examBoardId && !ExamBoard::query()->whereKey($examBoardId)->exists()) {
+            throw new RuntimeException("Linha {$line}: exam_board_id inválido ou inexistente.");
         }
 
         if ($topicId && !Topic::query()->whereKey($topicId)->exists()) {
@@ -466,6 +503,7 @@ class QuestionCsvImportService
             'exam_id' => $examId,
             'subject_id' => $subjectId,
             'topic_id' => $topicId,
+            'exam_board_id' => $examBoardId,
             'source_material_id' => $sourceMaterialId,
             'statement' => $statement,
             'question_type' => $questionType,

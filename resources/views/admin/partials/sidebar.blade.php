@@ -162,6 +162,15 @@
                         </a>
                     </li>
                 @endif
+                
+                @if(Route::has('admin.exam-boards.index'))
+                    <li class="nav-item">
+                        <a href="{{ route('admin.exam-boards.index') }}" class="nav-link {{ request()->routeIs('admin.exam-boards.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-university"></i>
+                            <p>Bancas</p>
+                        </a>
+                    </li>
+                @endif
 
                 @if(Route::has('admin.source-materials.index'))
                     <li class="nav-item">

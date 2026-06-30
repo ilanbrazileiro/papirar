@@ -32,6 +32,7 @@ use App\Http\Controllers\Admin\AccountController as AdminAccountController;
 use App\Http\Controllers\Admin\CourseAccessController;
 use App\Http\Controllers\Admin\QuestionVideoLessonController;
 use App\Http\Controllers\Admin\CourseReportController;
+use App\Http\Controllers\Admin\ExamBoardController;
 
 use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\Auth\LoginController;
@@ -212,6 +213,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('subjects', SubjectController::class);
             Route::resource('topics', TopicController::class);
             Route::resource('source-materials', SourceMaterialController::class);
+            Route::resource('exam-boards', ExamBoardController::class)->except(['show']);
             Route::resource('courses', CourseController::class);
             Route::resource('course-accesses', CourseAccessController::class)->except(['show']);
             Route::patch('course-accesses/{courseAccess}/cancel', [CourseAccessController::class, 'cancel'])->name('course-accesses.cancel');

@@ -24,6 +24,7 @@
             <div class="col-md-4 mb-2"><strong>Disciplina:</strong> {{ $question->subject->name ?? '-' }}</div>
             <div class="col-md-4 mb-2"><strong>Assunto:</strong> {{ $question->topic->name ?? '-' }}</div>
             <div class="col-md-4 mb-2"><strong>Concurso:</strong> {{ $question->exam->title ?? '-' }}</div>
+            <div class="col-md-4 mb-2"><strong>Banca:</strong> {{ $question->examBoard->name ?? '-' }}</div>
             <div class="col-md-4 mb-2"><strong>Dificuldade:</strong> {{ ucfirst($question->difficulty) }}</div>
             <div class="col-md-4 mb-2"><strong>Origem:</strong> {{ $question->source_type }}</div>
             <div class="col-md-4 mb-2"><strong>Status:</strong> {{ $question->status }}</div>

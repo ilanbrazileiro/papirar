@@ -1,2 +1,1 @@
-corporation_id;exam_id;subject_id;topic_id;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter
-;;16;143;Texto do enunciado da questão;multiple_choice;medium;authored;Papirar - Questão inédita;;Comentário explicativo completo;published;Alternativa A;Alternativa B;Alternativa C;Alternativa D;Alternativa E;A
+corporation_id;exam_id;subject_id;topic_id;exam_board_id;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter

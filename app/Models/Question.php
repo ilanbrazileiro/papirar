@@ -33,6 +33,7 @@ class Question extends Model
     protected $fillable = [
         'corporation_id',
         'exam_id',
+        'exam_board_id',
         'subject_id',
         'topic_id',
         'statement',
@@ -49,6 +50,7 @@ class Question extends Model
     protected $casts = [
         'corporation_id' => 'integer',
         'exam_id' => 'integer',
+        'exam_board_id' => 'integer',
         'subject_id' => 'integer',
         'topic_id' => 'integer',
         'source_material_id' => 'integer',
@@ -73,6 +75,11 @@ class Question extends Model
     public function exam(): BelongsTo
     {
         return $this->belongsTo(Exam::class);
+    }
+
+    public function examBoard(): BelongsTo
+    {
+        return $this->belongsTo(ExamBoard::class, 'exam_board_id');
     }
 
     public function subject(): BelongsTo

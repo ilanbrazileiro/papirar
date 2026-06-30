@@ -159,6 +159,22 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
+                    <label for="exam_board_id" class="form-label">Banca organizadora</label>
+                    <select name="exam_board_id" id="exam_board_id" class="form-control @error('exam_board_id') is-invalid @enderror">
+                        <option value="">Sem banca / não se aplica</option>
+                        @foreach($examBoards as $examBoard)
+                            <option value="{{ $examBoard->id }}" @selected((string) old('exam_board_id', $question->exam_board_id ?? '') === (string) $examBoard->id)>
+                                {{ $examBoard->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                    <div class="form-text">Use em questões de prova oficial ou adaptadas no estilo de uma banca.</div>
+                    @error('exam_board_id')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
+
+                <div class="col-md-6 mb-3">
                     <label for="exam_id" class="form-label">Concurso / prova de origem</label>
                     <select name="exam_id" id="exam_id" class="form-control @error('exam_id') is-invalid @enderror">
                         <option value="">Sem prova de origem</option>
