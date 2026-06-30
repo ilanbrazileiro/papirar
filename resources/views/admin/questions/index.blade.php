@@ -149,7 +149,7 @@
                         @endforeach
                     </select>
                 </div>
-               
+
                 <div class="col-md-2">
                     <label class="form-label">Banca</label>
                     <select name="exam_board_id" class="form-control">
@@ -192,6 +192,7 @@
         <form method="POST" action="{{ route('admin.questions.bulk-status') }}" id="bulk-status-form">
             @csrf
             @method('PATCH')
+            <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
 
             <div class="card mb-3">
                 <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -204,9 +205,10 @@
                             <option value="reviewed">Marcar como revisada — aparece e validada</option>
                             <option value="archived">Arquivar — não aparece</option>
                         </select>
-                        <button type="submit" class="btn btn-sm btn-primary" onclick="return confirmBulkStatusChange();">
+                        <button type="submit" class="btn btn-sm btn-primary" id="bulk-submit-button" disabled>
                             Aplicar nas selecionadas
                         </button>
+                        <span class="badge bg-secondary" id="bulk-selected-count">0 selecionadas</span>
                     </div>
                     <small class="text-muted">Use “Publicada” como pendente de revisão; use “Revisada” após validação editorial.</small>
                 </div>
@@ -293,16 +295,52 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const form = document.getElementById('bulk-status-form');
         const selectAll = document.getElementById('select-all-questions');
         const checkboxes = document.querySelectorAll('.question-checkbox');
+        const submitButton = document.getElementById('bulk-submit-button');
+        const selectedCount = document.getElementById('bulk-selected-count');
+
+        function updateBulkState() {
+            const checked = document.querySelectorAll('.question-checkbox:checked').length;
+
+            if (selectedCount) {
+                selectedCount.textContent = checked + (checked === 1 ? ' selecionada' : ' selecionadas');
+            }
+
+            if (submitButton) {
+                submitButton.disabled = checked === 0;
+            }
+
+            if (selectAll && checkboxes.length > 0) {
+                selectAll.checked = checked === checkboxes.length;
+                selectAll.indeterminate = checked > 0 && checked < checkboxes.length;
+            }
+        }
 
         if (selectAll) {
             selectAll.addEventListener('change', function () {
                 checkboxes.forEach(function (checkbox) {
                     checkbox.checked = selectAll.checked;
                 });
+
+                updateBulkState();
             });
         }
+
+        checkboxes.forEach(function (checkbox) {
+            checkbox.addEventListener('change', updateBulkState);
+        });
+
+        if (form) {
+            form.addEventListener('submit', function (event) {
+                if (!confirmBulkStatusChange()) {
+                    event.preventDefault();
+                }
+            });
+        }
+
+        updateBulkState();
     });
 
     function confirmBulkStatusChange() {
@@ -325,7 +363,7 @@
             return false;
         }
 
-        return confirm('Deseja ' + labels[status] + '?');
+        return confirm('Deseja ' + labels[status] + '? Total selecionado: ' + selected + '.');
     }
 </script>
 @endpush
