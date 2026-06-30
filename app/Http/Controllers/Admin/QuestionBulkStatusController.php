@@ -88,15 +88,11 @@ class QuestionBulkStatusController extends Controller
             return redirect()->to($fallback);
         }
 
-        if ($path === '/admin/questions' || str_starts_with($path, '/admin/questions?')) {
-            return redirect()->to($redirectTo);
-        }
-
         if ($path === '/admin/questions/bulk-status') {
             return redirect()->to($fallback);
         }
 
-        if (str_starts_with($path, '/admin/questions') && !str_contains($path, 'bulk-status')) {
+        if ($path === '/admin/questions') {
             return redirect()->to($redirectTo);
         }
 

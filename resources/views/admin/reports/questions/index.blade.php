@@ -8,7 +8,7 @@
         <div class="row mb-2 align-items-center">
             <div class="col-sm-7">
                 <h1 class="m-0">Relatórios de Questões</h1>
-                <p class="text-muted mb-0">Quantidade de questões por curso, disciplina, tópico e status editorial.</p>
+                <p class="text-muted mb-0">Quantidade de questões por curso, disciplina, tópico, corporação, banca e status editorial.</p>
             </div>
             <div class="col-sm-5 text-sm-right mt-3 mt-sm-0">
                 <a href="{{ route('admin.questions.index') }}" class="btn btn-outline-secondary">
@@ -46,6 +46,30 @@
                         </div>
 
                         <div class="col-md-3">
+                            <label for="corporation_id">Corporação</label>
+                            <select name="corporation_id" id="corporation_id" class="form-control">
+                                <option value="">Todas</option>
+                                @foreach($corporations as $corporation)
+                                    <option value="{{ $corporation->id }}" @selected((string) $filters['corporation_id'] === (string) $corporation->id)>
+                                        {{ $corporation->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label for="exam_board_id">Banca</label>
+                            <select name="exam_board_id" id="exam_board_id" class="form-control">
+                                <option value="">Todas</option>
+                                @foreach($examBoards as $examBoard)
+                                    <option value="{{ $examBoard->id }}" @selected((string) $filters['exam_board_id'] === (string) $examBoard->id)>
+                                        {{ $examBoard->name }}
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-3">
                             <label for="subject_id">Disciplina</label>
                             <select name="subject_id" id="subject_id" class="form-control">
                                 <option value="">Todas</option>
@@ -56,7 +80,9 @@
                                 @endforeach
                             </select>
                         </div>
+                    </div>
 
+                    <div class="row mt-3">
                         <div class="col-md-3">
                             <label for="topic_id">Tópico</label>
                             <select name="topic_id" id="topic_id" class="form-control">
@@ -79,12 +105,26 @@
                                 <option value="archived" @selected($filters['status'] === 'archived')>Arquivada</option>
                             </select>
                         </div>
-                    </div>
-                </div>
 
-                <div class="card-footer d-flex justify-content-between">
-                    <a href="{{ route('admin.reports.questions.index') }}" class="btn btn-outline-secondary">Limpar filtros</a>
-                    <button type="submit" class="btn btn-primary"><i class="fas fa-search mr-1"></i> Aplicar filtros</button>
+                        <div class="col-md-3">
+                            <label for="difficulty">Dificuldade</label>
+                            <select name="difficulty" id="difficulty" class="form-control">
+                                <option value="">Todas</option>
+                                <option value="easy" @selected($filters['difficulty'] === 'easy')>Fácil</option>
+                                <option value="medium" @selected($filters['difficulty'] === 'medium')>Média</option>
+                                <option value="hard" @selected($filters['difficulty'] === 'hard')>Difícil</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-3 d-flex align-items-end">
+                            <div class="w-100 d-flex justify-content-between">
+                                <a href="{{ route('admin.reports.questions.index') }}" class="btn btn-outline-secondary">Limpar</a>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search mr-1"></i> Aplicar filtros
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </form>
         </div>
@@ -99,14 +139,17 @@
         <div class="row">
             @foreach($statusCards as $card)
                 <div class="col-lg col-md-4 col-sm-6">
-                    <div class="small-box bg-{{ $card['class'] }}">
-                        <div class="inner">
-                            <h3>{{ number_format($card['value'], 0, ',', '.') }}</h3>
-                            <p>{{ $card['label'] }}</p>
-                            <small>{{ $card['hint'] }}</small>
+                    <a href="{{ $card['questions_url'] }}" class="text-white text-decoration-none">
+                        <div class="small-box bg-{{ $card['class'] }}">
+                            <div class="inner">
+                                <h3>{{ number_format($card['value'], 0, ',', '.') }}</h3>
+                                <p>{{ $card['label'] }}</p>
+                                <small>{{ $card['hint'] }}</small>
+                            </div>
+                            <div class="icon"><i class="{{ $card['icon'] }}"></i></div>
+                            <span class="small-box-footer">Ver questões <i class="fas fa-arrow-circle-right"></i></span>
                         </div>
-                        <div class="icon"><i class="{{ $card['icon'] }}"></i></div>
-                    </div>
+                    </a>
                 </div>
             @endforeach
         </div>
@@ -263,6 +306,76 @@
                     <strong>Leitura do relatório:</strong><br>
                     <span class="text-warning">Publicadas</span> são questões liberadas ao aluno e ainda pendentes de validação editorial.
                     <span class="text-success">Revisadas</span> são questões liberadas e já conferidas.
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-6">
+                <div class="card card-outline card-dark">
+                    <div class="card-header"><h3 class="card-title">Questões por corporação</h3></div>
+                    <div class="card-body table-responsive p-0">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Corporação</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Publicadas</th>
+                                    <th class="text-center">Revisadas</th>
+                                    <th class="text-center">Rascunhos</th>
+                                    <th class="text-center">Arquivadas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($byCorporation as $row)
+                                    <tr>
+                                        <td>{{ $row->corporation_name }}</td>
+                                        <td class="text-center">{{ number_format($row->total, 0, ',', '.') }}</td>
+                                        <td class="text-center text-warning">{{ number_format($row->published_total, 0, ',', '.') }}</td>
+                                        <td class="text-center text-success">{{ number_format($row->reviewed_total, 0, ',', '.') }}</td>
+                                        <td class="text-center">{{ number_format($row->draft_total, 0, ',', '.') }}</td>
+                                        <td class="text-center">{{ number_format($row->archived_total, 0, ',', '.') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma questão encontrada.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-6">
+                <div class="card card-outline card-warning">
+                    <div class="card-header"><h3 class="card-title">Questões por banca</h3></div>
+                    <div class="card-body table-responsive p-0">
+                        <table class="table table-hover table-striped mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Banca</th>
+                                    <th class="text-center">Total</th>
+                                    <th class="text-center">Publicadas</th>
+                                    <th class="text-center">Revisadas</th>
+                                    <th class="text-center">Rascunhos</th>
+                                    <th class="text-center">Arquivadas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @forelse($byExamBoard as $row)
+                                    <tr>
+                                        <td>{{ $row->exam_board_name }}</td>
+                                        <td class="text-center">{{ number_format($row->total, 0, ',', '.') }}</td>
+                                        <td class="text-center text-warning">{{ number_format($row->published_total, 0, ',', '.') }}</td>
+                                        <td class="text-center text-success">{{ number_format($row->reviewed_total, 0, ',', '.') }}</td>
+                                        <td class="text-center">{{ number_format($row->draft_total, 0, ',', '.') }}</td>
+                                        <td class="text-center">{{ number_format($row->archived_total, 0, ',', '.') }}</td>
+                                    </tr>
+                                @empty
+                                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma questão encontrada.</td></tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Corporation;
+use App\Models\ExamBoard;
 use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
@@ -16,6 +17,7 @@ class QuestionDraftController extends Controller
         $search = trim((string) $request->get('search', ''));
         $difficulty = trim((string) $request->get('difficulty', ''));
         $corporationId = $request->integer('corporation_id');
+        $examBoardId = $request->integer('exam_board_id');
         $subjectId = $request->integer('subject_id');
         $sourceMaterialId = $request->integer('source_material_id');
         $status = Question::STATUS_DRAFT;
@@ -25,6 +27,10 @@ class QuestionDraftController extends Controller
                 $query->where(function ($q) use ($search) {
                     $q->where('statement', 'like', "%{$search}%")
                         ->orWhere('source_reference', 'like', "%{$search}%")
+                        ->orWhereHas('examBoard', function ($boardQuery) use ($search) {
+                            $boardQuery->where('name', 'like', "%{$search}%")
+                                ->orWhere('slug', 'like', "%{$search}%");
+                        })
                         ->orWhereHas('sourceMaterial', function ($sourceQuery) use ($search) {
                             $sourceQuery->where('title', 'like', "%{$search}%")
                                 ->orWhere('reference_code', 'like', "%{$search}%");
@@ -33,11 +39,12 @@ class QuestionDraftController extends Controller
             })
             ->when($difficulty !== '', fn ($q) => $q->where('difficulty', $difficulty))
             ->when($corporationId, fn ($q) => $q->where('corporation_id', $corporationId))
+            ->when($examBoardId, fn ($q) => $q->where('exam_board_id', $examBoardId))
             ->when($subjectId, fn ($q) => $q->where('subject_id', $subjectId))
             ->when($sourceMaterialId, fn ($q) => $q->where('source_material_id', $sourceMaterialId));
 
         $questions = (clone $baseQuery)
-            ->with(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial'])
+            ->with(['corporation', 'exam', 'examBoard', 'subject', 'topic', 'sourceMaterial'])
             ->where('status', $status)
             ->orderByDesc('id')
             ->paginate(15)
@@ -110,9 +117,11 @@ class QuestionDraftController extends Controller
             'status' => $status,
             'difficulty' => $difficulty,
             'corporationId' => $corporationId,
+            'examBoardId' => $examBoardId,
             'subjectId' => $subjectId,
             'sourceMaterialId' => $sourceMaterialId,
             'corporations' => Corporation::query()->orderBy('name')->get(),
+            'examBoards' => ExamBoard::query()->where('active', true)->orderBy('name')->get(),
             'subjects' => Subject::query()->orderBy('name')->get(),
             'sourceMaterials' => SourceMaterial::query()->with(['corporation', 'subject'])->orderBy('title')->get(),
             'statusCounts' => $statusCounts,

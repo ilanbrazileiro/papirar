@@ -52,6 +52,13 @@
         </div>
     @endif
 
+    @if(session('error'))
+        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+            {{ session('error') }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
+        </div>
+    @endif
+
     @if($errors->any())
         <div class="alert alert-danger">
             <ul class="mb-0">
@@ -192,7 +199,8 @@
         <form method="POST" action="{{ route('admin.questions.bulk-status') }}" id="bulk-status-form">
             @csrf
             @method('PATCH')
-            <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}">
+            <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}" id="bulk-redirect-to">
+            <div id="bulk-selected-inputs"></div>
 
             <div class="card mb-3">
                 <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -213,73 +221,73 @@
                     <small class="text-muted">Use “Publicada” como pendente de revisão; use “Revisada” após validação editorial.</small>
                 </div>
             </div>
-
-            <div class="card">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead>
-                            <tr>
-                                <th style="width: 40px;">
-                                    <input type="checkbox" class="form-check-input" id="select-all-questions">
-                                </th>
-                                <th>ID</th>
-                                <th>Disciplina</th>
-                                <th>Tópico</th>
-                                <th>Concurso</th>
-                                <th>Banca</th>
-                                <th>Status</th>
-                                <th>Enunciado</th>
-                                <th class="text-end">Ações</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($questions as $question)
-                                <tr>
-                                    <td>
-                                        <input type="checkbox" name="question_ids[]" value="{{ $question->id }}" class="form-check-input question-checkbox">
-                                    </td>
-                                    <td>#{{ $question->id }}</td>
-                                    <td>
-                                        <div>{{ $question->subject->name ?? '-' }}</div>
-                                        <small class="text-muted">{{ $question->corporation->name ?? 'Sem corporação' }}</small>
-                                    </td>
-                                    <td>{{ $question->topic->name ?? '-' }}</td>
-                                    <td>{{ $question->exam->title ?? '-' }}</td>
-                                    <td>{{ $question->examBoard->name ?? '-' }}</td>
-                                    <td>
-                                        <span class="badge {{ $statusBadgeClass($question->status) }}">
-                                            {{ $question->status_label }}
-                                        </span>
-                                        @if($question->status === 'published')
-                                            <div><small class="text-warning">Pendente de revisão</small></div>
-                                        @elseif($question->status === 'reviewed')
-                                            <div><small class="text-success">Validada</small></div>
-                                        @elseif($question->status === 'draft')
-                                            <div><small class="text-muted">Oculta para aluno</small></div>
-                                        @elseif($question->status === 'archived')
-                                            <div><small class="text-muted">Oculta para aluno</small></div>
-                                        @endif
-                                    </td>
-                                    <td>
-                                        <div>{{ \Illuminate\Support\Str::limit(strip_tags($question->statement), 120) }}</div>
-                                        <small class="text-muted">Dificuldade: {{ ucfirst($question->difficulty) }}</small>
-                                    </td>
-                                    <td class="text-end">
-                                        <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
-                                        <a href="{{ route('admin.questions.edit', $question) }}" class="btn btn-sm btn-outline-primary">Editar</a>
-                                        <form action="{{ route('admin.questions.destroy', $question) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja excluir esta questão?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
-                                        </form>
-                                    </td>
-                                </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
-            </div>
         </form>
+
+        <div class="card">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="select-all-questions">
+                            </th>
+                            <th>ID</th>
+                            <th>Disciplina</th>
+                            <th>Tópico</th>
+                            <th>Concurso</th>
+                            <th>Banca</th>
+                            <th>Status</th>
+                            <th>Enunciado</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($questions as $question)
+                            <tr>
+                                <td>
+                                    <input type="checkbox" value="{{ $question->id }}" class="form-check-input question-checkbox">
+                                </td>
+                                <td>#{{ $question->id }}</td>
+                                <td>
+                                    <div>{{ $question->subject->name ?? '-' }}</div>
+                                    <small class="text-muted">{{ $question->corporation->name ?? 'Sem corporação' }}</small>
+                                </td>
+                                <td>{{ $question->topic->name ?? '-' }}</td>
+                                <td>{{ $question->exam->title ?? '-' }}</td>
+                                <td>{{ $question->examBoard->name ?? '-' }}</td>
+                                <td>
+                                    <span class="badge {{ $statusBadgeClass($question->status) }}">
+                                        {{ $question->status_label }}
+                                    </span>
+                                    @if($question->status === 'published')
+                                        <div><small class="text-warning">Pendente de revisão</small></div>
+                                    @elseif($question->status === 'reviewed')
+                                        <div><small class="text-success">Validada</small></div>
+                                    @elseif($question->status === 'draft')
+                                        <div><small class="text-muted">Oculta para aluno</small></div>
+                                    @elseif($question->status === 'archived')
+                                        <div><small class="text-muted">Oculta para aluno</small></div>
+                                    @endif
+                                </td>
+                                <td>
+                                    <div>{{ \Illuminate\Support\Str::limit(strip_tags($question->statement), 120) }}</div>
+                                    <small class="text-muted">Dificuldade: {{ ucfirst($question->difficulty) }}</small>
+                                </td>
+                                <td class="text-end">
+                                    <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
+                                    <a href="{{ route('admin.questions.edit', $question) }}" class="btn btn-sm btn-outline-primary">Editar</a>
+                                    <form action="{{ route('admin.questions.destroy', $question) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja excluir esta questão?');">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
         <div class="mt-3">
             {{ $questions->links() }}
@@ -300,9 +308,30 @@
         const checkboxes = document.querySelectorAll('.question-checkbox');
         const submitButton = document.getElementById('bulk-submit-button');
         const selectedCount = document.getElementById('bulk-selected-count');
+        const selectedInputs = document.getElementById('bulk-selected-inputs');
+
+        function getCheckedBoxes() {
+            return Array.from(document.querySelectorAll('.question-checkbox:checked'));
+        }
+
+        function rebuildHiddenInputs() {
+            if (!selectedInputs) {
+                return;
+            }
+
+            selectedInputs.innerHTML = '';
+
+            getCheckedBoxes().forEach(function (checkbox) {
+                const input = document.createElement('input');
+                input.type = 'hidden';
+                input.name = 'question_ids[]';
+                input.value = checkbox.value;
+                selectedInputs.appendChild(input);
+            });
+        }
 
         function updateBulkState() {
-            const checked = document.querySelectorAll('.question-checkbox:checked').length;
+            const checked = getCheckedBoxes().length;
 
             if (selectedCount) {
                 selectedCount.textContent = checked + (checked === 1 ? ' selecionada' : ' selecionadas');
@@ -316,6 +345,8 @@
                 selectAll.checked = checked === checkboxes.length;
                 selectAll.indeterminate = checked > 0 && checked < checkboxes.length;
             }
+
+            rebuildHiddenInputs();
         }
 
         if (selectAll) {
@@ -334,6 +365,8 @@
 
         if (form) {
             form.addEventListener('submit', function (event) {
+                rebuildHiddenInputs();
+
                 if (!confirmBulkStatusChange()) {
                     event.preventDefault();
                 }

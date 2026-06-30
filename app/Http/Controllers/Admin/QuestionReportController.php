@@ -3,7 +3,9 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Corporation;
 use App\Models\Course;
+use App\Models\ExamBoard;
 use App\Models\Subject;
 use App\Models\Topic;
 use Illuminate\Database\Query\Builder;
@@ -16,12 +18,17 @@ class QuestionReportController extends Controller
     {
         $filters = [
             'course_id' => $request->integer('course_id') ?: null,
+            'corporation_id' => $request->integer('corporation_id') ?: null,
+            'exam_board_id' => $request->integer('exam_board_id') ?: null,
             'subject_id' => $request->integer('subject_id') ?: null,
             'topic_id' => $request->integer('topic_id') ?: null,
             'status' => $request->filled('status') ? $request->string('status')->toString() : null,
+            'difficulty' => $request->filled('difficulty') ? $request->string('difficulty')->toString() : null,
         ];
 
-        $courses = Course::query()->orderBy('title')->get(['id', 'title', 'active']);
+        $courses = Course::query()->orderBy('title')->get(['id', 'title', 'active', 'corporation_id', 'exam_id']);
+        $corporations = Corporation::query()->orderBy('name')->get(['id', 'name']);
+        $examBoards = ExamBoard::query()->orderBy('name')->get(['id', 'name', 'active']);
         $subjects = Subject::query()->orderBy('name')->get(['id', 'name']);
 
         $topics = Topic::query()
@@ -33,17 +40,7 @@ class QuestionReportController extends Controller
 
         $baseQuery = $this->questionBaseQuery($selectedCourse);
 
-        if ($filters['subject_id']) {
-            $baseQuery->where('questions.subject_id', $filters['subject_id']);
-        }
-
-        if ($filters['topic_id']) {
-            $baseQuery->where('questions.topic_id', $filters['topic_id']);
-        }
-
-        if ($filters['status']) {
-            $baseQuery->where('questions.status', $filters['status']);
-        }
+        $this->applyFilters($baseQuery, $filters);
 
         $statusCounts = (clone $baseQuery)
             ->select('questions.status', DB::raw('COUNT(*) as total'))
@@ -61,11 +58,46 @@ class QuestionReportController extends Controller
         $reviewProgress = $visibleCount > 0 ? round(($reviewedCount / $visibleCount) * 100, 1) : 0;
 
         $statusCards = [
-            ['label' => 'Total', 'value' => $totalQuestions, 'class' => 'info', 'icon' => 'fas fa-database', 'hint' => 'Questões encontradas no filtro atual.'],
-            ['label' => 'Rascunhos', 'value' => $draftCount, 'class' => 'secondary', 'icon' => 'fas fa-pencil-alt', 'hint' => 'Ainda não aparecem para o aluno.'],
-            ['label' => 'Publicadas', 'value' => $publishedCount, 'class' => 'warning', 'icon' => 'fas fa-eye', 'hint' => 'Aparecem para o aluno, pendentes de revisão editorial.'],
-            ['label' => 'Revisadas', 'value' => $reviewedCount, 'class' => 'success', 'icon' => 'fas fa-check-circle', 'hint' => 'Aparecem para o aluno e já foram validadas.'],
-            ['label' => 'Arquivadas', 'value' => $archivedCount, 'class' => 'dark', 'icon' => 'fas fa-archive', 'hint' => 'Não aparecem para o aluno.'],
+            [
+                'label' => 'Total',
+                'value' => $totalQuestions,
+                'class' => 'info',
+                'icon' => 'fas fa-database',
+                'hint' => 'Questões encontradas no filtro atual.',
+                'questions_url' => $this->questionsUrl($filters),
+            ],
+            [
+                'label' => 'Rascunhos',
+                'value' => $draftCount,
+                'class' => 'secondary',
+                'icon' => 'fas fa-pencil-alt',
+                'hint' => 'Ainda não aparecem para o aluno.',
+                'questions_url' => $this->questionsUrl($filters, ['status' => 'draft']),
+            ],
+            [
+                'label' => 'Publicadas',
+                'value' => $publishedCount,
+                'class' => 'warning',
+                'icon' => 'fas fa-eye',
+                'hint' => 'Aparecem para o aluno, pendentes de revisão editorial.',
+                'questions_url' => $this->questionsUrl($filters, ['status' => 'published']),
+            ],
+            [
+                'label' => 'Revisadas',
+                'value' => $reviewedCount,
+                'class' => 'success',
+                'icon' => 'fas fa-check-circle',
+                'hint' => 'Aparecem para o aluno e já foram validadas.',
+                'questions_url' => $this->questionsUrl($filters, ['status' => 'reviewed']),
+            ],
+            [
+                'label' => 'Arquivadas',
+                'value' => $archivedCount,
+                'class' => 'dark',
+                'icon' => 'fas fa-archive',
+                'hint' => 'Não aparecem para o aluno.',
+                'questions_url' => $this->questionsUrl($filters, ['status' => 'archived']),
+            ],
         ];
 
         $bySubject = (clone $baseQuery)
@@ -101,14 +133,50 @@ class QuestionReportController extends Controller
             ->limit(100)
             ->get();
 
+        $byCorporation = (clone $baseQuery)
+            ->leftJoin('corporations', 'corporations.id', '=', 'questions.corporation_id')
+            ->select(
+                'questions.corporation_id',
+                DB::raw('COALESCE(corporations.name, "Sem corporação") as corporation_name'),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN questions.status = 'draft' THEN 1 ELSE 0 END) as draft_total"),
+                DB::raw("SUM(CASE WHEN questions.status = 'published' THEN 1 ELSE 0 END) as published_total"),
+                DB::raw("SUM(CASE WHEN questions.status = 'reviewed' THEN 1 ELSE 0 END) as reviewed_total"),
+                DB::raw("SUM(CASE WHEN questions.status = 'archived' THEN 1 ELSE 0 END) as archived_total")
+            )
+            ->groupBy('questions.corporation_id', 'corporations.name')
+            ->orderByDesc('total')
+            ->get();
+
+        $byExamBoard = (clone $baseQuery)
+            ->leftJoin('exam_boards', 'exam_boards.id', '=', 'questions.exam_board_id')
+            ->select(
+                'questions.exam_board_id',
+                DB::raw('COALESCE(exam_boards.name, "Sem banca") as exam_board_name'),
+                DB::raw('COUNT(*) as total'),
+                DB::raw("SUM(CASE WHEN questions.status = 'draft' THEN 1 ELSE 0 END) as draft_total"),
+                DB::raw("SUM(CASE WHEN questions.status = 'published' THEN 1 ELSE 0 END) as published_total"),
+                DB::raw("SUM(CASE WHEN questions.status = 'reviewed' THEN 1 ELSE 0 END) as reviewed_total"),
+                DB::raw("SUM(CASE WHEN questions.status = 'archived' THEN 1 ELSE 0 END) as archived_total")
+            )
+            ->groupBy('questions.exam_board_id', 'exam_boards.name')
+            ->orderByDesc('total')
+            ->get();
+
         $byDifficulty = (clone $baseQuery)
             ->select('questions.difficulty', DB::raw('COUNT(*) as total'))
             ->groupBy('questions.difficulty')
             ->orderByDesc('total')
             ->get();
 
-        $courseRows = Course::query()->orderBy('title')->get()->map(function (Course $course) {
-            $counts = (clone $this->questionBaseQuery($course))
+        $courseRows = Course::query()->orderBy('title')->get()->map(function (Course $course) use ($filters) {
+            $courseFilters = $filters;
+            $courseFilters['course_id'] = null;
+
+            $query = $this->questionBaseQuery($course);
+            $this->applyFilters($query, $courseFilters, ignoreCourseSpecificFilters: true);
+
+            $counts = $query
                 ->select('questions.status', DB::raw('COUNT(*) as total'))
                 ->groupBy('questions.status')
                 ->pluck('total', 'status')
@@ -135,6 +203,8 @@ class QuestionReportController extends Controller
         return view('admin.reports.questions.index', compact(
             'filters',
             'courses',
+            'corporations',
+            'examBoards',
             'subjects',
             'topics',
             'selectedCourse',
@@ -146,9 +216,38 @@ class QuestionReportController extends Controller
             'reviewProgress',
             'bySubject',
             'byTopic',
+            'byCorporation',
+            'byExamBoard',
             'byDifficulty',
             'courseRows'
         ));
+    }
+
+    private function applyFilters(Builder $query, array $filters, bool $ignoreCourseSpecificFilters = false): void
+    {
+        if ($filters['corporation_id']) {
+            $query->where('questions.corporation_id', $filters['corporation_id']);
+        }
+
+        if ($filters['exam_board_id']) {
+            $query->where('questions.exam_board_id', $filters['exam_board_id']);
+        }
+
+        if ($filters['subject_id']) {
+            $query->where('questions.subject_id', $filters['subject_id']);
+        }
+
+        if ($filters['topic_id']) {
+            $query->where('questions.topic_id', $filters['topic_id']);
+        }
+
+        if ($filters['status']) {
+            $query->where('questions.status', $filters['status']);
+        }
+
+        if ($filters['difficulty']) {
+            $query->where('questions.difficulty', $filters['difficulty']);
+        }
     }
 
     private function questionBaseQuery(?Course $course = null): Builder
@@ -188,5 +287,15 @@ class QuestionReportController extends Controller
         }
 
         return $query;
+    }
+
+    private function questionsUrl(array $filters, array $overrides = []): string
+    {
+        $query = array_merge($filters, $overrides);
+
+        unset($query['course_id']);
+        $query = array_filter($query, fn ($value) => $value !== null && $value !== '');
+
+        return route('admin.questions.index', $query);
     }
 }

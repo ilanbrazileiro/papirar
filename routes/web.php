@@ -239,6 +239,8 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::post('questions/imports/{batch}/rows/{row}/import', [QuestionImportReviewController::class, 'importRow'])->name('question-import-batches.rows.import');
             Route::post('questions/imports/{batch}/rows/{row}/ignore', [QuestionImportReviewController::class, 'ignoreRow'])->name('question-import-batches.rows.ignore');
             Route::patch('questions/bulk-status', [QuestionBulkStatusController::class, 'update'])->name('questions.bulk-status');
+            Route::get('questions/bulk-status', fn () => redirect()->route('admin.questions.index'))->name('questions.bulk-status.redirect');
+            Route::patch('questions/bulk-status', [QuestionBulkStatusController::class, 'update'])->name('questions.bulk-status');
             Route::post('questions/check-duplicate', QuestionDuplicateController::class)->name('questions.check-duplicate');
             Route::get('questions/drafts', QuestionDraftController::class)->name('questions.drafts');
             Route::get('questions/{question}/preview', QuestionPreviewController::class)->name('questions.preview');
