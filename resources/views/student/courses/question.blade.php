@@ -3,6 +3,29 @@
 @section('title', 'Questão')
 
 @section('content')
+    @php
+        $difficultyLabels = [
+            'easy' => 'Fácil',
+            'medium' => 'Média',
+            'hard' => 'Difícil',
+        ];
+
+        $userDifficultyVote = \App\Models\QuestionDifficultyVote::query()
+            ->where('user_id', auth()->id())
+            ->where('question_id', $question->id)
+            ->first();
+
+        $userPendingComment = \App\Models\QuestionComment::query()
+            ->where('user_id', auth()->id())
+            ->where('question_id', $question->id)
+            ->where('status', 'pending')
+            ->latest()
+            ->first();
+
+        $currentDifficultyVote = old('difficulty_vote', $userDifficultyVote->difficulty_vote ?? null);
+        $approvedComments = $question->comments ?? collect();
+    @endphp
+
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h1 class="page-title">Questão {{ $currentPosition }} de {{ $totalQuestions }}</h1>
@@ -24,7 +47,7 @@
         </div>
     </div>
 
-     @if($favorite ?? false)
+    @if($favorite ?? false)
         <div class="card-soft p-4 mb-4 border border-warning-subtle" id="favorite-note-card">
             <div class="d-flex flex-column flex-lg-row justify-content-between gap-3">
                 <div>
@@ -52,7 +75,7 @@
     <div class="question-card mb-4">
         <div class="d-flex flex-wrap gap-2 mb-3">
             @if($question->difficulty)
-                <span class="meta-badge">Dificuldade: {{ $question->difficulty }}</span>
+                <span class="meta-badge">Dificuldade: {{ $difficultyLabels[$question->difficulty] ?? $question->difficulty }}</span>
             @endif
             @if($question->sourceMaterial)
                 <span class="meta-badge">Fonte: {{ $question->sourceMaterial->title }}</span>
@@ -81,11 +104,87 @@
             @endforeach
 
             <div class="card-soft p-4 mt-4">
-                <div class="section-title">Comentário</div>
+                <div class="section-title">Comentário da questão</div>
                 <div class="papirar-katex">{!! $question->commented_answer ?: 'Comentário ainda não cadastrado.' !!}</div>
             </div>
 
             @includeIf('student.courses.partials.video-lesson', ['question' => $question])
+
+            <div class="row g-4 mt-1">
+                <div class="col-lg-5">
+                    <div class="card-soft p-4 h-100" id="difficulty-vote-card">
+                        <div class="section-title mb-1">Como você avalia a dificuldade?</div>
+                        <p class="small-muted mb-3">Sua votação ajuda a calibrar a percepção dos alunos sobre esta questão.</p>
+
+                        <form method="POST" action="{{ route('student.questions.difficulty.store', $question) }}">
+                            @csrf
+
+                            <div class="d-grid gap-2">
+                                @foreach($difficultyLabels as $value => $label)
+                                    <label class="difficulty-option {{ $currentDifficultyVote === $value ? 'active' : '' }}">
+                                        <input type="radio" name="difficulty_vote" value="{{ $value }}" {{ $currentDifficultyVote === $value ? 'checked' : '' }} required>
+                                        <span>{{ $label }}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+
+                            @error('difficulty_vote')
+                                <div class="text-danger small mt-2">{{ $message }}</div>
+                            @enderror
+
+                            <button class="btn btn-outline-primary w-100 mt-3">
+                                {{ $userDifficultyVote ? 'Atualizar voto' : 'Registrar voto' }}
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-lg-7">
+                    <div class="card-soft p-4 h-100" id="student-comments-card">
+                        <div class="section-title mb-1">Comentários dos alunos</div>
+                        <p class="small-muted mb-3">Envie uma dúvida, observação ou contribuição. O comentário passa por moderação.</p>
+
+                        @if($userPendingComment)
+                            <div class="alert alert-warning mb-3">
+                                <strong>Comentário em moderação.</strong><br>
+                                {{ $userPendingComment->comment }}
+                            </div>
+                        @endif
+
+                        @if($approvedComments->isNotEmpty())
+                            <div class="d-grid gap-3 mb-4">
+                                @foreach($approvedComments as $comment)
+                                    <div class="student-comment-box">
+                                        <div class="d-flex justify-content-between gap-2 mb-1">
+                                            <strong>{{ $comment->user->name ?? 'Aluno' }}</strong>
+                                            <span class="small-muted">{{ optional($comment->created_at)->format('d/m/Y H:i') }}</span>
+                                        </div>
+                                        <div>{{ $comment->comment }}</div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @else
+                            <div class="student-comment-empty mb-4">
+                                Ainda não há comentários aprovados nesta questão.
+                            </div>
+                        @endif
+
+                        <form method="POST" action="{{ route('student.questions.comments.store', $question) }}">
+                            @csrf
+                            <label class="form-label fw-semibold">Adicionar comentário</label>
+                            <textarea name="comment" rows="3" class="form-control @error('comment') is-invalid @enderror" minlength="3" maxlength="5000" required placeholder="Escreva sua dúvida ou contribuição sobre esta questão.">{{ old('comment') }}</textarea>
+                            @error('comment')
+                                <div class="invalid-feedback">{{ $message }}</div>
+                            @enderror
+
+                            <div class="d-flex flex-column flex-sm-row justify-content-between align-items-sm-center gap-2 mt-3">
+                                <span class="small-muted">Após o envio, o comentário ficará pendente de aprovação.</span>
+                                <button class="btn btn-outline-primary">Enviar comentário</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
             <form method="POST" action="{{ route('student.course-study.next', $session) }}" class="mt-4 text-end">
                 @csrf
@@ -119,6 +218,12 @@
 <style>
     .alternative-cut { opacity: .55; background: #f8f9fa; }
     .alternative-cut label span { text-decoration: line-through; }
+    .difficulty-option { display: flex; align-items: center; gap: 10px; border: 1px solid var(--border); background: #fff; border-radius: 14px; padding: 12px 14px; cursor: pointer; transition: .15s ease; font-weight: 700; }
+    .difficulty-option:hover { border-color: #AFC5E3; background: #F7FAFF; }
+    .difficulty-option.active { border-color: var(--brand); background: #EEF5FF; color: var(--brand-dark); }
+    .difficulty-option input { margin: 0; }
+    .student-comment-box { border: 1px solid var(--border); background: #fff; border-radius: 14px; padding: 14px; }
+    .student-comment-empty { border: 1px dashed var(--border); border-radius: 14px; padding: 14px; color: var(--muted); background: #fff; }
 </style>
 @endpush
 
@@ -128,8 +233,11 @@ document.addEventListener('DOMContentLoaded', function () {
     const storageKey = 'papirar-cut-question-{{ $question->id }}';
     const rows = Array.from(document.querySelectorAll('.js-alternative-row'));
     let cutIds = [];
+
     try { cutIds = JSON.parse(localStorage.getItem(storageKey) || '[]'); } catch (e) { cutIds = []; }
+
     function persist() { localStorage.setItem(storageKey, JSON.stringify(cutIds)); }
+
     rows.forEach(function (row) {
         const altId = row.dataset.altId;
         if (cutIds.includes(altId)) row.classList.add('alternative-cut');
@@ -143,6 +251,13 @@ document.addEventListener('DOMContentLoaded', function () {
                 cutIds = cutIds.filter(id => id !== altId);
             }
             persist();
+        });
+    });
+
+    document.querySelectorAll('.difficulty-option input[type="radio"]').forEach(function (input) {
+        input.addEventListener('change', function () {
+            document.querySelectorAll('.difficulty-option').forEach(function (label) { label.classList.remove('active'); });
+            this.closest('.difficulty-option')?.classList.add('active');
         });
     });
 });
