@@ -13,16 +13,29 @@ class TicketController extends Controller
 {
     public function index(Request $request)
     {
+        $openTicketsCount = SupportTicket::query()->where('status', 'open')->count();
+        $inProgressTicketsCount = SupportTicket::query()->where('status', 'in_progress')->count();
+        $resolvedTicketsCount = SupportTicket::query()->where('status', 'resolved')->count();
+        $closedTicketsCount = SupportTicket::query()->where('status', 'closed')->count();
+        $attentionTicketsCount = $openTicketsCount + $inProgressTicketsCount;
+
         $tickets = SupportTicket::query()
             ->with('user')
             ->when($request->filled('status'), fn ($q) => $q->where('status', $request->string('status')->toString()))
-            ->orderByRaw("CASE WHEN status IN ('open', 'in_progress') THEN 0 ELSE 1 END")
+            ->orderByRaw("CASE WHEN status = 'open' THEN 0 WHEN status = 'in_progress' THEN 1 WHEN status = 'resolved' THEN 2 ELSE 3 END")
             ->orderByDesc('last_message_at')
             ->orderByDesc('id')
             ->paginate(20)
             ->withQueryString();
 
-        return view('admin.tickets.index', compact('tickets'));
+        return view('admin.tickets.index', compact(
+            'tickets',
+            'openTicketsCount',
+            'inProgressTicketsCount',
+            'resolvedTicketsCount',
+            'closedTicketsCount',
+            'attentionTicketsCount'
+        ));
     }
 
     public function show(SupportTicket $ticket)

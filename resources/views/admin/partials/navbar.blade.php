@@ -1,3 +1,9 @@
+@php
+    $adminOpenTicketsCount = class_exists(\App\Models\SupportTicket::class)
+        ? \App\Models\SupportTicket::query()->whereIn('status', ['open', 'in_progress'])->count()
+        : 0;
+@endphp
+
 <nav class="main-header navbar navbar-expand navbar-white navbar-light">
     <ul class="navbar-nav">
         <li class="nav-item">
@@ -11,6 +17,17 @@
     </ul>
 
     <ul class="navbar-nav ms-auto ml-auto">
+        @if(Route::has('admin.tickets.index'))
+            <li class="nav-item">
+                <a href="{{ route('admin.tickets.index') }}" class="nav-link" title="Tickets de suporte">
+                    <i class="fas fa-headset"></i>
+                    @if($adminOpenTicketsCount > 0)
+                        <span class="badge badge-danger navbar-badge">{{ $adminOpenTicketsCount }}</span>
+                    @endif
+                </a>
+            </li>
+        @endif
+
         @auth
             <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="adminAccountDropdown" role="button" data-bs-toggle="dropdown" data-toggle="dropdown" aria-expanded="false">

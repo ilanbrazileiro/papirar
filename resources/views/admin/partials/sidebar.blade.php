@@ -8,6 +8,9 @@
         || request()->routeIs('admin.reports.courses.*')
         || request()->routeIs('admin.reports.questions.*')
         || request()->is('admin/reports*');
+    $adminOpenTicketsCount = class_exists(\App\Models\SupportTicket::class)
+        ? \App\Models\SupportTicket::query()->whereIn('status', ['open', 'in_progress'])->count()
+        : 0;
 @endphp
 
 <aside class="main-sidebar sidebar-dark-primary elevation-4">
@@ -115,7 +118,7 @@
                                 </a>
                             </li>
                             <li class="nav-item">
-                                <a href="{{ route('admin.questions.similar.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
+                                <a href="{{ route('admin.questions.similar.index') }}" class="nav-link {{ request()->routeIs('admin.questions.similar.*') ? 'active' : '' }}">
                                     <i class="far fa-circle nav-icon"></i>
                                     <p>Similares</p>
                                 </a>
@@ -183,7 +186,12 @@
                     <li class="nav-item">
                         <a href="{{ route('admin.tickets.index') }}" class="nav-link {{ request()->routeIs('admin.tickets.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-headset"></i>
-                            <p>Suporte</p>
+                            <p>
+                                Suporte
+                                @if($adminOpenTicketsCount > 0)
+                                    <span class="right badge badge-danger">{{ $adminOpenTicketsCount }}</span>
+                                @endif
+                            </p>
                         </a>
                     </li>
                 @endif
@@ -212,15 +220,16 @@
                             </a>
                         </li>
                     @endif
-                    <li class="nav-item">
-                        <li class="nav-item {{ $relatorioMenuOpen ? 'menu-open' : '' }}">
+
+                    <li class="nav-item {{ $relatorioMenuOpen ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $relatorioMenuOpen ? 'active' : '' }}">
                             <i class="nav-icon fas fa-chart-line"></i>
-                            <p>Relatórios
+                            <p>
+                                Relatórios
                                 <i class="right fas fa-angle-left"></i>
                             </p>
                         </a>
-                        <ul class="nav-item nav-treeview">
+                        <ul class="nav nav-treeview">
                             <li class="nav-item">
                                 <a href="{{ route('admin.reports.courses.index') }}" class="nav-link {{ request()->routeIs('admin.reports.courses.*') ? 'active' : '' }}">
                                     <i class="far fa-circle nav-icon"></i>
@@ -235,12 +244,6 @@
                             </li>
                         </ul>
                     </li>
-
- 
-
-
-
-
 
                     @if(Route::has('admin.customers.index'))
                         <li class="nav-item">
