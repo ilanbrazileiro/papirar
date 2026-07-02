@@ -311,4 +311,5 @@
             }
         })();
     </script>
+    @include('admin.questions.snippets.form_shortcuts_topics_js')
 @endpush

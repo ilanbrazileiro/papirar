@@ -3,9 +3,11 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Course;
+use Illuminate\Database\Query\Builder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Collection;
 use Illuminate\View\View;
 
 class ContentDashboardController extends Controller
@@ -15,160 +17,121 @@ class ContentDashboardController extends Controller
         $stats = [
             'questions_total' => $this->countTable('questions'),
             'questions_published' => $this->countWhere('questions', 'status', 'published'),
+            'questions_reviewed' => $this->countWhere('questions', 'status', 'reviewed'),
             'questions_draft' => $this->countWhere('questions', 'status', 'draft'),
+            'courses_total' => $this->countTable('courses'),
+            'courses_active' => $this->countWhere('courses', 'active', true),
+            'courses_public' => $this->countWhere('courses', 'is_public', true),
         ];
 
-        $plannedExams = $this->plannedExamCards();
+        $products = $this->productCards();
 
-        return view('admin.content-dashboard', compact('stats', 'plannedExams'));
+        return view('admin.content-dashboard', compact('stats', 'products'));
     }
 
-    private function plannedExamCards(): Collection
+    private function productCards(): Collection
     {
-        if (! $this->tableExists('exams')) {
+        if (!Schema::hasTable('courses')) {
             return collect();
         }
 
-        $query = DB::table('exams')
-            ->select([
-                'exams.id',
-                'exams.title',
-                'exams.year',
-                'exams.exam_type',
-                'exams.status',
-                'exams.corporation_id',
-            ])
-            ->where('exams.status', 'planned')
-            ->orderByDesc('exams.year')
-            ->orderBy('exams.title');
+        return Course::query()
+            ->with(['corporation:id,name', 'exam:id,title'])
+            ->orderBy('sort_order')
+            ->orderBy('title')
+            ->get()
+            ->map(function (Course $course) {
+                $questionQuery = $this->questionQueryForCourse($course);
 
-        if ($this->tableExists('corporations') && $this->columnExists('exams', 'corporation_id')) {
-            $query->leftJoin('corporations', 'corporations.id', '=', 'exams.corporation_id')
-                ->addSelect('corporations.name as corporation_name');
-        }
+                $course->questions_total = (clone $questionQuery)->count();
+                $course->questions_visible = (clone $questionQuery)
+                    ->whereIn('questions.status', ['published', 'reviewed'])
+                    ->count();
+                $course->questions_draft = (clone $questionQuery)
+                    ->where('questions.status', 'draft')
+                    ->count();
+                $course->subjects_count = $this->courseRelationIds('course_subjects', $course->id, 'subject_id')->count();
+                $course->topics_count = $this->courseRelationIds('course_topics', $course->id, 'topic_id')->count();
+                $course->active_accesses_count = $this->activeAccessCount($course->id);
 
-        return $query->get()->map(function ($exam) {
-            $examSubjectRows = $this->examSubjectsForExam((int) $exam->id);
-            $subjectIds = $examSubjectRows->pluck('subject_id')->filter()->unique()->values()->all();
-            $examSubjectIds = $examSubjectRows->pluck('id')->filter()->unique()->values()->all();
-            $topicIds = $this->topicIdsForExamSubjects($examSubjectIds);
-
-            $exam->subjects_count = count($subjectIds);
-            $exam->topics_count = count($topicIds);
-            $exam->questions_count = $this->countAvailableQuestionsForExam($exam, $subjectIds, $topicIds);
-
-            return $exam;
-        });
+                return $course;
+            });
     }
 
-    private function examSubjectsForExam(int $examId): Collection
+    private function questionQueryForCourse(Course $course): Builder
     {
-        if (! $this->tableExists('exam_subjects')) {
-            return collect();
-        }
-
-        $query = DB::table('exam_subjects')
-            ->select(['id', 'subject_id'])
-            ->where('exam_id', $examId);
-
-        if ($this->columnExists('exam_subjects', 'is_active')) {
-            $query->where('is_active', true);
-        }
-
-        return $query->get();
-    }
-
-    private function topicIdsForExamSubjects(array $examSubjectIds): array
-    {
-        if (empty($examSubjectIds) || ! $this->tableExists('exam_subject_topics')) {
-            return [];
-        }
-
-        $query = DB::table('exam_subject_topics')
-            ->whereIn('exam_subject_id', $examSubjectIds);
-
-        if ($this->columnExists('exam_subject_topics', 'is_active')) {
-            $query->where('is_active', true);
-        }
-
-        return $query->pluck('topic_id')->filter()->unique()->values()->all();
-    }
-
-    private function countAvailableQuestionsForExam(object $exam, array $subjectIds, array $topicIds): int
-    {
-        if (! $this->tableExists('questions')) {
-            return 0;
-        }
-
-        $hasExamId = $this->columnExists('questions', 'exam_id');
-        $hasSubjectId = $this->columnExists('questions', 'subject_id');
-        $hasTopicId = $this->columnExists('questions', 'topic_id');
-        $hasCorporationId = $this->columnExists('questions', 'corporation_id');
-
-        if (! $hasExamId && (empty($subjectIds) || ! $hasSubjectId)) {
-            return 0;
-        }
-
         $query = DB::table('questions');
 
-        if ($this->columnExists('questions', 'status')) {
-            $query->where('status', 'published');
+        if (!empty($course->corporation_id) && Schema::hasColumn('questions', 'corporation_id')) {
+            $query->where(function ($q) use ($course) {
+                $q->whereNull('questions.corporation_id')
+                    ->orWhere('questions.corporation_id', $course->corporation_id);
+            });
         }
 
-        $query->where(function ($where) use ($exam, $subjectIds, $topicIds, $hasExamId, $hasSubjectId, $hasTopicId, $hasCorporationId) {
-            $addedCondition = false;
+        if (!empty($course->exam_id) && Schema::hasColumn('questions', 'exam_id')) {
+            $query->where(function ($q) use ($course) {
+                $q->whereNull('questions.exam_id')
+                    ->orWhere('questions.exam_id', $course->exam_id);
+            });
+        }
 
-            if ($hasExamId) {
-                $where->where('exam_id', (int) $exam->id);
-                $addedCondition = true;
-            }
+        $subjectIds = $this->courseRelationIds('course_subjects', $course->id, 'subject_id');
+        if ($subjectIds->isNotEmpty() && Schema::hasColumn('questions', 'subject_id')) {
+            $query->whereIn('questions.subject_id', $subjectIds);
+        }
 
-            if (! empty($subjectIds) && $hasSubjectId) {
-                $method = $addedCondition ? 'orWhere' : 'where';
+        $topicIds = $this->courseRelationIds('course_topics', $course->id, 'topic_id');
+        if ($topicIds->isNotEmpty() && Schema::hasColumn('questions', 'topic_id')) {
+            $query->whereIn('questions.topic_id', $topicIds);
+        }
 
-                $where->{$method}(function ($subjectQuery) use ($exam, $subjectIds, $topicIds, $hasTopicId, $hasCorporationId) {
-                    $subjectQuery->whereIn('subject_id', $subjectIds);
-
-                    if (! empty($topicIds) && $hasTopicId) {
-                        $subjectQuery->whereIn('topic_id', $topicIds);
-                    }
-
-                    if ($hasCorporationId && ! empty($exam->corporation_id)) {
-                        $subjectQuery->where(function ($corporationQuery) use ($exam) {
-                            $corporationQuery
-                                ->whereNull('corporation_id')
-                                ->orWhere('corporation_id', (int) $exam->corporation_id);
-                        });
-                    }
-                });
-            }
-        });
-
-        return (int) $query->distinct('questions.id')->count('questions.id');
+        return $query;
     }
 
-    private function tableExists(string $table): bool
+    private function courseRelationIds(string $table, int $courseId, string $column): Collection
     {
-        return Schema::hasTable($table);
+        if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
+            return collect();
+        }
+
+        $query = DB::table($table)->where('course_id', $courseId);
+        if (Schema::hasColumn($table, 'is_active')) {
+            $query->where('is_active', true);
+        }
+
+        return $query->pluck($column)->filter()->unique()->values();
     }
 
-    private function columnExists(string $table, string $column): bool
+    private function activeAccessCount(int $courseId): int
     {
-        return $this->tableExists($table) && Schema::hasColumn($table, $column);
+        if (!Schema::hasTable('course_accesses')) {
+            return 0;
+        }
+
+        $query = DB::table('course_accesses')->where('course_id', $courseId);
+
+        if (Schema::hasColumn('course_accesses', 'status')) {
+            $query->where('status', 'active');
+        }
+        if (Schema::hasColumn('course_accesses', 'starts_at')) {
+            $query->where(fn ($q) => $q->whereNull('starts_at')->orWhere('starts_at', '<=', now()));
+        }
+        if (Schema::hasColumn('course_accesses', 'ends_at')) {
+            $query->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()));
+        }
+
+        return (int) $query->count();
     }
 
     private function countTable(string $table): int
     {
-        if (! $this->tableExists($table)) {
-            return 0;
-        }
-
-        return (int) DB::table($table)->count();
+        return Schema::hasTable($table) ? (int) DB::table($table)->count() : 0;
     }
 
     private function countWhere(string $table, string $column, mixed $value): int
     {
-        if (! $this->columnExists($table, $column)) {
+        if (!Schema::hasTable($table) || !Schema::hasColumn($table, $column)) {
             return 0;
         }
 
