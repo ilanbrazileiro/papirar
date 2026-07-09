@@ -337,7 +337,7 @@ class QuestionController extends Controller
                 });
             })
             ->orderBy('name')
-            ->limit(20)
+            ->limit(100)
             ->get()
             ->map(fn ($topic) => [
                 'id' => $topic->id,
