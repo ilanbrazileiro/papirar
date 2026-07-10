@@ -61,10 +61,17 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
+                            <li class="nav-item">
+                                <a href="{{ route('admin.questions.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
+                                    <i class="fas fa-layer-group"></i>
+                                    <p>Todas</p>
+                                </a>
+                            </li>
+
                             @if(Route::has('admin.questions.create'))
                                 <li class="nav-item">
                                     <a href="{{ route('admin.questions.create') }}" class="nav-link {{ request()->routeIs('admin.questions.create') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-plus-circle"></i>
                                         <p>Adicionar</p>
                                     </a>
                                 </li>
@@ -73,30 +80,30 @@
                             @if(Route::has('admin.questions.drafts'))
                                 <li class="nav-item">
                                     <a href="{{ route('admin.questions.drafts') }}" class="nav-link {{ request()->routeIs('admin.questions.drafts') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-edit"></i>
                                         <p>Rascunhos</p>
                                     </a>
                                 </li>
                             @else
                                 <li class="nav-item">
                                     <a href="{{ route('admin.questions.index', ['status' => 'draft']) }}" class="nav-link {{ request('status') === 'draft' ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-edit"></i>
                                         <p>Rascunhos</p>
                                     </a>
                                 </li>
                             @endif
-
-                            <li class="nav-item">
-                                <a href="{{ route('admin.question-video-lessons.index') }}" class="nav-link {{ request()->routeIs('admin.question-video-lessons.*') ? 'active' : '' }}">
-                                    <i class="nav-icon fas fa-video"></i>
-                                    <p>Aulas por questão</p>
-                                </a>
-                            </li>
-
+                            
+                                <li class="nav-item">
+                                    <a href="{{ route('admin.questions.index', ['status' => 'published']) }}" class="nav-link {{ request('status') === 'published' ? 'active' : '' }}">
+                                        <i class="far fa-eye"></i>
+                                        <p>Publicadas</p>
+                                    </a>
+                                </li>
+                            
                             @if(Route::has('admin.questions.import.create'))
                                 <li class="nav-item">
                                     <a href="{{ route('admin.questions.import.create') }}" class="nav-link {{ request()->routeIs('admin.questions.import.*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-file-import"></i>
                                         <p>Importar</p>
                                     </a>
                                 </li>
@@ -105,27 +112,28 @@
                             @if(Route::has('admin.question-import-batches.index'))
                                 <li class="nav-item">
                                     <a href="{{ route('admin.question-import-batches.index') }}" class="nav-link {{ request()->routeIs('admin.question-import-batches.*') ? 'active' : '' }}">
-                                        <i class="far fa-circle nav-icon"></i>
+                                        <i class="fas fa-file-upload"></i>
                                         <p>Importações</p>
                                     </a>
                                 </li>
                             @endif
-
-                            <li class="nav-item">
-                                <a href="{{ route('admin.questions.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
-                                    <i class="far fa-circle nav-icon"></i>
-                                    <p>Todas</p>
-                                </a>
-                            </li>
+                            
                             <li class="nav-item">
                                 <a href="{{ route('admin.questions.similar.index') }}" class="nav-link {{ request()->routeIs('admin.questions.similar.*') ? 'active' : '' }}">
-                                    <i class="far fa-circle nav-icon"></i>
+                                    <i class="fas fa-equals"></i>
                                     <p>Similares</p>
                                 </a>
                             </li>
                         </ul>
                     </li>
                 @endif
+
+                <li class="nav-item">
+                    <a href="{{ route('admin.question-video-lessons.index') }}" class="nav-link {{ request()->routeIs('admin.question-video-lessons.*') ? 'active' : '' }}">
+                        <i class="nav-icon fas fa-video"></i>
+                        <p>Aulas por questão</p>
+                    </a>
+                </li>
 
                 @if(Route::has('admin.subjects.index'))
                     <li class="nav-item">
@@ -149,20 +157,11 @@
                     <li class="nav-item">
                         <a href="{{ route('admin.planned-exams.index') }}" class="nav-link {{ request()->routeIs('admin.planned-exams.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-calendar-check"></i>
-                            <p>Concursos planejados</p>
-                        </a>
-                    </li>
-                @endif
-
-                @if(Route::has('admin.exams.index'))
-                    <li class="nav-item">
-                        <a href="{{ route('admin.exams.index') }}" class="nav-link {{ request()->routeIs('admin.exams.*') ? 'active' : '' }}">
-                            <i class="nav-icon fas fa-clipboard-list"></i>
                             <p>Concursos / Provas</p>
                         </a>
                     </li>
                 @endif
-                
+
                 @if(Route::has('admin.exam-boards.index'))
                     <li class="nav-item">
                         <a href="{{ route('admin.exam-boards.index') }}" class="nav-link {{ request()->routeIs('admin.exam-boards.*') ? 'active' : '' }}">

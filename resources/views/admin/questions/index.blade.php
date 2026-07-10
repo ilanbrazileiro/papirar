@@ -45,30 +45,6 @@
         </div>
     </div>
 
-    @if(session('success'))
-        <div class="alert alert-success alert-dismissible fade show" role="alert">
-            {{ session('success') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-    @endif
-
-    @if(session('error'))
-        <div class="alert alert-danger alert-dismissible fade show" role="alert">
-            {{ session('error') }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Fechar"></button>
-        </div>
-    @endif
-
-    @if($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0">
-                @foreach($errors->all() as $error)
-                    <li>{{ $error }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
-
     <div class="row g-3 mb-3">
         @foreach($statusCards as $card)
             <div class="col-xl col-md-4 col-sm-6">
@@ -228,16 +204,15 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
-                            <th style="width: 40px;">
-                                <input type="checkbox" class="form-check-input" id="select-all-questions">
+                            <th>
+                                <input type="checkbox" id="select-all-questions">
                             </th>
                             <th>ID</th>
+                            <th>Enunciado</th>
                             <th>Disciplina</th>
                             <th>Tópico</th>
-                            <th>Concurso</th>
                             <th>Banca</th>
                             <th>Status</th>
-                            <th>Enunciado</th>
                             <th class="text-end">Ações</th>
                         </tr>
                     </thead>
@@ -245,15 +220,18 @@
                         @foreach($questions as $question)
                             <tr>
                                 <td>
-                                    <input type="checkbox" value="{{ $question->id }}" class="form-check-input question-checkbox">
+                                    <input type="checkbox" value="{{ $question->id }}" class="question-checkbox">
                                 </td>
-                                <td>#{{ $question->id }}</td>
+                                <td>{{ $question->id }}</td>
+                                 <td>
+                                    <div>{{ \Illuminate\Support\Str::limit(strip_tags($question->statement), 120) }}</div>
+                                    <small class="text-muted">Dificuldade: {{ ucfirst($question->difficulty) }}</small>
+                                </td>
                                 <td>
                                     <div>{{ $question->subject->name ?? '-' }}</div>
                                     <small class="text-muted">{{ $question->corporation->name ?? 'Sem corporação' }}</small>
                                 </td>
                                 <td>{{ $question->topic->name ?? '-' }}</td>
-                                <td>{{ $question->exam->title ?? '-' }}</td>
                                 <td>{{ $question->examBoard->name ?? '-' }}</td>
                                 <td>
                                     <span class="badge {{ $statusBadgeClass($question->status) }}">
@@ -269,18 +247,24 @@
                                         <div><small class="text-muted">Oculta para aluno</small></div>
                                     @endif
                                 </td>
-                                <td>
-                                    <div>{{ \Illuminate\Support\Str::limit(strip_tags($question->statement), 120) }}</div>
-                                    <small class="text-muted">Dificuldade: {{ ucfirst($question->difficulty) }}</small>
-                                </td>
+                                
                                 <td class="text-end">
-                                    <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
-                                    <a href="{{ route('admin.questions.edit', $question) }}" class="btn btn-sm btn-outline-primary">Editar</a>
                                     <form action="{{ route('admin.questions.destroy', $question) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja excluir esta questão?');">
                                         @csrf
+                                    
+                                    <div class="btn-group-vertical">
+                                    <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-secondary" title="Ver questão">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{{ route('admin.questions.edit', $question) }}" class="btn btn-primary" title="Editar questão">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
                                         @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-outline-danger">Excluir</button>
+                                        <button type="submit" class="btn btn-danger" title="Deletar questão">
+                                            <i class="far fa-trash-alt"></i>
+                                        </button>
                                     </form>
+                                    </div>
                                 </td>
                             </tr>
                         @endforeach
@@ -289,8 +273,8 @@
             </div>
         </div>
 
-        <div class="mt-3">
-            {{ $questions->links() }}
+       <div class="mt-3 d-flex justify-content-center">
+            {{ $questions->onEachSide(1)->links('pagination::bootstrap-4') }}
         </div>
     @else
         <div class="alert alert-info">
