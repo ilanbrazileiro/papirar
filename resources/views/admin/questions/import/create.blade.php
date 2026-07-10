@@ -8,6 +8,10 @@
     if (! in_array($activeTab, ['file', 'paste'], true)) {
         $activeTab = 'file';
     }
+
+    $newHeader = 'corporation_id;exam_id;subject_id;topic_id;exam_board_id;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter';
+    $headerWithoutExamBoard = 'corporation_id;exam_id;subject_id;topic_id;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter';
+    $legacyHeader = 'corporation_id;exam_id;subject_id;topic_id;statement;question_type;difficulty;source_type;source_reference;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter';
 @endphp
 
 <div class="container-fluid">
@@ -44,6 +48,11 @@
             <a href="{{ route('admin.questions.import.topics-csv') }}" class="btn btn-outline-secondary">Baixar disciplinas/tópicos</a>
             <a href="{{ route('admin.questions.import.source-materials-csv') }}" class="btn btn-outline-secondary">Baixar fontes/materiais</a>
         </div>
+    </div>
+
+    <div class="alert alert-info">
+        <strong>Cabeçalho atual do modelo oficial:</strong>
+        <pre class="bg-light border rounded p-3 small mt-2 mb-0 text-break">{{ $newHeader }}</pre>
     </div>
 
     <div class="card">
@@ -93,7 +102,7 @@
                         @error('csv_content')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="form-text text-muted">Use o mesmo cabeçalho do modelo oficial. Não é necessário criar arquivo para importar.</small>
+                        <small class="form-text text-muted">Use preferencialmente o cabeçalho atual do modelo oficial. O importador também aceita os modelos anteriores.</small>
                     </div>
 
                     <div class="alert alert-warning mb-3">
@@ -101,8 +110,18 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Cabeçalho esperado no modelo novo</label>
-                        <pre class="bg-light border rounded p-3 small mb-0">corporation_id;exam_id;subject_id;topic_id;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter</pre>
+                        <label class="form-label">Cabeçalho esperado no modelo atual</label>
+                        <pre class="bg-light border rounded p-3 small mb-2 text-break">{{ $newHeader }}</pre>
+
+                        <details>
+                            <summary class="small text-muted">Modelos antigos também aceitos</summary>
+                            <div class="mt-2">
+                                <div class="small fw-semibold">Com fonte/material, sem banca:</div>
+                                <pre class="bg-light border rounded p-3 small mb-2 text-break">{{ $headerWithoutExamBoard }}</pre>
+                                <div class="small fw-semibold">Legado:</div>
+                                <pre class="bg-light border rounded p-3 small mb-0 text-break">{{ $legacyHeader }}</pre>
+                            </div>
+                        </details>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Analisar CSV colado</button>

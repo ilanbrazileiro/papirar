@@ -55,6 +55,7 @@ class QuestionCsvImportService
         $batch = QuestionImportBatch::query()->create([
             'user_id' => $userId,
             'filename' => $filename,
+            'original_filename' => $filename,
             'status' => 'validating',
             'total_rows' => 0,
             'valid_rows' => 0,
@@ -62,15 +63,18 @@ class QuestionCsvImportService
             'draft_rows' => 0,
             'duplicate_rows' => 0,
             'error_rows' => 0,
+            'ignored_rows' => 0,
+            'started_at' => now(),
         ]);
 
-        $header = fgetcsv($handle, 0, ';');
+        [$header, $delimiter, $headerLineNumber] = $this->readHeader($handle);
 
         if (!$header) {
             fclose($handle);
             $batch->update([
                 'status' => 'failed',
                 'error_rows' => 1,
+                'finished_at' => now(),
             ]);
 
             QuestionImportBatchRow::query()->create([
@@ -84,40 +88,44 @@ class QuestionCsvImportService
             return $batch;
         }
 
-        $normalizedHeader = array_map(fn ($item) => trim((string) preg_replace('/^\xEF\xBB\xBF/', '', (string) $item)), $header);
-        $headerType = $this->detectHeaderType($normalizedHeader);
+        $normalizedHeader = $this->normalizeHeader($header);
+        $headerSpec = $this->detectHeaderSpec($normalizedHeader);
 
-        if (!$headerType) {
+        if (!$headerSpec) {
             fclose($handle);
             $batch->update([
                 'status' => 'failed',
                 'error_rows' => 1,
+                'finished_at' => now(),
             ]);
 
             QuestionImportBatchRow::query()->create([
                 'batch_id' => $batch->id,
-                'row_number' => 1,
+                'row_number' => $headerLineNumber,
                 'status' => 'error',
                 'raw_data' => [
                     'received_header' => $normalizedHeader,
-                    'expected_header' => $this->expectedHeaderWithSourceMaterial(),
+                    'expected_header_with_exam_board' => $this->expectedHeaderWithExamBoard(),
+                    'expected_header_with_source_material' => $this->expectedHeaderWithSourceMaterial(),
                     'legacy_header' => $this->legacyExpectedHeader(),
+                    'detected_delimiter' => $delimiter,
                 ],
-                'error_message' => 'Cabeçalho do CSV inválido. Baixe e use o modelo oficial.',
+                'error_message' => $this->headerErrorMessage($normalizedHeader, $delimiter),
             ]);
 
             return $batch;
         }
 
-        $expectedHeader = $headerType === 'new' ? $this->expectedHeaderWithSourceMaterial() : $this->legacyExpectedHeader();
-        $line = 1;
+        $expectedHeader = $headerSpec['header'];
+        $headerType = $headerSpec['type'];
+        $line = $headerLineNumber;
         $totalRows = 0;
         $validRows = 0;
         $duplicateRows = 0;
         $errorRows = 0;
         $seenInFile = [];
 
-        while (($row = fgetcsv($handle, 0, ';')) !== false) {
+        while (($row = fgetcsv($handle, 0, $delimiter)) !== false) {
             $line++;
 
             if ($this->isEmptyRow($row)) {
@@ -125,10 +133,15 @@ class QuestionCsvImportService
             }
 
             $totalRows++;
-            $payload = array_combine($expectedHeader, array_pad($row, count($expectedHeader), null));
+            $row = array_slice(array_pad($row, count($expectedHeader), null), 0, count($expectedHeader));
+            $payload = array_combine($expectedHeader, $row);
 
             if ($headerType === 'legacy') {
                 $payload['source_material_id'] = null;
+                $payload['exam_board_id'] = null;
+            }
+
+            if ($headerType === 'source_material') {
                 $payload['exam_board_id'] = null;
             }
 
@@ -192,6 +205,7 @@ class QuestionCsvImportService
             'valid_rows' => $validRows,
             'duplicate_rows' => $duplicateRows,
             'error_rows' => $errorRows,
+            'finished_at' => now(),
         ]);
 
         return $batch->fresh(['rows']);
@@ -319,21 +333,114 @@ class QuestionCsvImportService
         ];
     }
 
-    private function detectHeaderType(array $header): ?string
+    private function readHeader($handle): array
     {
-        if ($header === $this->expectedHeaderWithExamBoard()) {
-            return 'new';
+        $line = 0;
+
+        while (($headerLine = fgets($handle)) !== false) {
+            $line++;
+            $headerLine = trim((string) $headerLine);
+
+            if ($headerLine === '') {
+                continue;
+            }
+
+            $delimiter = $this->detectDelimiter($headerLine);
+            $header = str_getcsv($headerLine, $delimiter);
+
+            return [$header, $delimiter, $line];
         }
 
-        if ($header === $this->expectedHeaderWithSourceMaterial()) {
-            return 'new';
-        }
+        return [null, ';', max(1, $line)];
+    }
 
-        if ($header === $this->legacyExpectedHeader()) {
-            return 'legacy';
+    private function detectDelimiter(string $line): string
+    {
+        $candidates = [
+            ';' => substr_count($line, ';'),
+            ',' => substr_count($line, ','),
+            "\t" => substr_count($line, "\t"),
+        ];
+
+        arsort($candidates);
+        $delimiter = array_key_first($candidates);
+
+        return $candidates[$delimiter] > 0 ? $delimiter : ';';
+    }
+
+    private function normalizeHeader(array $header): array
+    {
+        return array_values(array_map(fn ($item) => $this->normalizeHeaderItem($item), $header));
+    }
+
+    private function normalizeHeaderItem(mixed $item): string
+    {
+        $item = (string) $item;
+        $item = preg_replace('/^\xEF\xBB\xBF/', '', $item);
+        $item = str_replace(["\xC2\xA0", "\u{FEFF}", "\u{200B}", "\u{200C}", "\u{200D}"], ' ', $item);
+        $item = trim($item);
+        $item = trim($item, " \t\n\r\0\x0B\"'");
+        $item = mb_strtolower($item, 'UTF-8');
+
+        return $item;
+    }
+
+    private function detectHeaderSpec(array $header): ?array
+    {
+        $headers = [
+            'exam_board' => $this->expectedHeaderWithExamBoard(),
+            'source_material' => $this->expectedHeaderWithSourceMaterial(),
+            'legacy' => $this->legacyExpectedHeader(),
+        ];
+
+        foreach ($headers as $type => $expectedHeader) {
+            if ($header === $expectedHeader) {
+                return [
+                    'type' => $type,
+                    'header' => $expectedHeader,
+                ];
+            }
         }
 
         return null;
+    }
+
+    private function headerErrorMessage(array $receivedHeader, string $delimiter): string
+    {
+        $expected = $this->expectedHeaderWithExamBoard();
+        $receivedCount = count($receivedHeader);
+        $expectedCount = count($expected);
+        $mismatch = null;
+        $max = max($receivedCount, $expectedCount);
+
+        for ($i = 0; $i < $max; $i++) {
+            $received = $receivedHeader[$i] ?? '[ausente]';
+            $expectedItem = $expected[$i] ?? '[não esperado]';
+
+            if ($received !== $expectedItem) {
+                $mismatch = 'Divergência na coluna '.($i + 1).': recebido "'.$received.'", esperado "'.$expectedItem.'".';
+                break;
+            }
+        }
+
+        return implode(' ', array_filter([
+            'Cabeçalho do CSV inválido.',
+            "Separador detectado: {$this->delimiterLabel($delimiter)}.",
+            "Colunas recebidas: {$receivedCount}. Colunas esperadas no modelo novo: {$expectedCount}.",
+            $mismatch,
+            'Cabeçalho recebido: '.implode(';', $receivedHeader),
+            'Cabeçalho esperado: '.implode(';', $expected),
+        ]));
+    }
+
+    private function delimiterLabel(string $delimiter): string
+    {
+        return match ($delimiter) {
+            ';' => 'ponto e vírgula (;)',
+            ',' => 'vírgula (,)',
+            "\t" => 'tabulação',
+            default => $delimiter,
+        };
     }
 
     private function expectedHeaderWithSourceMaterial(): array
