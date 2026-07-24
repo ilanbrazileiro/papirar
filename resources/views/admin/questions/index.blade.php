@@ -211,6 +211,7 @@
                             <th>Enunciado</th>
                             <th>Disciplina</th>
                             <th>Tópico</th>
+                            <th>Referencia</th>
                             <th>Banca</th>
                             <th>Status</th>
                             <th class="text-end">Ações</th>
@@ -232,6 +233,7 @@
                                     <small class="text-muted">{{ $question->corporation->name ?? 'Sem corporação' }}</small>
                                 </td>
                                 <td>{{ $question->topic->name ?? '-' }}</td>
+                                <td>{{ $question->source_reference ?? '-' }}</td>
                                 <td>{{ $question->examBoard->name ?? '-' }}</td>
                                 <td>
                                     <span class="badge {{ $statusBadgeClass($question->status) }}">
