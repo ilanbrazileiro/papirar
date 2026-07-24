@@ -89,6 +89,7 @@
         </div>
 
         <div class="mb-4 papirar-katex">
+            ({!! $question->source_reference !!}) 
             {!! $question->statement !!}
         </div>
 

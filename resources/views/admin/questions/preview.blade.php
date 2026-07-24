@@ -282,6 +282,7 @@
 
             <div class="question-body">
                 <div class="statement">
+                    ({!! $question->source_reference !!}) 
                     {!! $question->statement !!}
                 </div>
 
