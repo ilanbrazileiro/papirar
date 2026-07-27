@@ -12,6 +12,7 @@ class ExamBoard extends Model
     use HasFactory;
 
     protected $fillable = [
+        'id',
         'name',
         'slug',
         'description',
