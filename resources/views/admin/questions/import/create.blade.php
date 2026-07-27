@@ -9,9 +9,7 @@
         $activeTab = 'file';
     }
 
-    $newHeader = 'corporation_id;exam_id;subject_id;topic_id;exam_board_id;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter';
-    $headerWithoutExamBoard = 'corporation_id;exam_id;subject_id;topic_id;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter';
-    $legacyHeader = 'corporation_id;exam_id;subject_id;topic_id;statement;question_type;difficulty;source_type;source_reference;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter';
+    $officialHeader = 'corporation_id;exam_id;subject_id;topic_id;exam_board_id;exam_board;statement;question_type;difficulty;source_type;source_reference;source_material_id;commented_answer;status;alternative_a;alternative_b;alternative_c;alternative_d;alternative_e;correct_letter';
 @endphp
 
 <div class="container-fluid">
@@ -51,8 +49,8 @@
     </div>
 
     <div class="alert alert-info">
-        <strong>Cabeçalho atual do modelo oficial:</strong>
-        <pre class="bg-light border rounded p-3 small mt-2 mb-0 text-break">{{ $newHeader }}</pre>
+        <strong>Banca organizadora:</strong> agora o CSV aceita <code>exam_board_id</code> ou <code>exam_board</code>.
+        Para facilitar o uso com GPT, você pode deixar <code>exam_board_id</code> vazio e preencher <code>exam_board</code> com o nome cadastrado, por exemplo <code>FGV</code>.
     </div>
 
     <div class="card">
@@ -90,6 +88,11 @@
                         <strong>Fluxo seguro:</strong> o arquivo será analisado primeiro. Na tela seguinte, você verá linhas válidas, erros e duplicidades antes de confirmar a importação. Tudo que for confirmado entrará como <strong>rascunho</strong>.
                     </div>
 
+                    <div class="mb-3">
+                        <label class="form-label">Cabeçalho atual recomendado</label>
+                        <pre class="bg-light border rounded p-3 small mb-0">{{ $officialHeader }}</pre>
+                    </div>
+
                     <button type="submit" class="btn btn-primary">Analisar arquivo CSV</button>
                 </form>
             @else
@@ -102,7 +105,7 @@
                         @error('csv_content')
                             <div class="invalid-feedback">{{ $message }}</div>
                         @enderror
-                        <small class="form-text text-muted">Use preferencialmente o cabeçalho atual do modelo oficial. O importador também aceita os modelos anteriores.</small>
+                        <small class="form-text text-muted">Use o mesmo cabeçalho do modelo oficial. Não é necessário criar arquivo para importar.</small>
                     </div>
 
                     <div class="alert alert-warning mb-3">
@@ -110,18 +113,8 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">Cabeçalho esperado no modelo atual</label>
-                        <pre class="bg-light border rounded p-3 small mb-2 text-break">{{ $newHeader }}</pre>
-
-                        <details>
-                            <summary class="small text-muted">Modelos antigos também aceitos</summary>
-                            <div class="mt-2">
-                                <div class="small fw-semibold">Com fonte/material, sem banca:</div>
-                                <pre class="bg-light border rounded p-3 small mb-2 text-break">{{ $headerWithoutExamBoard }}</pre>
-                                <div class="small fw-semibold">Legado:</div>
-                                <pre class="bg-light border rounded p-3 small mb-0 text-break">{{ $legacyHeader }}</pre>
-                            </div>
-                        </details>
+                        <label class="form-label">Cabeçalho atual recomendado</label>
+                        <pre class="bg-light border rounded p-3 small mb-0">{{ $officialHeader }}</pre>
                     </div>
 
                     <button type="submit" class="btn btn-primary">Analisar CSV colado</button>

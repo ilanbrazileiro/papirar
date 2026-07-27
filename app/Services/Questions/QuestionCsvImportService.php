@@ -4,16 +4,17 @@ namespace App\Services\Questions;
 
 use App\Models\Corporation;
 use App\Models\Exam;
+use App\Models\ExamBoard;
 use App\Models\Question;
 use App\Models\QuestionImportBatch;
 use App\Models\QuestionImportBatchRow;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
-use App\Models\ExamBoard;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use RuntimeException;
 
 class QuestionCsvImportService
@@ -67,58 +68,31 @@ class QuestionCsvImportService
             'started_at' => now(),
         ]);
 
-        [$header, $delimiter, $headerLineNumber] = $this->readHeader($handle);
+        $firstLine = fgets($handle);
 
-        if (!$header) {
+        if ($firstLine === false) {
             fclose($handle);
-            $batch->update([
-                'status' => 'failed',
-                'error_rows' => 1,
-                'finished_at' => now(),
-            ]);
-
-            QuestionImportBatchRow::query()->create([
-                'batch_id' => $batch->id,
-                'row_number' => 1,
-                'status' => 'error',
-                'raw_data' => ['message' => 'CSV vazio ou cabeçalho inválido.'],
-                'error_message' => 'CSV vazio ou cabeçalho inválido.',
-            ]);
-
+            $this->failHeader($batch, ['message' => 'CSV vazio ou cabeçalho inválido.'], 'CSV vazio ou cabeçalho inválido.');
             return $batch;
         }
 
+        $delimiter = $this->detectDelimiter($firstLine);
+        $header = str_getcsv($firstLine, $delimiter);
         $normalizedHeader = $this->normalizeHeader($header);
         $headerSpec = $this->detectHeaderSpec($normalizedHeader);
 
         if (!$headerSpec) {
             fclose($handle);
-            $batch->update([
-                'status' => 'failed',
-                'error_rows' => 1,
-                'finished_at' => now(),
-            ]);
-
-            QuestionImportBatchRow::query()->create([
-                'batch_id' => $batch->id,
-                'row_number' => $headerLineNumber,
-                'status' => 'error',
-                'raw_data' => [
-                    'received_header' => $normalizedHeader,
-                    'expected_header_with_exam_board' => $this->expectedHeaderWithExamBoard(),
-                    'expected_header_with_source_material' => $this->expectedHeaderWithSourceMaterial(),
-                    'legacy_header' => $this->legacyExpectedHeader(),
-                    'detected_delimiter' => $delimiter,
-                ],
-                'error_message' => $this->headerErrorMessage($normalizedHeader, $delimiter),
-            ]);
-
+            $this->failHeader($batch, [
+                'received_header' => $normalizedHeader,
+                'accepted_headers' => $this->acceptedHeaders(),
+            ], $this->invalidHeaderMessage($normalizedHeader));
             return $batch;
         }
 
         $expectedHeader = $headerSpec['header'];
         $headerType = $headerSpec['type'];
-        $line = $headerLineNumber;
+        $line = 1;
         $totalRows = 0;
         $validRows = 0;
         $duplicateRows = 0;
@@ -133,16 +107,21 @@ class QuestionCsvImportService
             }
 
             $totalRows++;
-            $row = array_slice(array_pad($row, count($expectedHeader), null), 0, count($expectedHeader));
-            $payload = array_combine($expectedHeader, $row);
+            $payload = array_combine($expectedHeader, array_pad($row, count($expectedHeader), null));
 
             if ($headerType === 'legacy') {
                 $payload['source_material_id'] = null;
                 $payload['exam_board_id'] = null;
+                $payload['exam_board'] = null;
             }
 
             if ($headerType === 'source_material') {
                 $payload['exam_board_id'] = null;
+                $payload['exam_board'] = null;
+            }
+
+            if ($headerType === 'exam_board_id') {
+                $payload['exam_board'] = null;
             }
 
             try {
@@ -333,35 +312,9 @@ class QuestionCsvImportService
         ];
     }
 
-    private function readHeader($handle): array
-    {
-        $line = 0;
-
-        while (($headerLine = fgets($handle)) !== false) {
-            $line++;
-            $headerLine = trim((string) $headerLine);
-
-            if ($headerLine === '') {
-                continue;
-            }
-
-            $delimiter = $this->detectDelimiter($headerLine);
-            $header = str_getcsv($headerLine, $delimiter);
-
-            return [$header, $delimiter, $line];
-        }
-
-        return [null, ';', max(1, $line)];
-    }
-
     private function detectDelimiter(string $line): string
     {
-        $candidates = [
-            ';' => substr_count($line, ';'),
-            ',' => substr_count($line, ','),
-            "\t" => substr_count($line, "\t"),
-        ];
-
+        $candidates = [';' => substr_count($line, ';'), ',' => substr_count($line, ','), "\t" => substr_count($line, "\t")];
         arsort($candidates);
         $delimiter = array_key_first($candidates);
 
@@ -370,77 +323,105 @@ class QuestionCsvImportService
 
     private function normalizeHeader(array $header): array
     {
-        return array_values(array_map(fn ($item) => $this->normalizeHeaderItem($item), $header));
+        return array_map(fn ($item) => $this->canonicalHeaderName($item), $header);
     }
 
-    private function normalizeHeaderItem(mixed $item): string
+    private function canonicalHeaderName(mixed $value): string
     {
-        $item = (string) $item;
-        $item = preg_replace('/^\xEF\xBB\xBF/', '', $item);
-        $item = str_replace(["\xC2\xA0", "\u{FEFF}", "\u{200B}", "\u{200C}", "\u{200D}"], ' ', $item);
-        $item = trim($item);
-        $item = trim($item, " \t\n\r\0\x0B\"'");
-        $item = mb_strtolower($item, 'UTF-8');
+        $value = (string) $value;
+        $value = preg_replace('/^\xEF\xBB\xBF/', '', $value);
+        $value = str_replace(["\u{FEFF}", "\u{00A0}"], '', $value);
+        $value = trim($value);
+        $value = trim($value, "\"'` ");
+        $value = mb_strtolower($value, 'UTF-8');
+        $value = str_replace(['-', ' '], '_', $value);
+        $value = preg_replace('/_+/', '_', $value);
 
-        return $item;
+        return match ($value) {
+            'banca', 'exam_board', 'exam_board_name', 'nome_banca', 'banca_nome' => 'exam_board',
+            'banca_id', 'exam_board_id', 'id_banca' => 'exam_board_id',
+            'bibliografia_id', 'fonte_id', 'material_id', 'source_material_id' => 'source_material_id',
+            default => $value,
+        };
     }
 
     private function detectHeaderSpec(array $header): ?array
     {
-        $headers = [
-            'exam_board' => $this->expectedHeaderWithExamBoard(),
-            'source_material' => $this->expectedHeaderWithSourceMaterial(),
-            'legacy' => $this->legacyExpectedHeader(),
-        ];
-
-        foreach ($headers as $type => $expectedHeader) {
-            if ($header === $expectedHeader) {
-                return [
-                    'type' => $type,
-                    'header' => $expectedHeader,
-                ];
+        foreach ($this->headerSpecs() as $spec) {
+            if ($header === $spec['header']) {
+                return $spec;
             }
         }
 
         return null;
     }
 
-    private function headerErrorMessage(array $receivedHeader, string $delimiter): string
+    private function headerSpecs(): array
     {
-        $expected = $this->expectedHeaderWithExamBoard();
-        $receivedCount = count($receivedHeader);
-        $expectedCount = count($expected);
-        $mismatch = null;
-        $max = max($receivedCount, $expectedCount);
-
-        for ($i = 0; $i < $max; $i++) {
-            $received = $receivedHeader[$i] ?? '[ausente]';
-            $expectedItem = $expected[$i] ?? '[não esperado]';
-
-            if ($received !== $expectedItem) {
-                $mismatch = 'Divergência na coluna '.($i + 1).': recebido "'.$received.'", esperado "'.$expectedItem.'".';
-                break;
-            }
-        }
-
-        return implode(' ', array_filter([
-            'Cabeçalho do CSV inválido.',
-            "Separador detectado: {$this->delimiterLabel($delimiter)}.",
-            "Colunas recebidas: {$receivedCount}. Colunas esperadas no modelo novo: {$expectedCount}.",
-            $mismatch,
-            'Cabeçalho recebido: '.implode(';', $receivedHeader),
-            'Cabeçalho esperado: '.implode(';', $expected),
-        ]));
+        return [
+            ['type' => 'exam_board_name', 'header' => $this->expectedHeaderWithExamBoardName()],
+            ['type' => 'exam_board_id', 'header' => $this->expectedHeaderWithExamBoard()],
+            ['type' => 'source_material', 'header' => $this->expectedHeaderWithSourceMaterial()],
+            ['type' => 'legacy', 'header' => $this->legacyExpectedHeader()],
+        ];
     }
 
-    private function delimiterLabel(string $delimiter): string
+    private function acceptedHeaders(): array
     {
-        return match ($delimiter) {
-            ';' => 'ponto e vírgula (;)',
-            ',' => 'vírgula (,)',
-            "\t" => 'tabulação',
-            default => $delimiter,
-        };
+        return collect($this->headerSpecs())
+            ->mapWithKeys(fn ($spec) => [$spec['type'] => implode(';', $spec['header'])])
+            ->all();
+    }
+
+    private function invalidHeaderMessage(array $receivedHeader): string
+    {
+        return 'Cabeçalho do CSV inválido. Cabeçalho recebido: '
+            .implode(';', $receivedHeader)
+            .' | Modelo atual: '
+            .implode(';', $this->expectedHeaderWithExamBoardName());
+    }
+
+    private function failHeader(QuestionImportBatch $batch, array $rawData, string $message): void
+    {
+        $batch->update([
+            'status' => 'failed',
+            'error_rows' => 1,
+            'finished_at' => now(),
+        ]);
+
+        QuestionImportBatchRow::query()->create([
+            'batch_id' => $batch->id,
+            'row_number' => 1,
+            'status' => 'error',
+            'raw_data' => $rawData,
+            'error_message' => $message,
+        ]);
+    }
+
+    private function expectedHeaderWithExamBoardName(): array
+    {
+        return [
+            'corporation_id',
+            'exam_id',
+            'subject_id',
+            'topic_id',
+            'exam_board_id',
+            'exam_board',
+            'statement',
+            'question_type',
+            'difficulty',
+            'source_type',
+            'source_reference',
+            'source_material_id',
+            'commented_answer',
+            'status',
+            'alternative_a',
+            'alternative_b',
+            'alternative_c',
+            'alternative_d',
+            'alternative_e',
+            'correct_letter',
+        ];
     }
 
     private function expectedHeaderWithSourceMaterial(): array
@@ -521,7 +502,7 @@ class QuestionCsvImportService
         $examId = isset($row['exam_id']) && trim((string) $row['exam_id']) !== '' ? (int) $row['exam_id'] : null;
         $subjectId = $this->nullableInt($row['subject_id']);
         $topicId = $this->nullableInt($row['topic_id']);
-        $examBoardId = $this->nullableInt($row['exam_board_id'] ?? null);
+        $examBoardId = $this->resolveExamBoardId($row['exam_board_id'] ?? null, $row['exam_board'] ?? null, $line);
         $sourceMaterialId = $this->nullableInt($row['source_material_id'] ?? null);
         $statement = trim((string) $row['statement']);
         $questionType = trim((string) $row['question_type']);
@@ -541,10 +522,6 @@ class QuestionCsvImportService
 
         if ($examId && !Exam::query()->whereKey($examId)->exists()) {
             throw new RuntimeException("Linha {$line}: exam_id inválido ou inexistente.");
-        }
-
-        if ($examBoardId && !ExamBoard::query()->whereKey($examBoardId)->exists()) {
-            throw new RuntimeException("Linha {$line}: exam_board_id inválido ou inexistente.");
         }
 
         if ($topicId && !Topic::query()->whereKey($topicId)->exists()) {
@@ -624,6 +601,47 @@ class QuestionCsvImportService
         ];
     }
 
+    private function resolveExamBoardId(mixed $idValue, mixed $nameValue, int $line): ?int
+    {
+        $idValue = trim((string) ($idValue ?? ''));
+        $nameValue = trim((string) ($nameValue ?? ''));
+
+        if ($idValue !== '') {
+            if (ctype_digit($idValue)) {
+                $id = (int) $idValue;
+                if (!ExamBoard::query()->whereKey($id)->exists()) {
+                    throw new RuntimeException("Linha {$line}: exam_board_id inválido ou inexistente.");
+                }
+                return $id;
+            }
+
+            return $this->findExamBoardByName($idValue, $line);
+        }
+
+        if ($nameValue !== '') {
+            return $this->findExamBoardByName($nameValue, $line);
+        }
+
+        return null;
+    }
+
+    private function findExamBoardByName(string $name, int $line): int
+    {
+        $normalizedName = trim($name);
+        $slug = Str::slug($normalizedName);
+
+        $examBoard = ExamBoard::query()
+            ->where('name', $normalizedName)
+            ->orWhere('slug', $slug)
+            ->first();
+
+        if (!$examBoard) {
+            throw new RuntimeException("Linha {$line}: banca '{$normalizedName}' não encontrada. Cadastre a banca no Admin ou informe exam_board_id válido.");
+        }
+
+        return (int) $examBoard->id;
+    }
+
     private function findExactDuplicateQuestionId(string $normalizedStatement, int $subjectId, ?int $topicId = null): ?int
     {
         if ($normalizedStatement === '') {
@@ -658,13 +676,13 @@ class QuestionCsvImportService
 
     private function nullableInt(mixed $value): ?int
     {
-        $value = trim((string) $value);
+        $value = trim((string) ($value ?? ''));
         return $value === '' ? null : (int) $value;
     }
 
     private function nullableString(mixed $value): ?string
     {
-        $value = trim((string) $value);
+        $value = trim((string) ($value ?? ''));
         return $value === '' ? null : $value;
     }
 
