@@ -46,7 +46,7 @@
                     <tbody>
                         @foreach($examBoards as $examBoard)
                             <tr>
-                                <td>{{ $corporation->id }}</td>
+                                <td>{{ $examBoards->id }}</td>
                                 <td>
                                     <strong>{{ $examBoard->name }}</strong>
                                     @if($examBoard->description)
