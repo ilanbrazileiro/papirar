@@ -32,6 +32,7 @@
                 <table class="table align-middle">
                     <thead>
                         <tr>
+                            <th>ID</th>
                             <th>Nome</th>
                             <th>Slug</th>
                             <th>Status</th>
@@ -42,6 +43,7 @@
                     <tbody>
                         @foreach($corporations as $corporation)
                             <tr>
+                                <td>{{ $corporation->id }}</td>
                                 <td class="fw-semibold">{{ $corporation->name }}</td>
                                 <td>{{ $corporation->slug }}</td>
                                 <td>

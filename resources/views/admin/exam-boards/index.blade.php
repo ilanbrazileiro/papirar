@@ -35,6 +35,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead>
                         <tr>
+                            <td>ID</td>
                             <th>Nome</th>
                             <th>Slug</th>
                             <th>Questões</th>
@@ -45,6 +46,7 @@
                     <tbody>
                         @foreach($examBoards as $examBoard)
                             <tr>
+                                <td>{{ $corporation->id }}</td>
                                 <td>
                                     <strong>{{ $examBoard->name }}</strong>
                                     @if($examBoard->description)
