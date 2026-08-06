@@ -19,6 +19,7 @@ use App\Http\Controllers\Admin\QuestionDuplicateController;
 use App\Http\Controllers\Admin\QuestionBulkStatusController;
 use App\Http\Controllers\Admin\QuestionReportController;
 use App\Http\Controllers\Admin\QuestionSimilarityController;
+use App\Http\Controllers\Admin\CourseQuestionReportController;
 
 use App\Http\Controllers\Admin\CourseController;
 use App\Http\Controllers\Admin\SubjectController;
@@ -221,6 +222,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
                 Route::get('/courses', [CourseReportController::class, 'index'])->name('courses.index');
                 Route::get('/courses/{course}', [CourseReportController::class, 'show'])->name('courses.show');
                 Route::get('/questions', [QuestionReportController::class, 'index'])->name('questions.index');
+                Route::get('/course-questions', [CourseQuestionReportController::class, 'index'])->name('course-questions.index');
             });
 
             Route::get('exams/{exam}/source-materials', [ExamSubjectSourceMaterialController::class, 'edit'])->name('exams.source-materials.edit');

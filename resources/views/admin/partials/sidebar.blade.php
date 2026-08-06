@@ -250,6 +250,13 @@
                                     <p>Questões</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="{{ route('admin.reports.course-questions.index') }}"
+                                class="nav-link {{ request()->routeIs('admin.reports.course-questions.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Questões por Curso</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 
