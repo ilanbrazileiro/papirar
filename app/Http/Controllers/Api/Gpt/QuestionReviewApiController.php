@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\Gpt;
 use App\Http\Controllers\Controller;
 use App\Models\Corporation;
 use App\Models\Exam;
+use App\Models\ExamBoard;
 use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
@@ -21,8 +22,9 @@ class QuestionReviewApiController extends Controller
     {
         return response()->json([
             'ok' => true,
-            'service' => 'Papirar GPT Review API',
-            'version' => '1.0.0',
+            'service' => 'Papirar GPT Content API',
+            'version' => '1.1.0',
+            'mode' => 'read-only',
         ]);
     }
 
@@ -40,6 +42,35 @@ class QuestionReviewApiController extends Controller
                 'name' => $corporation->name,
                 'slug' => $corporation->slug ?? null,
                 'active' => $corporation->active ?? null,
+            ]),
+        ]);
+    }
+
+    public function examBoards(Request $request): JsonResponse
+    {
+        $query = ExamBoard::query()->orderBy('name');
+
+        if ($request->filled('active') && Schema::hasColumn('exam_boards', 'active')) {
+            $query->where('active', $request->boolean('active'));
+        }
+
+        if ($request->filled('q')) {
+            $term = '%' . $request->string('q')->toString() . '%';
+            $query->where(function (Builder $builder) use ($term) {
+                $builder->where('name', 'like', $term);
+                if (Schema::hasColumn('exam_boards', 'description')) {
+                    $builder->orWhere('description', 'like', $term);
+                }
+            });
+        }
+
+        return response()->json([
+            'data' => $query->limit($this->limit($request, 200))->get()->map(fn ($board) => [
+                'id' => $board->id,
+                'name' => $board->name,
+                'slug' => $board->slug ?? null,
+                'description' => $board->description ?? null,
+                'active' => $board->active ?? null,
             ]),
         ]);
     }
@@ -87,8 +118,12 @@ class QuestionReviewApiController extends Controller
             $query->where('active', $request->boolean('active'));
         }
 
+        if ($request->filled('q')) {
+            $query->where('name', 'like', '%' . $request->string('q')->toString() . '%');
+        }
+
         return response()->json([
-            'data' => $query->get()->map(fn ($subject) => [
+            'data' => $query->limit($this->limit($request, 200))->get()->map(fn ($subject) => [
                 'id' => $subject->id,
                 'name' => $subject->name,
                 'slug' => $subject->slug ?? null,
@@ -107,6 +142,10 @@ class QuestionReviewApiController extends Controller
 
         if ($request->filled('active') && Schema::hasColumn('topics', 'active')) {
             $query->where('active', $request->boolean('active'));
+        }
+
+        if ($request->filled('q')) {
+            $query->where('name', 'like', '%' . $request->string('q')->toString() . '%');
         }
 
         return response()->json([
@@ -137,6 +176,10 @@ class QuestionReviewApiController extends Controller
             $query->where('active', $request->boolean('active'));
         }
 
+        if ($request->filled('q')) {
+            $query->where('title', 'like', '%' . $request->string('q')->toString() . '%');
+        }
+
         return response()->json([
             'data' => $query->limit($this->limit($request, 300))->get()->map(fn ($material) => [
                 'id' => $material->id,
@@ -157,7 +200,7 @@ class QuestionReviewApiController extends Controller
     public function questions(Request $request): JsonResponse
     {
         $query = Question::query()
-            ->with(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives'])
+            ->with(['corporation', 'exam', 'examBoard', 'subject', 'topic', 'sourceMaterial', 'alternatives'])
             ->orderByDesc('id');
 
         $this->applyQuestionFilters($query, $request);
@@ -165,7 +208,9 @@ class QuestionReviewApiController extends Controller
         $paginator = $query->paginate($this->limit($request, 50));
 
         return response()->json([
-            'data' => collect($paginator->items())->map(fn (Question $question) => $this->questionPayload($question, false))->values(),
+            'data' => collect($paginator->items())
+                ->map(fn (Question $question) => $this->questionPayload($question, false))
+                ->values(),
             'meta' => [
                 'current_page' => $paginator->currentPage(),
                 'per_page' => $paginator->perPage(),
@@ -177,10 +222,54 @@ class QuestionReviewApiController extends Controller
 
     public function question(Question $question): JsonResponse
     {
-        $question->load(['corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives']);
+        $question->load([
+            'corporation',
+            'exam',
+            'examBoard',
+            'subject',
+            'topic',
+            'sourceMaterial',
+            'alternatives',
+            'comments',
+        ]);
 
         return response()->json([
             'data' => $this->questionPayload($question, true),
+        ]);
+    }
+
+    public function comments(Question $question): JsonResponse
+    {
+        $comments = $question->comments()
+            ->orderByDesc('id')
+            ->get()
+            ->map(fn ($comment) => [
+                'id' => $comment->id,
+                'comment' => $comment->comment,
+                'status' => $comment->status,
+                'created_at' => optional($comment->created_at)->toDateTimeString(),
+                'updated_at' => optional($comment->updated_at)->toDateTimeString(),
+            ])
+            ->values();
+
+        return response()->json([
+            'question_id' => $question->id,
+            'data' => $comments,
+        ]);
+    }
+
+    public function stats(Question $question): JsonResponse
+    {
+        return response()->json([
+            'data' => [
+                'question_id' => $question->id,
+                'comments_count' => $question->comments()->count(),
+                'answers_count' => $question->answers()->count(),
+                'favorites_count' => $question->favorites()->count(),
+                'difficulty_votes_count' => $question->difficultyVotes()->count(),
+                'has_video_lesson' => $question->videoLesson()->exists(),
+                'has_active_video_lesson' => $question->activeVideoLesson()->exists(),
+            ],
         ]);
     }
 
@@ -194,8 +283,11 @@ class QuestionReviewApiController extends Controller
         $normalized = $this->normalizeStatement($validated['statement']);
 
         $matches = Question::query()
-            ->with(['subject', 'topic'])
-            ->when(! empty($validated['ignore_question_id']), fn ($query) => $query->where('id', '!=', (int) $validated['ignore_question_id']))
+            ->with(['examBoard', 'subject', 'topic'])
+            ->when(
+                ! empty($validated['ignore_question_id']),
+                fn ($query) => $query->where('id', '!=', (int) $validated['ignore_question_id'])
+            )
             ->get()
             ->filter(fn (Question $question) => $this->normalizeStatement($question->statement) === $normalized)
             ->take(20)
@@ -203,10 +295,9 @@ class QuestionReviewApiController extends Controller
             ->map(fn (Question $question) => [
                 'id' => $question->id,
                 'status' => $question->status,
-                'subject_id' => $question->subject_id,
-                'subject_name' => $question->subject?->name,
-                'topic_id' => $question->topic_id,
-                'topic_name' => $question->topic?->name,
+                'exam_board' => $this->relationPayload($question->examBoard),
+                'subject' => $this->relationPayload($question->subject),
+                'topic' => $this->relationPayload($question->topic),
                 'statement' => Str::limit(strip_tags($question->statement), 300),
             ]);
 
@@ -219,22 +310,19 @@ class QuestionReviewApiController extends Controller
 
     private function applyQuestionFilters(Builder $query, Request $request): void
     {
-        foreach (['corporation_id', 'exam_id', 'subject_id', 'topic_id', 'source_material_id'] as $field) {
+        foreach (
+            ['corporation_id', 'exam_id', 'exam_board_id', 'subject_id', 'topic_id', 'source_material_id']
+            as $field
+        ) {
             if ($request->filled($field)) {
                 $query->where($field, $request->integer($field));
             }
         }
 
-        if ($request->filled('status')) {
-            $query->where('status', $request->string('status'));
-        }
-
-        if ($request->filled('difficulty')) {
-            $query->where('difficulty', $request->string('difficulty'));
-        }
-
-        if ($request->filled('source_type')) {
-            $query->where('source_type', $request->string('source_type'));
+        foreach (['status', 'difficulty', 'source_type', 'question_type', 'correct_letter'] as $field) {
+            if ($request->filled($field)) {
+                $query->where($field, $request->string($field));
+            }
         }
 
         if ($request->filled('q')) {
@@ -242,7 +330,10 @@ class QuestionReviewApiController extends Controller
             $query->where(function (Builder $builder) use ($term) {
                 $builder->where('statement', 'like', $term)
                     ->orWhere('commented_answer', 'like', $term)
-                    ->orWhere('source_reference', 'like', $term);
+                    ->orWhere('source_reference', 'like', $term)
+                    ->orWhereHas('alternatives', fn (Builder $alternativeQuery) =>
+                        $alternativeQuery->where('text', 'like', $term)
+                    );
             });
         }
 
@@ -259,6 +350,7 @@ class QuestionReviewApiController extends Controller
             'id' => $question->id,
             'corporation' => $this->relationPayload($question->corporation),
             'exam' => $this->relationPayload($question->exam),
+            'exam_board' => $this->relationPayload($question->examBoard),
             'subject' => $this->relationPayload($question->subject),
             'topic' => $this->relationPayload($question->topic),
             'source_material' => $question->sourceMaterial ? [
@@ -274,8 +366,12 @@ class QuestionReviewApiController extends Controller
             'source_reference' => $question->source_reference,
             'status' => $question->status,
             'correct_letter' => $question->correct_letter,
-            'statement' => $includeFullText ? $question->statement : Str::limit(strip_tags($question->statement), 500),
-            'commented_answer' => $includeFullText ? $question->commented_answer : Str::limit(strip_tags((string) $question->commented_answer), 500),
+            'statement' => $includeFullText
+                ? $question->statement
+                : Str::limit(strip_tags($question->statement), 500),
+            'commented_answer' => $includeFullText
+                ? $question->commented_answer
+                : Str::limit(strip_tags((string) $question->commented_answer), 500),
             'alternatives' => $question->alternatives->map(fn ($alternative) => [
                 'id' => $alternative->id,
                 'letter' => $alternative->letter,
