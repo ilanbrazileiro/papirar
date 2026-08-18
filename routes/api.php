@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\Gpt\QuestionReviewApiController;
 use App\Http\Middleware\EnsureGptApiToken;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Billing\MercadoPagoWebhookController;
+use App\Http\Controllers\Api\Gpt\QuestionWriteApiController;
 
 Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle']);
 
@@ -21,7 +22,11 @@ Route::prefix('gpt')
 
         Route::get('/questions', [QuestionReviewApiController::class, 'questions']);
         Route::post('/questions/duplicate-check', [QuestionReviewApiController::class, 'duplicateCheck']);
+        //escita
+        Route::post('/questions', [QuestionWriteApiController::class, 'store']);
+
         Route::get('/questions/{question}', [QuestionReviewApiController::class, 'question']);
         Route::get('/questions/{question}/comments', [QuestionReviewApiController::class, 'comments']);
         Route::get('/questions/{question}/stats', [QuestionReviewApiController::class, 'stats']);
+
     });
