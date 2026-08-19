@@ -10,6 +10,8 @@ class EnsureGptApiToken
 {
     public function handle(Request $request, Closure $next): Response
     {
+        $request->headers->set('Accept', 'application/json');
+
         $configuredToken = trim((string) config('services.gpt_api.token'));
 
         $providedToken = trim((string) $request->bearerToken());

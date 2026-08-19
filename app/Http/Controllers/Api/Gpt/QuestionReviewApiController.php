@@ -23,8 +23,15 @@ class QuestionReviewApiController extends Controller
         return response()->json([
             'ok' => true,
             'service' => 'Papirar GPT Content API',
-            'version' => '1.1.0',
-            'mode' => 'read-only',
+            'version' => '1.3.1',
+            'mode' => 'read-write-controlled',
+            'capabilities' => [
+                'read' => true,
+                'create_questions' => true,
+                'check_duplicates' => true,
+                'create_subjects' => true,
+                'create_topics' => true,
+            ],
         ]);
     }
 
@@ -65,7 +72,7 @@ class QuestionReviewApiController extends Controller
         }
 
         return response()->json([
-            'data' => $query->limit($this->limit($request, 200))->get()->map(fn ($board) => [
+            'data' => $query->limit($this->limit($request, 20))->get()->map(fn ($board) => [
                 'id' => $board->id,
                 'name' => $board->name,
                 'slug' => $board->slug ?? null,
@@ -98,7 +105,7 @@ class QuestionReviewApiController extends Controller
         }
 
         return response()->json([
-            'data' => $query->limit($this->limit($request, 100))->get()->map(fn ($exam) => [
+            'data' => $query->limit($this->limit($request, 20))->get()->map(fn ($exam) => [
                 'id' => $exam->id,
                 'corporation_id' => $exam->corporation_id ?? null,
                 'name' => $exam->name,
@@ -123,7 +130,7 @@ class QuestionReviewApiController extends Controller
         }
 
         return response()->json([
-            'data' => $query->limit($this->limit($request, 200))->get()->map(fn ($subject) => [
+            'data' => $query->limit($this->limit($request, 50))->get()->map(fn ($subject) => [
                 'id' => $subject->id,
                 'name' => $subject->name,
                 'slug' => $subject->slug ?? null,
@@ -149,7 +156,7 @@ class QuestionReviewApiController extends Controller
         }
 
         return response()->json([
-            'data' => $query->limit($this->limit($request, 300))->get()->map(fn ($topic) => [
+            'data' => $query->limit($this->limit($request, 50))->get()->map(fn ($topic) => [
                 'id' => $topic->id,
                 'subject_id' => $topic->subject_id,
                 'subject_name' => $topic->subject?->name,
@@ -181,7 +188,7 @@ class QuestionReviewApiController extends Controller
         }
 
         return response()->json([
-            'data' => $query->limit($this->limit($request, 300))->get()->map(fn ($material) => [
+            'data' => $query->limit($this->limit($request, 30))->get()->map(fn ($material) => [
                 'id' => $material->id,
                 'corporation_id' => $material->corporation_id,
                 'corporation_name' => $material->corporation?->name,
@@ -205,7 +212,7 @@ class QuestionReviewApiController extends Controller
 
         $this->applyQuestionFilters($query, $request);
 
-        $paginator = $query->paginate($this->limit($request, 50));
+        $paginator = $query->paginate($this->limit($request, 10));
 
         return response()->json([
             'data' => collect($paginator->items())
