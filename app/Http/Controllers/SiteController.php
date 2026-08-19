@@ -10,4 +10,9 @@ class SiteController extends Controller
     {
         return view('site/site_home');
     }
+
+    public function privacyPolicy()
+    {
+        return view('site.privacy_policy');
+    }
 }

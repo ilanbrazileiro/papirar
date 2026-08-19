@@ -74,6 +74,7 @@ use App\Http\Middleware\EnsureAdmin;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
+Route::get('/politica-de-privacidade', [SiteController::class, 'privacyPolicy'])->name('site.privacy-policy');
 
 Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('auth.login');

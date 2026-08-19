@@ -50,6 +50,7 @@
                 <span>Concursos internos militares</span>
             </div>
         </div>
+        <a href="{{ route('site.privacy-policy') }}">Política de Privacidade</a>
         <div class="footer-bottom">© {{ date('Y') }} Papirar Concursos. Todos os direitos reservados.</div>
     </footer>
 
