@@ -6,6 +6,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Billing\MercadoPagoWebhookController;
 use App\Http\Controllers\Api\Gpt\QuestionWriteApiController;
 use App\Http\Controllers\Api\Gpt\TaxonomyWriteApiController;
+use App\Http\Controllers\Api\Gpt\QuestionBatchWriteApiController;
 
 Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle']);
 
@@ -33,5 +34,7 @@ Route::prefix('gpt')
         Route::get('/questions/{question}', [QuestionReviewApiController::class, 'question']);
         Route::get('/questions/{question}/comments', [QuestionReviewApiController::class, 'comments']);
         Route::get('/questions/{question}/stats', [QuestionReviewApiController::class, 'stats']);
+
+        Route::post('/questions/batch', [QuestionBatchWriteApiController::class, 'store']);
 
     });
