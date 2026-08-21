@@ -30,7 +30,13 @@ return [
         'webhook_url' => env('MERCADO_PAGO_WEBHOOK_URL'),
         'webhook_secret' => env('MERCADO_PAGO_WEBHOOK_SECRET'),
     ],
+    
     'gpt_api' => [
         'token' => env('GPT_API_TOKEN'),
+    ],
+
+    'analytics' => [
+        'ga4_measurement_id' => env('GA4_MEASUREMENT_ID'),
+        'search_console_verification' => env('GOOGLE_SITE_VERIFICATION'),
     ],
 ];

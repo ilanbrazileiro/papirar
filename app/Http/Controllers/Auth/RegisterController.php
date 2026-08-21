@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\MarketingAttribution;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -50,6 +51,8 @@ class RegisterController extends Controller
                 'email_verified_at' => null,
             ]);
         });
+
+        MarketingAttribution::applyToUser($request, $user);
 
         $user->notify(new VerifyEmailNotification());
 

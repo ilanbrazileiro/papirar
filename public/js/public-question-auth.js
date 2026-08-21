@@ -59,6 +59,12 @@
                 return;
             }
 
+            if (typeof window.gtag === 'function') {
+                window.gtag('event', 'sign_up', {
+                    method: 'public_question_modal'
+                });
+            }
+
             window.location.reload();
         } catch (e) {
             errors.textContent = 'Falha de comunicação. Tente novamente.';

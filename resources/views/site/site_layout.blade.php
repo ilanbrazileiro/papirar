@@ -22,6 +22,30 @@
     <meta property="og:url" content="@yield('canonical', '/')">
     <meta property="og:image" content="{{ asset('images/papirar-logo-full.png') }}">
 
+    @if(config('services.analytics.search_console_verification'))
+        <meta
+            name="google-site-verification"
+            content="{{ config('services.analytics.search_console_verification') }}"
+        >
+    @endif
+
+    @if(config('services.analytics.ga4_measurement_id'))
+        <script
+            async
+            src="https://www.googletagmanager.com/gtag/js?id={{ config('services.analytics.ga4_measurement_id') }}"
+        ></script>
+        <script>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            window.gtag = gtag;
+            gtag('js', new Date());
+            gtag('config', @json(config('services.analytics.ga4_measurement_id')), {
+                anonymize_ip: true
+            });
+        </script>
+    @endif
+
+
     @stack('head')
 </head>
 <body class="@yield('body_class', 'site-page')">
@@ -58,6 +82,7 @@
         <div class="footer-bottom">© {{ date('Y') }} Papirar Concursos. Todos os direitos reservados.</div>
     </footer>
 
+    <script src="{{ asset('js/site-conversion-tracking.js') }}" defer></script>  
     @stack('scripts')
 </body>
 </html>

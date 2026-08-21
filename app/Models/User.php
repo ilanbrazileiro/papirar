@@ -36,6 +36,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'birth_date' => 'date:Y-m-d',
+        'acquisition_captured_at' => 'datetime',
         'force_logout_at' => 'datetime',
         'last_login_at' => 'datetime',
         'is_active' => 'boolean',
