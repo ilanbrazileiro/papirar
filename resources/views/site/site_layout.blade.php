@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>@yield('title', 'Papirar Concursos | Questões para concursos internos militares')</title>
-    <meta name="description" content="@yield('meta_description', 'Papirar Concursos: plataforma de questões para concursos internos militares da PMERJ e CBMERJ, com estudo por concurso previsto, disciplina e tópico.')">
+    <title>@yield('title', 'Papirar Concursos | Estude por questões')</title>
+    <meta name="description" content="@yield('meta_description', 'Estude por questões para concursos militares e policiais no Papirar.')">
+
     <meta name="robots" content="@yield('robots', 'index, follow')">
     <meta name="theme-color" content="#0B1F3A">
 
@@ -35,12 +37,13 @@
         <div class="site-container footer-grid">
             <div>
                 <img src="{{ asset('images/papirar-logo-full.png') }}" alt="Papirar Concursos" class="footer-logo footer-logo-wide">
-                <p>Plataforma de questões para concursos internos militares.</p>
+                <p>Plataforma para estudar por questões em concursos militares e policiais.</p>
             </div>
             <div>
                 <strong>Papirar</strong>
                 <a href="{{ url('/') }}">Início</a>
                 <a href="{{ url('/login') }}">Área do aluno</a>
+                <a href="{{ route('site.questions.index') }}">Questões</a>
                 <a href="https://www.instagram.com/papirar.concursos" target="_blank" rel="noopener">Instagram</a>
             </div>
             <div>
