@@ -86,7 +86,7 @@
                         @if(count($bullets))<ul class="home-course-bullets">@foreach($bullets as $bullet)<li>{{ $bullet }}</li>@endforeach</ul>@endif
                         <div class="home-course-footer">
                             <div><small>A partir de</small><strong>{{ $course->bestCommercialPriceLabel() }}</strong></div>
-                            <a href="{{ $coursesUrl }}" class="home-card-link">Conhecer curso →</a>
+                            <a href="{{ route('site.courses.show', ['slug' => $course->slug]) }}" class="home-card-link">Conhecer curso →</a>
                         </div>
                     </div>
                 </article>

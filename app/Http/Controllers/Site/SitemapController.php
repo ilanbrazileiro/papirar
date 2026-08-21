@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Question;
 use App\Models\Subject;
 use App\Models\Topic;
+use App\Models\Course;
 use App\Support\PublicQuestionUrl;
 use Illuminate\Http\Response;
 
@@ -113,5 +114,20 @@ class SitemapController extends Controller
         return response()
             ->view('site.sitemaps.urlset', ['urls' => $urls])
             ->header('Content-Type', 'application/xml; charset=UTF-8');
+    }
+
+    public function courses(): Response
+    {
+        $urls = Course::query()
+            ->active()
+            ->public()
+            ->orderBy('id')
+            ->get(['id', 'slug', 'updated_at'])
+            ->map(fn (Course $course) => [
+                'loc' => route('site.courses.show', ['slug' => $course->slug]),
+                'lastmod' => optional($course->updated_at)?->toAtomString(),
+            ]);
+
+        return $this->urlset($urls);
     }
 }

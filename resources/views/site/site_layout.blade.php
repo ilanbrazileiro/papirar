@@ -45,6 +45,7 @@
                 <a href="{{ url('/login') }}">Área do aluno</a>
                 <a href="{{ route('site.questions.index') }}">Questões</a>
                 <a href="https://www.instagram.com/papirar.concursos" target="_blank" rel="noopener">Instagram</a>
+                <a href="{{ route('site.privacy-policy') }}">Política de Privacidade</a>
             </div>
             <div>
                 <strong>Concursos</strong>
@@ -53,7 +54,7 @@
                 <span>Concursos internos militares</span>
             </div>
         </div>
-        <a href="{{ route('site.privacy-policy') }}">Política de Privacidade</a>
+        
         <div class="footer-bottom">© {{ date('Y') }} Papirar Concursos. Todos os direitos reservados.</div>
     </footer>
 

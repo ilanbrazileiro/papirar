@@ -14,4 +14,7 @@
         <loc>{{ route('site.sitemaps.questions', ['page' => $page]) }}</loc>
     </sitemap>
 @endfor
+    <sitemap>
+        <loc>{{ route('site.sitemaps.courses') }}</loc>
+    </sitemap>  
 </sitemapindex>

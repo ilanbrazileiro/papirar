@@ -42,6 +42,7 @@ use App\Http\Controllers\Auth\RegisterController;
 use App\Http\Controllers\Auth\VerifyEmailController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 //use App\Http\Controllers\Billing\MercadoPagoWebhookController;
+
 use App\Http\Controllers\SiteController;
 
 use App\Http\Controllers\Student\AccountController;
@@ -66,6 +67,7 @@ use App\Http\Controllers\Student\CourseTrialController;
 use App\Http\Controllers\Site\PublicQuestionController;
 use App\Http\Controllers\Site\PublicQuestionCatalogController;
 use App\Http\Controllers\Site\SitemapController;
+use App\Http\Controllers\Site\PublicCourseController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
@@ -93,6 +95,8 @@ Route::get('/sitemaps/pages.xml', [SitemapController::class, 'pages'])->name('si
 Route::get('/sitemaps/subjects.xml', [SitemapController::class, 'subjects'])->name('site.sitemaps.subjects');
 Route::get('/sitemaps/topics.xml', [SitemapController::class, 'topics'])->name('site.sitemaps.topics');
 Route::get('/sitemaps/questions-{page}.xml', [SitemapController::class, 'questions'])->whereNumber('page')->name('site.sitemaps.questions');
+Route::get('/sitemaps/courses.xml', [SitemapController::class, 'courses'])->name('site.sitemaps.courses');
+Route::get('/cursos/{slug}', [PublicCourseController::class, 'show'])->name('site.courses.show');
 
 Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('auth.login');
