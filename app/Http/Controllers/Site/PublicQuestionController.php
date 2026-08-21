@@ -127,17 +127,24 @@ class PublicQuestionController extends Controller
         }
 
         $request->session()->regenerate();
+
         /** @var User $user */
         $user = Auth::user();
 
         if ($user->isAdmin()) {
             Auth::logout();
-            return response()->json(['message' => 'Use o login administrativo para acessar sua conta.'], 403);
+
+            return response()->json([
+                'message' => 'Use o login administrativo para acessar sua conta.'
+            ], 403);
         }
 
         $this->registerSession($request, $user);
 
-        return response()->json(['success' => true, 'authenticated' => true]);
+        return response()->json([
+            'success' => true,
+            'authenticated' => true
+        ]);
     }
 
     public function answer(Request $request, string $subjectSlug, int $question, string $questionSlug): RedirectResponse
@@ -148,10 +155,15 @@ class PublicQuestionController extends Controller
             'alternative_id' => ['required','integer'],
         ]);
 
-        $selected = $questionModel->alternatives->firstWhere('id', (int)$validated['alternative_id']);
+        $selected = $questionModel->alternatives->firstWhere(
+            'id',
+            (int)$validated['alternative_id']
+        );
 
         if (!$selected) {
-            return back()->withErrors(['alternative_id' => 'A alternativa selecionada não pertence a esta questão.']);
+            return back()->withErrors([
+                'alternative_id' => 'A alternativa selecionada não pertence a esta questão.'
+            ]);
         }
 
         session()->flash('public_question_result', [
@@ -188,7 +200,7 @@ class PublicQuestionController extends Controller
     private function findPublicQuestion(int $id): Question
     {
         return Question::query()
-            ->where('status', Question::STATUS_PUBLISHED)
+            ->visibleToStudent()
             ->with([
                 'alternatives',
                 'subject:id,name,slug',
@@ -202,12 +214,16 @@ class PublicQuestionController extends Controller
 
     private function subjectSlug(Question $question): string
     {
-        return $question->subject?->slug ?: Str::slug($question->subject?->name ?: 'questoes');
+        return $question->subject?->slug
+            ?: Str::slug($question->subject?->name ?: 'questoes');
     }
 
     private function questionSlug(Question $question): string
     {
-        $slug = Str::slug(Str::limit($this->plainText($question->statement), 90, ''));
+        $slug = Str::slug(
+            Str::limit($this->plainText($question->statement), 90, '')
+        );
+
         return $slug !== '' ? $slug : 'questao';
     }
 
@@ -222,9 +238,15 @@ class PublicQuestionController extends Controller
 
     private function plainText(?string $value): string
     {
-        $value = html_entity_decode((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $value = html_entity_decode(
+            (string)$value,
+            ENT_QUOTES | ENT_HTML5,
+            'UTF-8'
+        );
+
         $value = strip_tags($value);
         $value = preg_replace('/\s+/u', ' ', $value) ?: '';
+
         return trim($value);
     }
 }
