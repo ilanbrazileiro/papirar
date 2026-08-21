@@ -68,6 +68,6 @@ class LoginController extends Controller
             return redirect()->route('admin.dashboard');
         }
 
-        return redirect()->route('student.dashboard');
+        return redirect()->intended(route('student.dashboard'));
     }
 }

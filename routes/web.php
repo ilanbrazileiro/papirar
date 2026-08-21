@@ -63,6 +63,8 @@ use App\Http\Controllers\Student\CoursePerformanceController;
 use App\Http\Controllers\Student\CourseFavoriteController;
 use App\Http\Controllers\Student\CourseTrialController;
 
+use App\Http\Controllers\Site\PublicQuestionController;
+
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
 use App\Http\Middleware\EnsureAdminContentAccess;
@@ -75,6 +77,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
 Route::get('/politica-de-privacidade', [SiteController::class, 'privacyPolicy'])->name('site.privacy-policy');
+
+Route::get('/questoes/{subjectSlug}/{question}/{questionSlug}',[PublicQuestionController::class, 'show'])->name('site.questions.show');
+Route::post('/questoes/autenticacao/cadastro',[PublicQuestionController::class, 'registerModal'])->name('site.questions.modal-register');
+Route::post('/questoes/autenticacao/login',[PublicQuestionController::class, 'loginModal'])->name('site.questions.modal-login');
 
 Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('auth.login');
@@ -95,6 +101,8 @@ Route::get('/email/verificar/{id}/{hash}', [VerifyEmailController::class, 'verif
 Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(function () {
     Route::post('/logout', [LogoutController::class, 'store'])->name('auth.logout');
     Route::post('/email/verificar/reenviar', [VerifyEmailController::class, 'resend'])->name('auth.verification.resend');
+
+    Route::post('/questoes/{subjectSlug}/{question}/{questionSlug}/responder',[PublicQuestionController::class, 'answer'])->name('site.questions.answer');
 
     Route::prefix('aluno')->name('student.')->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');

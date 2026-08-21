@@ -76,7 +76,7 @@ class RegisterController extends Controller
         $request->session()->put('auth_session_token', $sessionToken);
 
         return redirect()
-            ->route('student.dashboard')
-            ->with('success', 'Cadastro realizado com sucesso. Confirme seu e-mail e escolha um curso para começar.');
+        ->intended(route('student.dashboard'))
+        ->with('success', 'Cadastro realizado com sucesso. Confirme seu e-mail para manter sua conta protegida.');
     }
 }

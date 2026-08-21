@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Gpt\QuestionWriteApiController;
 use App\Http\Controllers\Api\Gpt\TaxonomyWriteApiController;
 use App\Http\Controllers\Api\Gpt\QuestionBatchWriteApiController;
 use App\Http\Controllers\Api\Gpt\QuestionReviewerApiController;
+use App\Http\Controllers\Api\Gpt\QuestionTaxonomyReviewApiController;
 
 Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle']);
 
@@ -40,5 +41,10 @@ Route::prefix('gpt')
 
         //revisor
         Route::patch('/questions/{question}/review-publish', [QuestionReviewerApiController::class, 'reviewAndPublish']);
+        Route::get('/taxonomy/review', [QuestionTaxonomyReviewApiController::class, 'reviewTaxonomy']);
+        Route::patch('/questions/{question}/classification', [QuestionTaxonomyReviewApiController::class, 'updateQuestionClassification']);
+        Route::patch('/topics/{topic}/move', [QuestionTaxonomyReviewApiController::class, 'moveTopic']);
+        Route::post('/topics/{sourceTopic}/merge', [QuestionTaxonomyReviewApiController::class, 'mergeTopic']);
+        Route::post('/subjects/{sourceSubject}/merge', [QuestionTaxonomyReviewApiController::class, 'mergeSubject']);
 
     });
