@@ -9,6 +9,7 @@
 
 @push('head')
 <link rel="stylesheet" href="{{ asset('css/public-question.css') }}">
+<link rel="stylesheet" href="{{ asset('css/questions-catalog.css') }}">
 <meta name="csrf-token" content="{{ csrf_token() }}">
 @endpush
 
@@ -94,6 +95,27 @@
                         @endif
                     @endif
                 @endguest
+
+                @if(!empty($relatedQuestions) && $relatedQuestions->isNotEmpty())
+                <section class="related-questions">
+                    <span class="gate-kicker">Continue praticando</span>
+                    <h2>Questões relacionadas</h2>
+
+                    <div class="question-list-public">
+                        @foreach($relatedQuestions as $related)
+                            <a href="{{ $related['url'] }}" class="related-question-link">
+                                <strong>{{ $related['subject'] }}</strong>
+                                @if($related['topic'])
+                                    <span>{{ $related['topic'] }}</span>
+                                @endif
+                                <em>Ver questão →</em>
+                            </a>
+                        @endforeach
+                    </div>
+                </section>
+                @endif
+
+
             </article>
         </main>
     </div>

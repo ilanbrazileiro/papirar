@@ -10,6 +10,7 @@
 
         <nav class="site-nav" aria-label="Menu principal">
             <a href="{{ url('/') }}#como-funciona">Como funciona</a>
+            <a href="{{ route('site.questions.index') }}">Questões</a>
             <a href="{{ url('/') }}#concursos">Concursos</a>
             <a href="{{ url('/') }}#diferenciais">Diferenciais</a>
             <a href="{{ url('/') }}#planos">Planos</a>

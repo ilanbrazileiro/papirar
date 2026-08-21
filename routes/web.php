@@ -64,6 +64,8 @@ use App\Http\Controllers\Student\CourseFavoriteController;
 use App\Http\Controllers\Student\CourseTrialController;
 
 use App\Http\Controllers\Site\PublicQuestionController;
+use App\Http\Controllers\Site\PublicQuestionCatalogController;
+use App\Http\Controllers\Site\SitemapController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
@@ -78,9 +80,19 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [SiteController::class, 'home'])->name('site.home');
 Route::get('/politica-de-privacidade', [SiteController::class, 'privacyPolicy'])->name('site.privacy-policy');
 
-Route::get('/questoes/{subjectSlug}/{question}/{questionSlug}',[PublicQuestionController::class, 'show'])->name('site.questions.show');
+Route::get('/questoes', [PublicQuestionCatalogController::class, 'index'])->name('site.questions.index');
+Route::get('/questoes/{subjectSlug}', [PublicQuestionCatalogController::class, 'subject'])->name('site.questions.subject');
+Route::get('/questoes/{subjectSlug}/{topicSlug}', [PublicQuestionCatalogController::class, 'topic'])->name('site.questions.topic');
+
+Route::get('/questoes/{subjectSlug}/{question}/{questionSlug}',[PublicQuestionController::class, 'show'])->whereNumber('question')->name('site.questions.show');
 Route::post('/questoes/autenticacao/cadastro',[PublicQuestionController::class, 'registerModal'])->name('site.questions.modal-register');
 Route::post('/questoes/autenticacao/login',[PublicQuestionController::class, 'loginModal'])->name('site.questions.modal-login');
+
+Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('site.sitemap');
+Route::get('/sitemaps/pages.xml', [SitemapController::class, 'pages'])->name('site.sitemaps.pages');
+Route::get('/sitemaps/subjects.xml', [SitemapController::class, 'subjects'])->name('site.sitemaps.subjects');
+Route::get('/sitemaps/topics.xml', [SitemapController::class, 'topics'])->name('site.sitemaps.topics');
+Route::get('/sitemaps/questions-{page}.xml', [SitemapController::class, 'questions'])->whereNumber('page')->name('site.sitemaps.questions');
 
 Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('auth.login');

@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Notifications\VerifyEmailNotification;
+use App\Support\PublicQuestionUrl;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -23,11 +24,11 @@ class PublicQuestionController extends Controller
     {
         $questionModel = $this->findPublicQuestion($question);
 
-        $canonicalSubjectSlug = $this->subjectSlug($questionModel);
-        $canonicalQuestionSlug = $this->questionSlug($questionModel);
+        $canonicalSubjectSlug = PublicQuestionUrl::subjectSlug($questionModel);
+        $canonicalQuestionSlug = PublicQuestionUrl::questionSlug($questionModel);
 
         if ($subjectSlug !== $canonicalSubjectSlug || $questionSlug !== $canonicalQuestionSlug) {
-            return redirect()->to($this->publicUrl($questionModel), 301);
+            return redirect()->to(PublicQuestionUrl::url($questionModel), 301);
         }
 
         $result = session('public_question_result');
@@ -71,14 +72,34 @@ class PublicQuestionController extends Controller
             ''
         );
 
+        $relatedQuestions = Question::query()
+            ->visibleToStudent()
+            ->whereKeyNot($questionModel->id)
+            ->when(
+                $questionModel->topic_id,
+                fn ($query) => $query->where('topic_id', $questionModel->topic_id),
+                fn ($query) => $query->where('subject_id', $questionModel->subject_id)
+            )
+            ->with(['subject:id,name,slug', 'topic:id,name,slug'])
+            ->latest('id')
+            ->limit(5)
+            ->get()
+            ->map(fn (Question $related) => [
+                'id' => $related->id,
+                'url' => PublicQuestionUrl::url($related),
+                'subject' => $related->subject?->name,
+                'topic' => $related->topic?->name,
+            ]);
+
         return view('site.questions.show', [
             'question' => $questionModel,
             'alternatives' => $alternatives,
-            'canonicalUrl' => $this->publicUrl($questionModel),
+            'canonicalUrl' => PublicQuestionUrl::url($questionModel),
             'seoTitle' => $seoTitle,
             'seoDescription' => $seoDescription,
             'showResult' => $showResult,
             'answerWasCorrect' => $showResult ? (bool)($result['is_correct'] ?? false) : null,
+            'relatedQuestions' => $relatedQuestions,
         ]);
     }
 
@@ -127,7 +148,6 @@ class PublicQuestionController extends Controller
         }
 
         $request->session()->regenerate();
-
         /** @var User $user */
         $user = Auth::user();
 
@@ -141,10 +161,7 @@ class PublicQuestionController extends Controller
 
         $this->registerSession($request, $user);
 
-        return response()->json([
-            'success' => true,
-            'authenticated' => true
-        ]);
+        return response()->json(['success' => true, 'authenticated' => true]);
     }
 
     public function answer(Request $request, string $subjectSlug, int $question, string $questionSlug): RedirectResponse
@@ -155,10 +172,7 @@ class PublicQuestionController extends Controller
             'alternative_id' => ['required','integer'],
         ]);
 
-        $selected = $questionModel->alternatives->firstWhere(
-            'id',
-            (int)$validated['alternative_id']
-        );
+        $selected = $questionModel->alternatives->firstWhere('id', (int)$validated['alternative_id']);
 
         if (!$selected) {
             return back()->withErrors([
@@ -172,7 +186,7 @@ class PublicQuestionController extends Controller
             'is_correct' => (bool)$selected->is_correct,
         ]);
 
-        return redirect()->to($this->publicUrl($questionModel));
+        return redirect()->to(PublicQuestionUrl::url($questionModel));
     }
 
     private function registerSession(Request $request, User $user): void
@@ -212,38 +226,9 @@ class PublicQuestionController extends Controller
             ->findOrFail($id);
     }
 
-    private function subjectSlug(Question $question): string
-    {
-        return $question->subject?->slug
-            ?: Str::slug($question->subject?->name ?: 'questoes');
-    }
-
-    private function questionSlug(Question $question): string
-    {
-        $slug = Str::slug(
-            Str::limit($this->plainText($question->statement), 90, '')
-        );
-
-        return $slug !== '' ? $slug : 'questao';
-    }
-
-    private function publicUrl(Question $question): string
-    {
-        return route('site.questions.show', [
-            'subjectSlug' => $this->subjectSlug($question),
-            'question' => $question->id,
-            'questionSlug' => $this->questionSlug($question),
-        ]);
-    }
-
     private function plainText(?string $value): string
     {
-        $value = html_entity_decode(
-            (string)$value,
-            ENT_QUOTES | ENT_HTML5,
-            'UTF-8'
-        );
-
+        $value = html_entity_decode((string)$value, ENT_QUOTES | ENT_HTML5, 'UTF-8');
         $value = strip_tags($value);
         $value = preg_replace('/\s+/u', ' ', $value) ?: '';
 
