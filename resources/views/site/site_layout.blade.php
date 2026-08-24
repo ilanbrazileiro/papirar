@@ -29,22 +29,7 @@
         >
     @endif
 
-    @if(config('services.analytics.ga4_measurement_id'))
-        <script
-            async
-            src="https://www.googletagmanager.com/gtag/js?id={{ config('services.analytics.ga4_measurement_id') }}"
-        ></script>
-        <script>
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            window.gtag = gtag;
-            gtag('js', new Date());
-            gtag('config', @json(config('services.analytics.ga4_measurement_id')), {
-                anonymize_ip: true
-            });
-        </script>
-    @endif
-
+    @include('components.google-analytics')
 
     @stack('head')
 </head>

@@ -68,6 +68,15 @@ class CourseTrialController extends Controller
             'bonus_days' => 0,
         ]);
 
+        session()->flash('ga4_event', [
+            'name' => 'start_trial',
+            'params' => [
+                'course_id' => (int) $course->id,
+                'course_name' => (string) $course->title,
+                'trial_days' => (int) $trialDays,
+            ],
+        ]);
+
         return redirect()
             ->route('student.courses.show', $course)
             ->with('success', "Teste gratuito liberado por {$trialDays} dias.");

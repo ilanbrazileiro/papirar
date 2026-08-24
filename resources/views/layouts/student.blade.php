@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Papirar')</title>
 
+    @include('components.google-analytics')
+
     <link rel="stylesheet" href="{{ asset('assets/bootstrap/css/bootstrap.min.css') }}">
 
     <style>
@@ -471,6 +473,7 @@
 <script src="{{ asset('assets/katex/katex.min.js') }}"></script>
 <script src="{{ asset('assets/katex/contrib/auto-render.min.js') }}"></script>
 <script src="{{ asset('js/papirar-katex.js') }}"></script>
+<script src="{{ asset('js/student-conversion-tracking.js') }}" defer></script>
 @stack('scripts')
 </body>
 </html>

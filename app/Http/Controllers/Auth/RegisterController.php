@@ -78,6 +78,13 @@ class RegisterController extends Controller
 
         $request->session()->put('auth_session_token', $sessionToken);
 
+        $request->session()->flash('ga4_event', [
+            'name' => 'sign_up',
+            'params' => [
+                'method' => 'email',
+            ],
+        ]);
+
         return redirect()
         ->intended(route('student.dashboard'))
         ->with('success', 'Cadastro realizado com sucesso. Confirme seu e-mail para manter sua conta protegida.');
