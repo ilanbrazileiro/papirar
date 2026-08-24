@@ -10,6 +10,7 @@ use App\Http\Controllers\Api\Gpt\QuestionBatchWriteApiController;
 use App\Http\Controllers\Api\Gpt\QuestionReviewerApiController;
 use App\Http\Controllers\Api\Gpt\QuestionTaxonomyReviewApiController;
 use App\Http\Controllers\Api\Gpt\MarketingReadApiController;
+use App\Http\Controllers\Api\Gpt\Ga4MarketingApiController;
 use App\Http\Middleware\EnsureMarketingGptApiToken;
 
 Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle']);
@@ -59,4 +60,11 @@ Route::prefix('gpt')
             Route::get('/acquisition', [MarketingReadApiController::class, 'acquisition']);
             Route::get('/courses', [MarketingReadApiController::class, 'courses']);
             Route::get('/revenue', [MarketingReadApiController::class, 'revenue']);
+
+            Route::get('/ga4/health', [Ga4MarketingApiController::class, 'health']);
+            Route::get('/ga4/overview', [Ga4MarketingApiController::class, 'overview']);
+            Route::get('/ga4/acquisition', [Ga4MarketingApiController::class, 'acquisition']);
+            Route::get('/ga4/landing-pages', [Ga4MarketingApiController::class, 'landingPages']);
+            Route::get('/ga4/events', [Ga4MarketingApiController::class, 'events']);
+
     });

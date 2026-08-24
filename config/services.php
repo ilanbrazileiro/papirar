@@ -37,6 +37,8 @@ return [
 
     'analytics' => [
         'ga4_measurement_id' => env('GA4_MEASUREMENT_ID'),
+        'ga4_property_id' => env('GA4_PROPERTY_ID'),
+        'ga4_credentials_path' => env('GA4_CREDENTIALS_PATH'),
         'search_console_verification' => env('GOOGLE_SITE_VERIFICATION'),
     ],
 
