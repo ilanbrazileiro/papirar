@@ -39,4 +39,8 @@ return [
         'ga4_measurement_id' => env('GA4_MEASUREMENT_ID'),
         'search_console_verification' => env('GOOGLE_SITE_VERIFICATION'),
     ],
+
+    'marketing_gpt_api' => [
+        'token' => env('MARKETING_GPT_API_TOKEN'),
+    ],
 ];

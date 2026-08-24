@@ -9,6 +9,8 @@ use App\Http\Controllers\Api\Gpt\TaxonomyWriteApiController;
 use App\Http\Controllers\Api\Gpt\QuestionBatchWriteApiController;
 use App\Http\Controllers\Api\Gpt\QuestionReviewerApiController;
 use App\Http\Controllers\Api\Gpt\QuestionTaxonomyReviewApiController;
+use App\Http\Controllers\Api\Gpt\MarketingReadApiController;
+use App\Http\Middleware\EnsureMarketingGptApiToken;
 
 Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle']);
 
@@ -47,4 +49,14 @@ Route::prefix('gpt')
         Route::post('/topics/{sourceTopic}/merge', [QuestionTaxonomyReviewApiController::class, 'mergeTopic']);
         Route::post('/subjects/{sourceSubject}/merge', [QuestionTaxonomyReviewApiController::class, 'mergeSubject']);
 
+    });
+
+    Route::prefix('gpt/marketing')
+        ->middleware([EnsureMarketingGptApiToken::class])
+        ->group(function () {
+            Route::get('/health', [MarketingReadApiController::class, 'health']);
+            Route::get('/funnel', [MarketingReadApiController::class, 'funnel']);
+            Route::get('/acquisition', [MarketingReadApiController::class, 'acquisition']);
+            Route::get('/courses', [MarketingReadApiController::class, 'courses']);
+            Route::get('/revenue', [MarketingReadApiController::class, 'revenue']);
     });
