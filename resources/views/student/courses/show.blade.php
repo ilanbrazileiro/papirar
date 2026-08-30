@@ -315,7 +315,7 @@
             </a>
 
             <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">
-                Estudar agora
+                Responder Questões
             </a>
         </div>
     </div>
