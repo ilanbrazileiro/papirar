@@ -31,6 +31,46 @@
         margin-top: .15rem;
     }
 
+    .course-header-main {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        min-width: 0;
+    }
+
+    .course-header-cover {
+        width: 120px;
+        aspect-ratio: 16 / 9;
+        flex: 0 0 120px;
+        overflow: hidden;
+        border-radius: 14px;
+        background: #0f2344;
+        border: 1px solid rgba(15, 35, 68, .08);
+        box-shadow: 0 8px 20px rgba(15, 35, 68, .10);
+    }
+
+    .course-header-cover img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .course-header-cover-placeholder {
+        width: 100%;
+        height: 100%;
+        display: grid;
+        place-items: center;
+        background: linear-gradient(135deg, #0f2344, #173b72);
+        color: #f4c542;
+        font-size: 1.45rem;
+        font-weight: 900;
+    }
+
+    .course-header-text {
+        min-width: 0;
+    }
+
     .course-mobile-action {
         display: none;
     }
@@ -62,20 +102,61 @@
         .course-header-actions {
             display: none !important;
         }
+
+        .course-header-main {
+            gap: .75rem;
+            align-items: flex-start;
+        }
+
+        .course-header-cover {
+            width: 88px;
+            flex-basis: 88px;
+            border-radius: 12px;
+        }
+
+        .course-header-text .page-title {
+            font-size: 1.45rem;
+            line-height: 1.15;
+        }
+
+        .course-header-text .page-subtitle {
+            font-size: .9rem;
+        }
+    }
+
+    @media (max-width: 389.98px) {
+        .course-header-main {
+            align-items: center;
+        }
+
+        .course-header-cover {
+            width: 76px;
+            flex-basis: 76px;
+        }
     }
 </style>
 @endpush
 
 @section('content')
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
-        <div>
-            <h1 class="page-title">{{ $course->title }}</h1>
-            <p class="page-subtitle">{{ $course->short_description ?: 'Curso liberado para estudo por questões.' }}</p>
+        <div class="course-header-main">
+            <div class="course-header-cover">
+                @if($course->coverImageUrl())
+                    <img src="{{ $course->coverImageUrl() }}" alt="Capa do curso {{ $course->title }}">
+                @else
+                    <div class="course-header-cover-placeholder">P</div>
+                @endif
+            </div>
 
-            <div class="small-muted mt-1">
-                Acesso: <strong>{{ $access->accessTypeLabel() }}</strong> ·
-                Status: <strong>{{ $access->statusLabel() }}</strong> ·
-                Até: <strong>{{ $access->ends_at ? $access->ends_at->format('d/m/Y') : 'Sem limite' }}</strong>
+            <div class="course-header-text">
+                <h1 class="page-title">{{ $course->title }}</h1>
+                <p class="page-subtitle">{{ $course->short_description ?: 'Curso liberado para estudo por questões.' }}</p>
+
+                <div class="small-muted mt-1">
+                    Acesso: <strong>{{ $access->accessTypeLabel() }}</strong> ·
+                    Status: <strong>{{ $access->statusLabel() }}</strong> ·
+                    Até: <strong>{{ $access->ends_at ? $access->ends_at->format('d/m/Y') : 'Sem limite' }}</strong>
+                </div>
             </div>
         </div>
 
@@ -247,7 +328,7 @@
                 <div class="section-title">Ações</div>
 
                 <div class="d-grid gap-2">
-                    <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">Iniciar estudo</a>
+                    <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">Responder Questões</a>
                     <a href="{{ route('student.courses.simulated.index', $course) }}" class="btn btn-outline-primary">Criar simulado</a>
                     <a href="{{ route('student.courses.performance', $course) }}" class="btn btn-outline-primary">Ver desempenho</a>
                     <a href="{{ route('student.courses.favorites.index', $course) }}" class="btn btn-outline-warning">Questões favoritas</a>
@@ -311,7 +392,7 @@
     <div class="course-mobile-action d-md-none">
         <div class="course-mobile-action-inner">
             <a href="{{ route('student.courses.simulated.index', $course) }}" class="btn btn-outline-primary">
-                Simulado
+                Criar Simulado
             </a>
 
             <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">
