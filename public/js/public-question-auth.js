@@ -5,6 +5,7 @@
 
     const close = document.getElementById('authModalClose');
     const config = window.PapirarPublicQuestionAuth || {};
+    const questionForm = document.getElementById('publicQuestionForm');
 
     function setMode(mode) {
         document.querySelectorAll('[data-auth-tab]').forEach(el => el.classList.toggle('is-active', el.dataset.authTab === mode));
@@ -65,7 +66,7 @@
                 });
             }
 
-            window.location.reload();
+            window.location.href = config.continueUrl || window.location.href;
         } catch (e) {
             errors.textContent = 'Falha de comunicação. Tente novamente.';
             errors.classList.add('is-visible');
@@ -90,4 +91,19 @@
         e.preventDefault();
         send(e.currentTarget, config.loginUrl, 'login');
     });
+
+    questionForm?.addEventListener('submit', e => {
+        if (!config.gateReached && questionForm.dataset.guestLimitReached !== '1') return;
+
+        e.preventDefault();
+
+        if (!questionForm.querySelector('input[name="alternative_id"]:checked')) {
+            questionForm.reportValidity();
+            return;
+        }
+
+        open('register');
+    });
+
+    if (config.openOnLoad) open('register');
 })();

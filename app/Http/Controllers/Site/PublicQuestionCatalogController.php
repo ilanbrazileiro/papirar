@@ -18,27 +18,19 @@ class PublicQuestionCatalogController extends Controller
         $subjects = Subject::query()
             ->where('active', true)
             ->whereHas('questions', fn ($query) => $query->visibleToStudent())
-            ->withCount([
-                'questions as public_questions_count' => fn ($query) => $query->visibleToStudent(),
+            ->with([
+                'latestPublicQuestion.subject:id,name,slug',
+                'topics' => fn ($query) => $query
+                    ->where('active', true)
+                    ->whereHas('questions', fn ($questions) => $questions->visibleToStudent())
+                    ->with('latestPublicQuestion.subject:id,name,slug')
+                    ->orderBy('name'),
             ])
-            ->orderByDesc('public_questions_count')
             ->orderBy('name')
             ->get();
 
-        $latestQuestions = Question::query()
-            ->visibleToStudent()
-            ->with(['subject:id,name,slug', 'topic:id,name,slug'])
-            ->latest('id')
-            ->limit(20)
-            ->get()
-            ->map(fn (Question $question) => $this->questionCard($question));
-
-        $totalQuestions = Question::query()->visibleToStudent()->count();
-
         return view('site.questions.index', [
             'subjects' => $subjects,
-            'latestQuestions' => $latestQuestions,
-            'totalQuestions' => $totalQuestions,
             'canonicalUrl' => route('site.questions.index'),
         ]);
     }

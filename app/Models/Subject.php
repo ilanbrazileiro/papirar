@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 class Subject extends Model
 {
@@ -34,6 +35,13 @@ class Subject extends Model
     public function questions(): HasMany
     {
         return $this->hasMany(Question::class);
+    }
+
+    public function latestPublicQuestion(): HasOne
+    {
+        return $this->hasOne(Question::class)
+            ->visibleToStudent()
+            ->latestOfMany();
     }
 
     public function studySessions(): HasMany

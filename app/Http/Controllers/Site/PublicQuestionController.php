@@ -35,6 +35,19 @@ class PublicQuestionController extends Controller
         $result = session('public_question_result');
         $showResult = is_array($result) && (int)($result['question_id'] ?? 0) === $questionModel->id;
         $selectedAlternativeId = $showResult ? (int)($result['selected_alternative_id'] ?? 0) : null;
+        $guestAnsweredQuestionIds = $this->guestAnsweredQuestionIds($request);
+        $publicQuestionResults = $this->publicQuestionResults($request);
+        $publicAnsweredQuestionIds = array_map('intval', array_keys($publicQuestionResults));
+        $publicAnsweredCount = count($publicQuestionResults);
+        $publicCorrectCount = count(array_filter($publicQuestionResults));
+        $publicAccuracy = $publicAnsweredCount > 0
+            ? (int) round(($publicCorrectCount / $publicAnsweredCount) * 100)
+            : 0;
+        $guestAnswerLimit = max(0, (int) config('public_questions.guest_answer_limit', 5));
+        $guestHasAnsweredQuestion = in_array($questionModel->id, $guestAnsweredQuestionIds, true);
+        $guestLimitReached = Auth::guest()
+            && ! $guestHasAnsweredQuestion
+            && count($guestAnsweredQuestionIds) >= $guestAnswerLimit;
 
         $alternatives = $questionModel->alternatives->map(function (Alternative $alternative) use ($showResult, $selectedAlternativeId) {
             $item = [
@@ -73,24 +86,27 @@ class PublicQuestionController extends Controller
             ''
         );
 
-        $relatedQuestions = Question::query()
+        $nextQuestion = Question::query()
             ->visibleToStudent()
             ->whereKeyNot($questionModel->id)
             ->when(
-                $questionModel->topic_id,
-                fn ($query) => $query->where('topic_id', $questionModel->topic_id),
+                $publicAnsweredQuestionIds !== [],
+                fn ($query) => $query->whereNotIn('id', $publicAnsweredQuestionIds)
+            )
+            ->when(
+                $questionModel->subject_id,
                 fn ($query) => $query->where('subject_id', $questionModel->subject_id)
+            )
+            ->when(
+                $questionModel->topic_id,
+                fn ($query) => $query->orderByRaw(
+                    'CASE WHEN topic_id = ? THEN 0 ELSE 1 END',
+                    [$questionModel->topic_id]
+                )
             )
             ->with(['subject:id,name,slug', 'topic:id,name,slug'])
             ->latest('id')
-            ->limit(5)
-            ->get()
-            ->map(fn (Question $related) => [
-                'id' => $related->id,
-                'url' => PublicQuestionUrl::url($related),
-                'subject' => $related->subject?->name,
-                'topic' => $related->topic?->name,
-            ]);
+            ->first();
 
         return view('site.questions.show', [
             'question' => $questionModel,
@@ -100,7 +116,17 @@ class PublicQuestionController extends Controller
             'seoDescription' => $seoDescription,
             'showResult' => $showResult,
             'answerWasCorrect' => $showResult ? (bool)($result['is_correct'] ?? false) : null,
-            'relatedQuestions' => $relatedQuestions,
+            'nextQuestion' => $nextQuestion ? [
+                'id' => $nextQuestion->id,
+                'url' => PublicQuestionUrl::url($nextQuestion),
+            ] : null,
+            'guestAnsweredCount' => count($guestAnsweredQuestionIds),
+            'guestAnswerLimit' => $guestAnswerLimit,
+            'guestLimitReached' => $guestLimitReached,
+            'openAuthModal' => (bool) session('public_question_auth_gate'),
+            'publicAnsweredCount' => $publicAnsweredCount,
+            'publicCorrectCount' => $publicCorrectCount,
+            'publicAccuracy' => $publicAccuracy,
         ]);
     }
 
@@ -171,6 +197,18 @@ class PublicQuestionController extends Controller
     {
         $questionModel = $this->findPublicQuestion($question);
 
+        if (Auth::guest()) {
+            $answeredQuestionIds = $this->guestAnsweredQuestionIds($request);
+            $limit = max(0, (int) config('public_questions.guest_answer_limit', 5));
+            $isNewQuestion = ! in_array($questionModel->id, $answeredQuestionIds, true);
+
+            if ($isNewQuestion && count($answeredQuestionIds) >= $limit) {
+                return redirect()
+                    ->to(PublicQuestionUrl::url($questionModel))
+                    ->with('public_question_auth_gate', true);
+            }
+        }
+
         $validated = $request->validate([
             'alternative_id' => ['required','integer'],
         ]);
@@ -183,6 +221,18 @@ class PublicQuestionController extends Controller
             ]);
         }
 
+        if (Auth::guest() && ! in_array($questionModel->id, $answeredQuestionIds, true)) {
+            $answeredQuestionIds[] = $questionModel->id;
+            $request->session()->put('public_question_answered_ids', $answeredQuestionIds);
+        }
+
+        $publicQuestionResults = $this->publicQuestionResults($request);
+
+        if (! array_key_exists((string) $questionModel->id, $publicQuestionResults)) {
+            $publicQuestionResults[(string) $questionModel->id] = (bool) $selected->is_correct;
+            $request->session()->put('public_question_results', $publicQuestionResults);
+        }
+
         session()->flash('public_question_result', [
             'question_id' => $questionModel->id,
             'selected_alternative_id' => $selected->id,
@@ -190,6 +240,47 @@ class PublicQuestionController extends Controller
         ]);
 
         return redirect()->to(PublicQuestionUrl::url($questionModel));
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    private function guestAnsweredQuestionIds(Request $request): array
+    {
+        $ids = $request->session()->get('public_question_answered_ids', []);
+
+        if (! is_array($ids)) {
+            return [];
+        }
+
+        return array_values(array_unique(array_filter(
+            array_map('intval', $ids),
+            fn (int $id) => $id > 0
+        )));
+    }
+
+    /**
+     * @return array<string, bool>
+     */
+    private function publicQuestionResults(Request $request): array
+    {
+        $results = $request->session()->get('public_question_results', []);
+
+        if (! is_array($results)) {
+            return [];
+        }
+
+        $normalized = [];
+
+        foreach ($results as $questionId => $isCorrect) {
+            $questionId = (int) $questionId;
+
+            if ($questionId > 0) {
+                $normalized[(string) $questionId] = (bool) $isCorrect;
+            }
+        }
+
+        return $normalized;
     }
 
     private function registerSession(Request $request, User $user): void

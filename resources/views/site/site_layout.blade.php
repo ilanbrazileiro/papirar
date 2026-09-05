@@ -13,6 +13,7 @@
 
     <link rel="canonical" href="@yield('canonical', '/')">
     <link rel="stylesheet" href="{{ asset('css/site-papirar.css') }}">
+    <link rel="stylesheet" href="{{ asset('assets/katex/katex.min.css') }}">
 
     <meta property="og:locale" content="pt_BR">
     <meta property="og:type" content="website">
@@ -32,6 +33,7 @@
     @include('components.google-analytics')
 
     @stack('head')
+    <link rel="stylesheet" href="{{ asset('css/site-public-ui.css') }}">
 </head>
 <body class="@yield('body_class', 'site-page')">
     @include('site.site_topbar')
@@ -68,6 +70,9 @@
     </footer>
 
     <script src="{{ asset('js/site-conversion-tracking.js') }}" defer></script>  
+    <script src="{{ asset('assets/katex/katex.min.js') }}"></script>
+    <script src="{{ asset('assets/katex/contrib/auto-render.min.js') }}"></script>
+    <script src="{{ asset('js/papirar-katex.js') }}"></script>
     @stack('scripts')
 </body>
 </html>

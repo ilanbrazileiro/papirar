@@ -73,7 +73,6 @@ use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
 use App\Http\Middleware\EnsureAdminContentAccess;
 use App\Http\Middleware\EnsureSingleSession;
-use App\Http\Middleware\EnsureSingleSessionIfAuthenticated;
 use App\Http\Middleware\EnsureActiveSubscription;
 use App\Http\Middleware\EnsureActiveCourseAccess;
 use App\Http\Middleware\EnsureAdmin;
@@ -90,10 +89,6 @@ Route::get('/questoes/{subjectSlug}/{topicSlug}', [PublicQuestionCatalogControll
 Route::get('/questoes/{subjectSlug}/{question}/{questionSlug}',[PublicQuestionController::class, 'show'])->whereNumber('question')->name('site.questions.show');
 Route::post('/questoes/autenticacao/cadastro',[PublicQuestionController::class, 'registerModal'])->name('site.questions.modal-register');
 Route::post('/questoes/autenticacao/login',[PublicQuestionController::class, 'loginModal'])->name('site.questions.modal-login');
-Route::post('/questoes/{subjectSlug}/{question}/{questionSlug}/responder',[PublicQuestionController::class, 'answer'])
-    ->whereNumber('question')
-    ->middleware(EnsureSingleSessionIfAuthenticated::class)
-    ->name('site.questions.answer');
 
 Route::get('/sitemap.xml', [SitemapController::class, 'index'])->name('site.sitemap');
 Route::get('/sitemaps/pages.xml', [SitemapController::class, 'pages'])->name('site.sitemaps.pages');
@@ -122,6 +117,8 @@ Route::get('/email/verificar/{id}/{hash}', [VerifyEmailController::class, 'verif
 Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(function () {
     Route::post('/logout', [LogoutController::class, 'store'])->name('auth.logout');
     Route::post('/email/verificar/reenviar', [VerifyEmailController::class, 'resend'])->name('auth.verification.resend');
+
+    Route::post('/questoes/{subjectSlug}/{question}/{questionSlug}/responder',[PublicQuestionController::class, 'answer'])->name('site.questions.answer');
 
     Route::prefix('aluno')->name('student.')->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
