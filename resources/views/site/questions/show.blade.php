@@ -194,7 +194,15 @@ window.PapirarPublicQuestionAuth = {
     loginUrl: @json(route('site.questions.modal-login')),
     openOnLoad: @json($openAuthModal),
     gateReached: @json($guestLimitReached),
-    coursesUrl: @json(route('student.courses.index'))
+    coursesUrl: @json(route('student.courses.index')),
+    questionId: @json((int) $question->id),
+    subjectId: @json($question->subject_id ? (int) $question->subject_id : null),
+    topicId: @json($question->topic_id ? (int) $question->topic_id : null),
+    answeredCount: @json((int) $publicAnsweredCount),
+    answeredEvent: @json($showResult ? [
+        'is_correct' => (bool) $answerWasCorrect,
+        'answered_count' => (int) $publicAnsweredCount,
+    ] : null)
 };
 </script>
 <script src="{{ asset('js/public-question-auth.js') }}"></script>

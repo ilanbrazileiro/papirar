@@ -6,6 +6,28 @@
     const close = document.getElementById('authModalClose');
     const config = window.PapirarPublicQuestionAuth || {};
     const questionForm = document.getElementById('publicQuestionForm');
+    let gateViewTracked = false;
+    let limitReachedTracked = false;
+
+    function track(eventName, params) {
+        if (typeof window.gtag !== 'function') return;
+
+        window.gtag('event', eventName, Object.assign({
+            question_id: config.questionId || null,
+            subject_id: config.subjectId || null,
+            topic_id: config.topicId || null,
+            page_location: window.location.href
+        }, params || {}));
+    }
+
+    function trackLimitReached() {
+        if (limitReachedTracked) return;
+
+        track('public_question_limit_reached', {
+            answered_count: Number(config.answeredCount || 0)
+        });
+        limitReachedTracked = true;
+    }
 
     function setMode(mode) {
         document.querySelectorAll('[data-auth-tab]').forEach(el => el.classList.toggle('is-active', el.dataset.authTab === mode));
@@ -18,6 +40,13 @@
         modal.hidden = false;
         backdrop.hidden = false;
         document.body.classList.add('body-modal-open');
+
+        if (!gateViewTracked) {
+            track('signup_gate_view', {
+                gate_mode: mode || 'register'
+            });
+            gateViewTracked = true;
+        }
     }
 
     function hide() {
@@ -60,11 +89,9 @@
                 return;
             }
 
-            if (typeof window.gtag === 'function') {
-                window.gtag('event', mode === 'register' ? 'sign_up' : 'login', {
-                    method: 'public_question_modal'
-                });
-            }
+            track(mode === 'register' ? 'sign_up' : 'login', {
+                method: 'public_question_modal'
+            });
 
             window.location.href = data.redirect_url || config.coursesUrl || window.location.href;
         } catch (e) {
@@ -76,8 +103,18 @@
         }
     }
 
-    document.querySelectorAll('.js-open-auth-modal').forEach(btn => btn.addEventListener('click', () => open(btn.dataset.mode)));
-    document.querySelectorAll('[data-auth-tab]').forEach(btn => btn.addEventListener('click', () => setMode(btn.dataset.authTab)));
+    document.querySelectorAll('.js-open-auth-modal').forEach(btn => btn.addEventListener('click', () => {
+        track('signup_gate_click', {
+            gate_action: btn.dataset.mode || 'register'
+        });
+        open(btn.dataset.mode);
+    }));
+    document.querySelectorAll('[data-auth-tab]').forEach(btn => btn.addEventListener('click', () => {
+        track('signup_gate_click', {
+            gate_action: 'tab_' + btn.dataset.authTab
+        });
+        setMode(btn.dataset.authTab);
+    }));
     close.addEventListener('click', hide);
     backdrop.addEventListener('click', hide);
     document.addEventListener('keydown', e => { if (e.key === 'Escape' && !modal.hidden) hide(); });
@@ -102,8 +139,16 @@
             return;
         }
 
+        trackLimitReached();
         open('register');
     });
 
-    if (config.openOnLoad) open('register');
+    if (config.answeredEvent) {
+        track('public_question_answered', config.answeredEvent);
+    }
+
+    if (config.openOnLoad) {
+        trackLimitReached();
+        open('register');
+    }
 })();
