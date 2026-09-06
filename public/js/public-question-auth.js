@@ -61,12 +61,12 @@
             }
 
             if (typeof window.gtag === 'function') {
-                window.gtag('event', 'sign_up', {
+                window.gtag('event', mode === 'register' ? 'sign_up' : 'login', {
                     method: 'public_question_modal'
                 });
             }
 
-            window.location.href = config.continueUrl || window.location.href;
+            window.location.href = data.redirect_url || config.coursesUrl || window.location.href;
         } catch (e) {
             errors.textContent = 'Falha de comunicação. Tente novamente.';
             errors.classList.add('is-visible');

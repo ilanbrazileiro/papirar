@@ -19,8 +19,17 @@
             <a href="{{ route('site.questions.index') }}">Questões</a>
             <a href="{{ url('/') }}#como-funciona">Como funciona</a>
             <a href="{{ url('/') }}#diferenciais">Recursos</a>
-            <a href="{{ url('/login') }}">Entrar</a>
-            <a class="nav-cta" href="{{ $registerUrl }}">Começar grátis</a>
+            @auth
+                @if(auth()->user()->isAdmin())
+                    <a class="nav-cta" href="{{ route('admin.dashboard') }}">Painel administrativo</a>
+                @else
+                    <a href="{{ route('student.account.edit') }}">Minha conta</a>
+                    <a class="nav-cta" href="{{ route('student.courses.index') }}">Meus cursos</a>
+                @endif
+            @else
+                <a href="{{ url('/login') }}">Entrar</a>
+                <a class="nav-cta" href="{{ $registerUrl }}">Começar grátis</a>
+            @endauth
         </nav>
     </div>
 </header>

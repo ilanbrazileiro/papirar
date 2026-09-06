@@ -15,7 +15,7 @@
 
 @section('content')
 <section class="public-question-page">
-    <div class="site-container public-question-grid col-12">
+    <div class="site-container public-question-grid">
         <main>
             <article class="question-card">
                 <div class="question-meta">
@@ -54,23 +54,41 @@
                 <div class="question-statement">{!! $question->statement !!}</div>
 
                 @if(!$showResult)
-                    <form id="publicQuestionForm" method="POST" action="{{ route('site.questions.answer', [
-                        'subjectSlug' => $question->subject?->slug ?: \Illuminate\Support\Str::slug($question->subject?->name ?: 'questoes'),
-                        'question' => $question->id,
-                        'questionSlug' => \Illuminate\Support\Str::slug(\Illuminate\Support\Str::limit(trim(preg_replace('/\s+/u',' ',strip_tags(html_entity_decode($question->statement, ENT_QUOTES | ENT_HTML5,'UTF-8')))),90,'')) ?: 'questao',
-                    ]) }}" @guest data-guest-limit-reached="{{ $guestLimitReached ? '1' : '0' }}" @endguest>
-                        @csrf
+                    @guest
+                        <form id="publicQuestionForm" method="POST" action="{{ route('site.questions.answer', [
+                            'subjectSlug' => $question->subject?->slug ?: \Illuminate\Support\Str::slug($question->subject?->name ?: 'questoes'),
+                            'question' => $question->id,
+                            'questionSlug' => \Illuminate\Support\Str::slug(\Illuminate\Support\Str::limit(trim(preg_replace('/\s+/u',' ',strip_tags(html_entity_decode($question->statement, ENT_QUOTES | ENT_HTML5,'UTF-8')))),90,'')) ?: 'questao',
+                        ]) }}" data-guest-limit-reached="{{ $guestLimitReached ? '1' : '0' }}">
+                            @csrf
+                            <div class="alternatives-list">
+                                @foreach($alternatives as $alternative)
+                                    <label class="alternative-item alternative-clickable">
+                                        <input type="radio" name="alternative_id" value="{{ $alternative['id'] }}" required>
+                                        <span class="alternative-letter">{{ $alternative['letter'] }}</span>
+                                        <span>{!! $alternative['text'] !!}</span>
+                                    </label>
+                                @endforeach
+                            </div>
+                            <button class="btn btn-primary" type="submit">Responder questão</button>
+                        </form>
+                    @else
                         <div class="alternatives-list">
                             @foreach($alternatives as $alternative)
-                                <label class="alternative-item alternative-clickable">
-                                    <input type="radio" name="alternative_id" value="{{ $alternative['id'] }}" required>
+                                <div class="alternative-item">
                                     <span class="alternative-letter">{{ $alternative['letter'] }}</span>
-                                    <span>{!! $alternative['text'] !!}</span>
-                                </label>
+                                    <div>{!! $alternative['text'] !!}</div>
+                                </div>
                             @endforeach
                         </div>
-                        <button class="btn btn-primary" type="submit">Responder questão</button>
-                    </form>
+
+                        <section class="question-conversion-cta">
+                            <span class="gate-kicker">Continue no seu curso</span>
+                            <h2>Escolha um curso para continuar estudando</h2>
+                            <p>Inicie o teste gratuito de 7 dias e tenha acesso à experiência completa do Papirar.</p>
+                            <a href="{{ route('student.courses.index') }}" class="btn btn-primary">Ver cursos disponíveis</a>
+                        </section>
+                    @endguest
                 @else
                     <div class="alternatives-list">
                         @foreach($alternatives as $alternative)
@@ -115,11 +133,12 @@
                             </div>
                         @endif
                     @else
-                        @if($nextQuestion)
-                            <div class="question-next-action">
-                                <a href="{{ $nextQuestion['url'] }}" class="btn btn-primary">Responder próxima questão →</a>
-                            </div>
-                        @endif
+                        <section class="question-conversion-cta">
+                            <span class="gate-kicker">Continue no seu curso</span>
+                            <h2>Escolha um curso para continuar estudando</h2>
+                            <p>Inicie o teste gratuito de 7 dias e tenha acesso à experiência completa do Papirar.</p>
+                            <a href="{{ route('student.courses.index') }}" class="btn btn-primary">Ver cursos disponíveis</a>
+                        </section>
                     @endguest
                 @endif
 
@@ -175,7 +194,7 @@ window.PapirarPublicQuestionAuth = {
     loginUrl: @json(route('site.questions.modal-login')),
     openOnLoad: @json($openAuthModal),
     gateReached: @json($guestLimitReached),
-    continueUrl: @json($nextQuestion['url'] ?? $canonicalUrl)
+    coursesUrl: @json(route('student.courses.index'))
 };
 </script>
 <script src="{{ asset('js/public-question-auth.js') }}"></script>

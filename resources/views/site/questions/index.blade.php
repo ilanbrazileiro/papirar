@@ -42,6 +42,12 @@
                     <div class="subject-topic-panel" id="{{ $panelId }}" hidden>
                         <p>Selecione um tópico para começar:</p>
                         <div class="subject-topic-links">
+                            @if($subject->latestPublicQuestion)
+                                <a href="{{ \App\Support\PublicQuestionUrl::url($subject->latestPublicQuestion) }}" class="subject-all-link">
+                                    Começar por qualquer tópico
+                                    <span aria-hidden="true">→</span>
+                                </a>
+                            @endif
                             @foreach($subject->topics as $topic)
                                 @if($topic->latestPublicQuestion)
                                     <a href="{{ \App\Support\PublicQuestionUrl::url($topic->latestPublicQuestion) }}">
@@ -50,13 +56,6 @@
                                     </a>
                                 @endif
                             @endforeach
-
-                            @if($subject->latestPublicQuestion)
-                                <a href="{{ \App\Support\PublicQuestionUrl::url($subject->latestPublicQuestion) }}" class="subject-all-link">
-                                    Começar por qualquer tópico
-                                    <span aria-hidden="true">→</span>
-                                </a>
-                            @endif
                         </div>
                     </div>
                 </section>

@@ -8,6 +8,7 @@ use App\Models\Question;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Notifications\VerifyEmailNotification;
+use App\Services\PublicQuestions\PublicQuestionHistoryService;
 use App\Support\PublicQuestionUrl;
 use App\Support\MarketingAttribution;
 use Illuminate\Http\JsonResponse;
@@ -21,6 +22,10 @@ use Illuminate\View\View;
 
 class PublicQuestionController extends Controller
 {
+    public function __construct(
+        private readonly PublicQuestionHistoryService $publicQuestionHistory
+    ) {}
+
     public function show(Request $request, string $subjectSlug, int $question, string $questionSlug): View|RedirectResponse
     {
         $questionModel = $this->findPublicQuestion($question);
@@ -154,8 +159,17 @@ class PublicQuestionController extends Controller
         Auth::login($user);
         $request->session()->regenerate();
         $this->registerSession($request, $user);
+        $this->publicQuestionHistory->sync($request, $user);
+        $request->session()->flash(
+            'success',
+            'Cadastro realizado. Escolha um curso para iniciar seu teste gratuito de 7 dias.'
+        );
 
-        return response()->json(['success' => true, 'authenticated' => true]);
+        return response()->json([
+            'success' => true,
+            'authenticated' => true,
+            'redirect_url' => route('student.courses.index'),
+        ]);
     }
 
     public function loginModal(Request $request): JsonResponse
@@ -189,12 +203,30 @@ class PublicQuestionController extends Controller
         }
 
         $this->registerSession($request, $user);
+        $this->publicQuestionHistory->sync($request, $user);
+        $request->session()->flash(
+            'success',
+            'Login realizado. Escolha seu curso para continuar estudando.'
+        );
 
-        return response()->json(['success' => true, 'authenticated' => true]);
+        return response()->json([
+            'success' => true,
+            'authenticated' => true,
+            'redirect_url' => route('student.courses.index'),
+        ]);
     }
 
     public function answer(Request $request, string $subjectSlug, int $question, string $questionSlug): RedirectResponse
     {
+        if (Auth::check()) {
+            /** @var User $user */
+            $user = Auth::user();
+
+            return redirect()
+                ->route($user->isAdmin() ? 'admin.dashboard' : 'student.courses.index')
+                ->with('info', 'Escolha um curso e inicie o teste gratuito para continuar respondendo.');
+        }
+
         $questionModel = $this->findPublicQuestion($question);
 
         if (Auth::guest()) {
@@ -226,12 +258,7 @@ class PublicQuestionController extends Controller
             $request->session()->put('public_question_answered_ids', $answeredQuestionIds);
         }
 
-        $publicQuestionResults = $this->publicQuestionResults($request);
-
-        if (! array_key_exists((string) $questionModel->id, $publicQuestionResults)) {
-            $publicQuestionResults[(string) $questionModel->id] = (bool) $selected->is_correct;
-            $request->session()->put('public_question_results', $publicQuestionResults);
-        }
+        $this->publicQuestionHistory->record($request, $questionModel, $selected);
 
         session()->flash('public_question_result', [
             'question_id' => $questionModel->id,

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\User;
 use App\Models\UserSession;
 use App\Notifications\VerifyEmailNotification;
+use App\Services\PublicQuestions\PublicQuestionHistoryService;
 use App\Support\MarketingAttribution;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,10 @@ use Illuminate\Validation\Rules\Password;
 
 class RegisterController extends Controller
 {
+    public function __construct(
+        private readonly PublicQuestionHistoryService $publicQuestionHistory
+    ) {}
+
     public function create()
     {
         return view('auth/register');
@@ -77,6 +82,7 @@ class RegisterController extends Controller
         ])->save();
 
         $request->session()->put('auth_session_token', $sessionToken);
+        $this->publicQuestionHistory->sync($request, $user);
 
         $request->session()->flash('ga4_event', [
             'name' => 'sign_up',
@@ -86,7 +92,7 @@ class RegisterController extends Controller
         ]);
 
         return redirect()
-        ->intended(route('student.dashboard'))
+        ->intended(route('student.courses.index'))
         ->with('success', 'Cadastro realizado com sucesso. Confirme seu e-mail para manter sua conta protegida.');
     }
 }
