@@ -449,8 +449,7 @@
 </nav>
 
 <main class="app-shell">
-    @include('components.flash')
-
+    
     @if($errors->any())
         <div class="alert alert-danger">
             <div class="fw-semibold mb-2">Corrija os erros abaixo:</div>

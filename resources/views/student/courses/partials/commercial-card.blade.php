@@ -5,13 +5,14 @@
     $cycles = $course->availableBillingCycles();
     $coverUrl = $course->coverImageUrl();
     $bullets = $course->salesBulletsList();
-    $badge = $course->sales_badge ?: ($mode === 'active' ? 'Curso ativo' : 'Curso disponível');
-
     $trialUsedCourseIds = collect($trialUsedCourseIds ?? []);
     $canStartTrial = $mode !== 'active'
         && (bool) $course->is_trial_available
         && (int) $course->trial_days > 0
         && ! $trialUsedCourseIds->contains((int) $course->id);
+    $badge = $canStartTrial
+        ? $course->trialDaysForAccess() . ' dias grátis'
+        : ($course->sales_badge ?: ($mode === 'active' ? 'Curso ativo' : 'Curso disponível'));
 @endphp
 
 <div class="course-commercial-card h-100 d-flex flex-column overflow-hidden">
@@ -96,8 +97,10 @@
                         <form method="POST" action="{{ route('student.courses.trial.start', $course) }}">
                             @csrf
                             <button class="btn btn-warning w-100" onclick="return confirm('Deseja iniciar o teste gratuito deste curso por {{ $course->trialDaysForAccess() }} dias?');">
-                                Testar por {{ $course->trialDaysForAccess() }} dias
+                                Começar teste grátis de {{ $course->trialDaysForAccess() }} dias
+                                <span class="trial-button-arrow" aria-hidden="true">→</span>
                             </button>
+                            <div class="small-muted text-center mt-2">Acesso completo · sem cartão</div>
                         </form>
                     @elseif((bool) $course->is_trial_available && (int) $course->trial_days > 0)
                         <button class="btn btn-outline-secondary w-100" disabled>
