@@ -12,13 +12,15 @@ use App\Models\StudySession;
 use App\Models\SupportTicket;
 use App\Models\UserAnswer;
 use App\Services\Study\PendingErrorReviewService;
+use App\Services\Study\DailyMissionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
     public function __construct(
-        private readonly PendingErrorReviewService $pendingErrors
+        private readonly PendingErrorReviewService $pendingErrors,
+        private readonly DailyMissionService $dailyMissions
     ) {}
 
     public function index(): View
@@ -124,6 +126,9 @@ class DashboardController extends Controller
             ->first(fn ($access) => $access->course
                 && $this->pendingErrors->countForCourse($userId, (int) $access->course_id) > 0)
             ?->course;
+        $todayPanel = $activeCourseIds !== []
+            ? $this->dailyMissions->dashboard($userId, $activeCourseIds, $pendingErrorsCount)
+            : null;
 
         return view('student.dashboard.index', [
             'activeCourseAccesses' => $activeCourseAccesses,
@@ -136,6 +141,7 @@ class DashboardController extends Controller
             'studyContinuation' => $studyContinuation,
             'pendingErrorsCount' => $pendingErrorsCount,
             'reviewCourse' => $reviewCourse,
+            'todayPanel' => $todayPanel,
         ]);
     }
 

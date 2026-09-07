@@ -195,6 +195,31 @@
         .continue-study-card { grid-template-columns: 1fr; gap: 16px; padding: 19px; }
         .continue-study-action .btn { width: 100%; min-width: 0; }
     }
+
+    .today-panel { padding:24px; border-radius:24px; background:linear-gradient(135deg,#0f2344,#173b72); color:#fff; box-shadow:0 18px 45px rgba(15,35,68,.18); }
+    .today-panel-toggle { display:block; width:100%; padding:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
+    .today-panel-head { display:flex; justify-content:space-between; gap:20px; align-items:center; }
+    .today-panel-head h2 { margin:0; font-size:clamp(1.5rem,3vw,2rem); font-weight:950; }
+    .today-panel-title { display:flex; align-items:center; gap:12px; }
+    .today-panel-chevron { display:inline-block; color:#f4c542; font-size:1.35rem; transition:transform .2s ease; }
+    .today-panel-toggle[aria-expanded="true"] .today-panel-chevron { transform:rotate(180deg); }
+    .daily-missions-body { padding-top:18px; }
+    .today-streaks { display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end; }
+    .today-streaks span { padding:8px 10px; border:1px solid rgba(255,255,255,.16); border-radius:999px; background:rgba(255,255,255,.09); font-size:.78rem; font-weight:800; }
+    .daily-mission-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; }
+    .daily-mission { padding:16px; border:1px solid rgba(255,255,255,.14); border-radius:17px; background:rgba(255,255,255,.09); }
+    .daily-mission.is-completed { border-color:rgba(74,222,128,.5); background:rgba(22,163,74,.18); }
+    .daily-mission-top { display:flex; justify-content:space-between; gap:10px; }
+    .daily-mission h3 { margin:0 0 4px; color:#fff; font-size:1rem; }
+    .daily-mission p,.daily-mission small { color:#dbe7f7; }
+    .daily-mission p { min-height:38px; margin:0 0 12px; font-size:.82rem; }
+    .mission-check { color:#86efac; font-weight:900; }
+    .mission-progress { height:8px; overflow:hidden; border-radius:999px; background:rgba(255,255,255,.13); }
+    .mission-progress span { display:block; height:100%; border-radius:inherit; background:#f4c542; }
+    .daily-mission.is-completed .mission-progress span { background:#4ade80; }
+    .mission-progress-text { display:block; margin-top:8px; font-size:.74rem; font-weight:800; }
+    @media(max-width:991.98px){.daily-mission-grid{grid-template-columns:1fr}.daily-mission p{min-height:0}}
+    @media(max-width:767.98px){.today-panel{padding:18px}.today-panel-head{display:block}.today-streaks{justify-content:flex-start;margin-top:12px}.daily-mission{padding:14px}}
 </style>
 @endpush
 
@@ -215,6 +240,40 @@
                 </form>
             </div>
         </div>
+    @endif
+
+    @if($todayPanel ?? null)
+        <section class="today-panel mb-4">
+            <button class="today-panel-toggle" type="button" data-bs-toggle="collapse" data-bs-target="#daily-missions-body" aria-expanded="false" aria-controls="daily-missions-body">
+                <div class="today-panel-head">
+                    <div>
+                        <div class="continue-study-label" style="color:#f4c542">Seu plano diário</div>
+                        <div class="today-panel-title">
+                            <h2>METAS DIÁRIAS</h2>
+                            <span class="today-panel-chevron" aria-hidden="true">⌄</span>
+                        </div>
+                        <small>{{ $todayPanel['completed'] }}/3 metas concluídas · clique para visualizar</small>
+                    </div>
+                    <div class="today-streaks">
+                        <span>🔥 {{ $todayPanel['streak']['current'] }} {{ $todayPanel['streak']['current'] === 1 ? 'dia seguido' : 'dias seguidos' }}</span>
+                        <span>{{ $todayPanel['streak']['total_days'] }} {{ $todayPanel['streak']['total_days'] === 1 ? 'dia estudado' : 'dias estudados' }}</span>
+                        <span>Melhor: {{ $todayPanel['streak']['best'] }} dias</span>
+                    </div>
+                </div>
+            </button>
+            <div class="collapse daily-missions-body" id="daily-missions-body" data-daily-missions-collapse>
+                <div class="daily-mission-grid">
+                    @foreach($todayPanel['missions'] as $mission)
+                        <article class="daily-mission {{ $mission['completed'] ? 'is-completed' : '' }}" @if($mission['completed_now']) data-daily-mission-completed="{{ $mission['code'] }}" @endif>
+                            <div class="daily-mission-top"><h3>{{ $mission['title'] }}</h3>@if($mission['completed'])<span class="mission-check">✓</span>@endif</div>
+                            <p>{{ $mission['description'] }}</p>
+                            <div class="mission-progress"><span style="width:{{ $mission['percent'] }}%"></span></div>
+                            <small class="mission-progress-text">{{ $mission['progress_text'] }}</small>
+                        </article>
+                    @endforeach
+                </div>
+            </div>
+        </section>
     @endif
 
     @if($studyContinuation ?? null)

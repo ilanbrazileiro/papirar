@@ -154,6 +154,9 @@ class CourseStudyController extends Controller
     public function result(StudySession $session)
     {
         $this->authorizeSessionAccess($session);
+        if (! $session->finished_at && ! StudySessionQuestion::query()->where('study_session_id', $session->id)->whereNull('answered_at')->exists()) {
+            $session->forceFill(['finished_at' => now()])->save();
+        }
         $answers = UserAnswer::query()->with(['question.subject', 'question.topic', 'question.sourceMaterial'])->where('study_session_id', $session->id)->where('user_id', Auth::id())->get();
         $total = StudySessionQuestion::query()->where('study_session_id', $session->id)->count();
         $correct = $answers->where('is_correct', true)->count();

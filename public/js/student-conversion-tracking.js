@@ -17,6 +17,20 @@
 
     var continueStudying = document.querySelector('[data-continue-studying]');
 
+    var dailyMissions = document.querySelector('[data-daily-missions-collapse]');
+
+    if (dailyMissions) {
+        dailyMissions.addEventListener('shown.bs.collapse', function () {
+            send('daily_missions_view');
+        }, { once: true });
+    }
+
+    document.querySelectorAll('[data-daily-mission-completed]').forEach(function (mission) {
+        send('daily_mission_completed', {
+            mission_code: mission.dataset.dailyMissionCompleted
+        });
+    });
+
     if (continueStudying) {
         send('continue_studying_view', {
             continuation_type: continueStudying.dataset.continuationType || 'unknown',
