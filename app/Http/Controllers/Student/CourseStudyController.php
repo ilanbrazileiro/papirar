@@ -11,6 +11,7 @@ use App\Models\StudySession;
 use App\Models\StudySessionQuestion;
 use App\Models\UserAnswer;
 use App\Services\Study\PendingErrorReviewService;
+use App\Services\Study\AdaptiveStudyService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -19,7 +20,8 @@ use Illuminate\Support\Facades\DB;
 class CourseStudyController extends Controller
 {
     public function __construct(
-        private readonly PendingErrorReviewService $pendingErrors
+        private readonly PendingErrorReviewService $pendingErrors,
+        private readonly AdaptiveStudyService $adaptiveStudy
     ) {}
 
     public function start(Request $request, Course $course): RedirectResponse
@@ -36,6 +38,7 @@ class CourseStudyController extends Controller
             'difficulty' => ['nullable', 'in:easy,medium,hard'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
             'mode' => ['required', 'in:train,review,favorites'],
+            'adaptive_recommendation' => ['nullable', 'boolean'],
         ]);
 
         $selectedSubjectIds = collect($data['subject_ids'] ?? [])->map(fn ($id) => (int) $id)->unique()->values()->all();
@@ -98,6 +101,10 @@ class CourseStudyController extends Controller
                 'question_id' => $question->id,
                 'position' => $index + 1,
             ]);
+        }
+
+        if (! empty($data['adaptive_recommendation'])) {
+            $request->session()->put("adaptive_recommendation_sessions.{$session->id}", true);
         }
 
         return redirect()->route('student.course-study.question', $session);
@@ -169,8 +176,11 @@ class CourseStudyController extends Controller
                 'still_pending' => $this->pendingErrors->countForCourse((int) Auth::id(), (int) $session->course_id),
             ]
             : null;
+        $adaptiveOutcome = session("adaptive_recommendation_sessions.{$session->id}")
+            ? $this->adaptiveStudy->outcome($session, (int) Auth::id(), $correct, $answers->count())
+            : null;
 
-        return view('student.courses.result', compact('session', 'answers', 'total', 'correct', 'incorrect', 'accuracy', 'reviewSummary'));
+        return view('student.courses.result', compact('session', 'answers', 'total', 'correct', 'incorrect', 'accuracy', 'reviewSummary', 'adaptiveOutcome'));
     }
 
     private function loadQuestion(int $questionId): Question

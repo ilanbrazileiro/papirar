@@ -15,6 +15,7 @@ use App\Services\Study\PendingErrorReviewService;
 use App\Services\Study\DailyMissionService;
 use App\Services\Study\StudyPlanService;
 use App\Services\Billing\TrialLifecycleService;
+use App\Services\Study\AdaptiveStudyService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -24,7 +25,8 @@ class DashboardController extends Controller
         private readonly PendingErrorReviewService $pendingErrors,
         private readonly DailyMissionService $dailyMissions,
         private readonly StudyPlanService $studyPlans,
-        private readonly TrialLifecycleService $trialLifecycle
+        private readonly TrialLifecycleService $trialLifecycle,
+        private readonly AdaptiveStudyService $adaptiveStudy
     ) {}
 
     public function index(): View
@@ -135,6 +137,7 @@ class DashboardController extends Controller
             : null;
         $studyPlanToday = $activeCourseIds !== [] ? $this->studyPlans->today($userId) : null;
         $trialLifecycle = $this->trialLifecycle->primaryForUser($userId);
+        $adaptiveRecommendation = $this->adaptiveStudy->recommendation($userId, $activeCourseIds);
 
         return view('student.dashboard.index', [
             'activeCourseAccesses' => $activeCourseAccesses,
@@ -150,6 +153,7 @@ class DashboardController extends Controller
             'todayPanel' => $todayPanel,
             'studyPlanToday' => $studyPlanToday,
             'trialLifecycle' => $trialLifecycle,
+            'adaptiveRecommendation' => $adaptiveRecommendation,
         ]);
     }
 

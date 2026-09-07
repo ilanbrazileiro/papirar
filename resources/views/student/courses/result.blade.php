@@ -3,6 +3,14 @@
 @section('title', 'Resultado')
 
 @section('content')
+    @if($adaptiveOutcome)
+        <div class="card-soft p-4 mb-4 border {{ $adaptiveOutcome['improved'] ? 'border-success-subtle' : 'border-warning-subtle' }}" data-adaptive-outcome data-improved="{{ $adaptiveOutcome['improved'] ? '1' : '0' }}" data-previous-accuracy="{{ $adaptiveOutcome['previous_accuracy'] }}" data-current-accuracy="{{ $adaptiveOutcome['current_accuracy'] }}">
+            <div class="small text-uppercase fw-bold {{ $adaptiveOutcome['improved'] ? 'text-success' : 'text-warning-emphasis' }} mb-1">Evolução da recomendação</div>
+            <h2 class="h4 fw-bold mb-1">{{ $adaptiveOutcome['improved'] ? 'Você melhorou neste tópico!' : 'Continue reforçando este tópico.' }}</h2>
+            <div class="small-muted">Desempenho anterior: {{ number_format($adaptiveOutcome['previous_accuracy'],1,',','.') }}% · Nesta revisão: {{ number_format($adaptiveOutcome['current_accuracy'],1,',','.') }}%.</div>
+        </div>
+    @endif
+
     @if($reviewSummary)
         <div
             class="card-soft p-4 mb-4 border border-success-subtle"

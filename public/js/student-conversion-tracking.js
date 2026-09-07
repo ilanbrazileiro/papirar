@@ -17,6 +17,21 @@
 
     var continueStudying = document.querySelector('[data-continue-studying]');
 
+    document.querySelectorAll('[data-adaptive-recommendation]').forEach(function (card) {
+        var params = { course_id: card.dataset.courseId || null, subject_id: card.dataset.subjectId || null, topic_id: card.dataset.topicId || null, current_accuracy: Number(card.dataset.accuracy || 0) };
+        send('adaptive_recommendation_view', params);
+        card.querySelector('[data-adaptive-start]')?.addEventListener('submit', function () { send('adaptive_recommendation_start', params); });
+    });
+
+    var adaptiveOutcome = document.querySelector('[data-adaptive-outcome]');
+    if (adaptiveOutcome) {
+        send('adaptive_recommendation_completed', {
+            improved: adaptiveOutcome.dataset.improved === '1',
+            previous_accuracy: Number(adaptiveOutcome.dataset.previousAccuracy || 0),
+            current_accuracy: Number(adaptiveOutcome.dataset.currentAccuracy || 0)
+        });
+    }
+
     document.querySelectorAll('[data-trial-lifecycle]').forEach(function (card) {
         send('trial_lifecycle_view', {
             lifecycle_stage: card.dataset.stage || 'unknown',
