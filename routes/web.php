@@ -68,6 +68,7 @@ use App\Http\Controllers\Site\PublicQuestionController;
 use App\Http\Controllers\Site\PublicQuestionCatalogController;
 use App\Http\Controllers\Site\SitemapController;
 use App\Http\Controllers\Site\PublicCourseController;
+use App\Http\Controllers\Site\CourseLandingController;
 
 use App\Http\Middleware\CheckIsLogged;
 use App\Http\Middleware\CheckIsNotLogged;
@@ -102,6 +103,7 @@ Route::get('/sitemaps/topics.xml', [SitemapController::class, 'topics'])->name('
 Route::get('/sitemaps/questions-{page}.xml', [SitemapController::class, 'questions'])->whereNumber('page')->name('site.sitemaps.questions');
 Route::get('/sitemaps/courses.xml', [SitemapController::class, 'courses'])->name('site.sitemaps.courses');
 Route::get('/cursos/{slug}', [PublicCourseController::class, 'show'])->name('site.courses.show');
+Route::get('/preparatorio/{slug}', [CourseLandingController::class, 'show'])->name('site.course-landings.show');
 
 Route::middleware([CheckIsNotLogged::class])->group(function () {
     Route::get('/login', [LoginController::class, 'index'])->name('auth.login');
