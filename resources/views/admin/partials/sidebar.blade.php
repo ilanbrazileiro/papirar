@@ -61,6 +61,7 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
+                            <li class="nav-item"><a href="{{ route('admin.reports.commercial-funnel.index') }}" class="nav-link {{ request()->routeIs('admin.reports.commercial-funnel.*') ? 'active' : '' }}"><i class="far fa-circle nav-icon"></i><p>Funil comercial</p></a></li>
                             <li class="nav-item">
                                 <a href="{{ route('admin.questions.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
                                     <i class="fas fa-layer-group"></i>

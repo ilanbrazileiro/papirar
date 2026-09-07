@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ContentDashboardController;
 use App\Http\Controllers\Admin\CorporationController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\CommercialFunnelController;
 use App\Http\Controllers\Admin\ExamController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\PlannedExamController;
@@ -255,6 +256,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('course-accesses', CourseAccessController::class)->except(['show']);
             Route::patch('course-accesses/{courseAccess}/cancel', [CourseAccessController::class, 'cancel'])->name('course-accesses.cancel');
             Route::prefix('reports')->name('reports.')->group(function () {
+                Route::get('/commercial-funnel', [CommercialFunnelController::class, 'index'])->name('commercial-funnel.index');
                 Route::get('/courses', [CourseReportController::class, 'index'])->name('courses.index');
                 Route::get('/courses/{course}', [CourseReportController::class, 'show'])->name('courses.show');
                 Route::get('/questions', [QuestionReportController::class, 'index'])->name('questions.index');
