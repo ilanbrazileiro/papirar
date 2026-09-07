@@ -102,6 +102,11 @@
 @endpush
 
 @section('content')
+    @php
+        $suggestedSubjectIds = request()->filled('subject_id') ? [(int) request('subject_id')] : [];
+        $suggestedTopicIds = request()->filled('topic_id') ? [(int) request('topic_id')] : [];
+        $suggestedSourceMaterialId = request()->integer('source_material_id') ?: null;
+    @endphp
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h1 class="page-title">Estudar: {{ $course->title }}</h1>
@@ -130,7 +135,7 @@
                                 <select name="source_material_id" class="form-control">
                                     <option value="">Todas as fontes</option>
                                     @foreach($sourceMaterials as $sourceMaterial)
-                                        <option value="{{ $sourceMaterial->id }}" @selected(old('source_material_id') == $sourceMaterial->id)>
+                                        <option value="{{ $sourceMaterial->id }}" @selected(old('source_material_id', $suggestedSourceMaterialId) == $sourceMaterial->id)>
                                             {{ $sourceMaterial->title }}
                                         </option>
                                     @endforeach
@@ -212,7 +217,7 @@
                                                 value="{{ $subject->id }}"
                                                 id="subject-{{ $subject->id }}"
                                                 data-subject-id="{{ $subject->id }}"
-                                                @checked(in_array($subject->id, old('subject_ids', [])))
+                                                @checked(in_array((int) $subject->id, array_map('intval', old('subject_ids', $suggestedSubjectIds)), true))
                                             >
                                             <label class="form-check-label fw-semibold" for="subject-{{ $subject->id }}">
                                                 {{ $subject->name }}
@@ -248,7 +253,7 @@
                                                                 value="{{ $topic->id }}"
                                                                 id="topic-{{ $topic->id }}"
                                                                 data-subject-id="{{ $subject->id }}"
-                                                                @checked(in_array($topic->id, old('topic_ids', [])))
+                                                                @checked(in_array((int) $topic->id, array_map('intval', old('topic_ids', $suggestedTopicIds)), true))
                                                             >
                                                             <label class="form-check-label" for="topic-{{ $topic->id }}">
                                                                 {{ $topic->name }}

@@ -81,6 +81,40 @@ class DashboardController extends Controller
             ->limit(3)
             ->get();
 
+        $continuationSession = null;
+        $lastCourseSession = null;
+
+        if ($activeCourseIds !== []) {
+            $continuationSession = StudySession::query()
+                ->with(['course:id,title', 'subject:id,name', 'topic:id,name'])
+                ->withCount('sessionQuestions as total_questions_count')
+                ->withCount([
+                    'sessionQuestions as answered_questions_count' => fn ($query) => $query->whereNotNull('answered_at'),
+                ])
+                ->where('user_id', $userId)
+                ->whereIn('course_id', $activeCourseIds)
+                ->whereHas('sessionQuestions', fn ($query) => $query->whereNull('answered_at'))
+                ->latest('started_at')
+                ->latest('id')
+                ->first();
+
+            if (! $continuationSession) {
+                $lastCourseSession = StudySession::query()
+                    ->with(['course:id,title', 'subject:id,name', 'topic:id,name'])
+                    ->where('user_id', $userId)
+                    ->whereIn('course_id', $activeCourseIds)
+                    ->latest('started_at')
+                    ->latest('id')
+                    ->first();
+            }
+        }
+
+        $studyContinuation = $this->studyContinuation(
+            $continuationSession,
+            $lastCourseSession,
+            $activeCourseAccesses->first()?->course
+        );
+
         return view('student.dashboard.index', [
             'activeCourseAccesses' => $activeCourseAccesses,
             'recommendedCourses' => $recommendedCourses,
@@ -89,6 +123,67 @@ class DashboardController extends Controller
             'pendingTransactions' => $pendingTransactions,
             'needsEmailVerification' => ! $user->hasVerifiedEmail(),
             'needsCourse' => $activeCourseAccesses->isEmpty(),
+            'studyContinuation' => $studyContinuation,
         ]);
+    }
+
+    private function studyContinuation(
+        ?StudySession $continuationSession,
+        ?StudySession $lastCourseSession,
+        ?Course $firstActiveCourse
+    ): ?array {
+        if ($continuationSession && $continuationSession->course) {
+            return [
+                'type' => 'resume',
+                'title' => 'Continue de onde parou',
+                'course' => $continuationSession->course->title,
+                'course_id' => (int) $continuationSession->course_id,
+                'context' => $this->sessionContext($continuationSession),
+                'progress' => (int) $continuationSession->answered_questions_count . ' de ' . (int) $continuationSession->total_questions_count . ' questões respondidas',
+                'button' => 'Continuar estudando',
+                'url' => route('student.course-study.question', $continuationSession),
+            ];
+        }
+
+        if ($lastCourseSession && $lastCourseSession->course) {
+            return [
+                'type' => 'restart',
+                'title' => 'Continue seu ritmo de estudos',
+                'course' => $lastCourseSession->course->title,
+                'course_id' => (int) $lastCourseSession->course_id,
+                'context' => $this->sessionContext($lastCourseSession),
+                'progress' => 'Sua última sessão foi concluída. Prepare a próxima com o mesmo contexto.',
+                'button' => 'Estudar novamente',
+                'url' => route('student.courses.study', array_filter([
+                    'course' => $lastCourseSession->course_id,
+                    'subject_id' => $lastCourseSession->subject_id,
+                    'topic_id' => $lastCourseSession->topic_id,
+                    'source_material_id' => $lastCourseSession->source_material_id,
+                ])),
+            ];
+        }
+
+        if ($firstActiveCourse) {
+            return [
+                'type' => 'start',
+                'title' => 'Comece sua primeira sessão',
+                'course' => $firstActiveCourse->title,
+                'course_id' => (int) $firstActiveCourse->id,
+                'context' => 'Escolha uma disciplina e um tópico para começar.',
+                'progress' => 'Seu desempenho começará a ser calculado após as primeiras respostas.',
+                'button' => 'Começar a estudar',
+                'url' => route('student.courses.study', $firstActiveCourse),
+            ];
+        }
+
+        return null;
+    }
+
+    private function sessionContext(StudySession $session): string
+    {
+        return collect([
+            $session->subject?->name,
+            $session->topic?->name,
+        ])->filter()->implode(' · ') ?: 'Sessão geral do curso';
     }
 }

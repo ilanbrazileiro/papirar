@@ -129,6 +129,72 @@
         font-size: .8rem;
         flex: 0 0 auto;
     }
+
+    .continue-study-card {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 24px;
+        align-items: center;
+        padding: 24px;
+        border: 1px solid rgba(244, 197, 66, .55);
+        border-radius: 22px;
+        background: linear-gradient(135deg, #fffdf6, #fff 58%, #f0f6ff);
+        box-shadow: 0 14px 35px rgba(15, 35, 68, .08);
+    }
+
+    .continue-study-label {
+        margin-bottom: 6px;
+        color: #9A6B00;
+        font-size: .74rem;
+        font-weight: 900;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+    }
+
+    .continue-study-card h2 {
+        margin-bottom: 5px;
+        color: var(--papirar-navy);
+        font-size: clamp(1.35rem, 2.5vw, 1.8rem);
+        font-weight: 900;
+    }
+
+    .continue-study-course {
+        color: var(--papirar-blue);
+        font-weight: 800;
+    }
+
+    .continue-study-context,
+    .continue-study-progress {
+        color: var(--papirar-muted);
+        font-size: .9rem;
+    }
+
+    .continue-study-action .btn {
+        min-width: 210px;
+        padding: 13px 18px;
+        font-weight: 900;
+        box-shadow: 0 10px 24px rgba(244, 197, 66, .23);
+    }
+
+    .continue-study-arrow {
+        display: inline-block;
+        margin-left: 7px;
+        animation: continueArrow 1.8s ease-in-out infinite;
+    }
+
+    @keyframes continueArrow {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(5px); }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+        .continue-study-arrow { animation: none; }
+    }
+
+    @media (max-width: 767.98px) {
+        .continue-study-card { grid-template-columns: 1fr; gap: 16px; padding: 19px; }
+        .continue-study-action .btn { width: 100%; min-width: 0; }
+    }
 </style>
 @endpush
 
@@ -149,6 +215,30 @@
                 </form>
             </div>
         </div>
+    @endif
+
+    @if($studyContinuation ?? null)
+        <section class="continue-study-card mb-4" aria-labelledby="continue-study-title">
+            <div>
+                <div class="continue-study-label">Seu próximo passo</div>
+                <h2 id="continue-study-title">{{ $studyContinuation['title'] }}</h2>
+                <div class="continue-study-course">{{ $studyContinuation['course'] }}</div>
+                <div class="continue-study-context">{{ $studyContinuation['context'] }}</div>
+                <div class="continue-study-progress mt-2">{{ $studyContinuation['progress'] }}</div>
+            </div>
+            <div class="continue-study-action">
+                <a
+                    href="{{ $studyContinuation['url'] }}"
+                    class="btn btn-warning"
+                    data-continue-studying
+                    data-continuation-type="{{ $studyContinuation['type'] }}"
+                    data-course-id="{{ $studyContinuation['course_id'] }}"
+                >
+                    {{ $studyContinuation['button'] }}
+                    <span class="continue-study-arrow" aria-hidden="true">→</span>
+                </a>
+            </div>
+        </section>
     @endif
 
     <section class="student-hero mb-4">

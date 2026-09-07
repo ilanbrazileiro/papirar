@@ -15,6 +15,22 @@
         return window.location.pathname.indexOf(value) !== -1;
     }
 
+    var continueStudying = document.querySelector('[data-continue-studying]');
+
+    if (continueStudying) {
+        send('continue_studying_view', {
+            continuation_type: continueStudying.dataset.continuationType || 'unknown',
+            course_id: continueStudying.dataset.courseId || null
+        });
+
+        continueStudying.addEventListener('click', function () {
+            send('continue_studying_click', {
+                continuation_type: continueStudying.dataset.continuationType || 'unknown',
+                course_id: continueStudying.dataset.courseId || null
+            });
+        });
+    }
+
     document.addEventListener('submit', function (event) {
         var form = event.target;
 
