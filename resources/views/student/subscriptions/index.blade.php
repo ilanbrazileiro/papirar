@@ -112,6 +112,10 @@
         @include('student.partials.trial-lifecycle-card', ['lifecycle' => $lifecycle])
     @endforeach
 
+    @foreach(($revenueNotices ?? collect()) as $revenueNotice)
+        @include('student.partials.revenue-protection-card', ['revenueNotice' => $revenueNotice])
+    @endforeach
+
     @if($pendingTransactions->isNotEmpty())
         <div class="card-soft p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">

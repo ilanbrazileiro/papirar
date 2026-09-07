@@ -16,6 +16,7 @@ use App\Services\Study\DailyMissionService;
 use App\Services\Study\StudyPlanService;
 use App\Services\Billing\TrialLifecycleService;
 use App\Services\Study\AdaptiveStudyService;
+use App\Services\Billing\RevenueProtectionService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
@@ -26,7 +27,8 @@ class DashboardController extends Controller
         private readonly DailyMissionService $dailyMissions,
         private readonly StudyPlanService $studyPlans,
         private readonly TrialLifecycleService $trialLifecycle,
-        private readonly AdaptiveStudyService $adaptiveStudy
+        private readonly AdaptiveStudyService $adaptiveStudy,
+        private readonly RevenueProtectionService $revenueProtection
     ) {}
 
     public function index(): View
@@ -138,6 +140,7 @@ class DashboardController extends Controller
         $studyPlanToday = $activeCourseIds !== [] ? $this->studyPlans->today($userId) : null;
         $trialLifecycle = $this->trialLifecycle->primaryForUser($userId);
         $adaptiveRecommendation = $this->adaptiveStudy->recommendation($userId, $activeCourseIds);
+        $revenueNotice = $this->revenueProtection->notices($userId)->first();
 
         return view('student.dashboard.index', [
             'activeCourseAccesses' => $activeCourseAccesses,
@@ -154,6 +157,7 @@ class DashboardController extends Controller
             'studyPlanToday' => $studyPlanToday,
             'trialLifecycle' => $trialLifecycle,
             'adaptiveRecommendation' => $adaptiveRecommendation,
+            'revenueNotice' => $revenueNotice,
         ]);
     }
 

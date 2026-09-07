@@ -228,6 +228,10 @@
 @endpush
 
 @section('content')
+    @if($revenueNotice ?? null)
+        @include('student.partials.revenue-protection-card', ['revenueNotice' => $revenueNotice])
+    @endif
+
     @if($trialLifecycle ?? null)
         @include('student.partials.trial-lifecycle-card', ['lifecycle' => $trialLifecycle])
     @endif

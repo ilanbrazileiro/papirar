@@ -57,6 +57,7 @@ use App\Http\Controllers\Student\ExamStudyController;
 use App\Http\Controllers\Student\CourseController as StudentCourseController;
 use App\Http\Controllers\Student\CourseStudyController;
 use App\Http\Controllers\Student\StudyPlanController;
+use App\Http\Controllers\Student\RetentionFeedbackController;
 use App\Http\Controllers\Student\CourseSimulatedController;
 use App\Http\Controllers\Student\CourseCheckoutController;
 use App\Http\Controllers\Student\CoursePurchaseController;
@@ -131,6 +132,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
         Route::get('/cronograma', [StudyPlanController::class, 'index'])->name('study-plan.index');
         Route::post('/cronograma', [StudyPlanController::class, 'store'])->name('study-plan.store');
         Route::delete('/cronograma', [StudyPlanController::class, 'destroy'])->name('study-plan.destroy');
+        Route::post('/acessos/{courseAccess}/nao-renovar', [RetentionFeedbackController::class, 'store'])->name('retention-feedback.store');
         Route::get('/minha-conta', [AccountController::class, 'edit'])->name('account.edit');
         Route::put('/minha-conta', [AccountController::class, 'update'])->name('account.update');
         Route::put('/minha-conta/senha', [AccountController::class, 'updatePassword'])->name('account.password.update');

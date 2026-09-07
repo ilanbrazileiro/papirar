@@ -17,6 +17,19 @@
 
     var continueStudying = document.querySelector('[data-continue-studying]');
 
+    document.querySelectorAll('[data-revenue-notice]').forEach(function (notice) {
+        var params = { notice_type: notice.dataset.noticeType || 'unknown', course_id: notice.dataset.courseId || null };
+        send('revenue_protection_view', params);
+        notice.querySelectorAll('[data-revenue-action]').forEach(function (action) {
+            action.addEventListener(action.tagName === 'FORM' ? 'submit' : 'click', function () {
+                send('revenue_recovery_click', Object.assign({}, params, { action: action.dataset.revenueAction || 'unknown' }));
+            });
+        });
+        notice.querySelector('[data-retention-feedback]')?.addEventListener('submit', function () {
+            send('non_renewal_feedback', params);
+        });
+    });
+
     document.querySelectorAll('[data-adaptive-recommendation]').forEach(function (card) {
         var params = { course_id: card.dataset.courseId || null, subject_id: card.dataset.subjectId || null, topic_id: card.dataset.topicId || null, current_accuracy: Number(card.dataset.accuracy || 0) };
         send('adaptive_recommendation_view', params);
