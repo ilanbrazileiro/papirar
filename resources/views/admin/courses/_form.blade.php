@@ -148,6 +148,67 @@
     @include('admin.courses._marketing_block')
 
     <div class="card mb-4">
+        <div class="card-header"><strong>Landing page de campanha</strong></div>
+        <div class="card-body">
+            <div class="alert alert-light border">
+                A landing só ficará disponível em <code>/preparatorio/{{ $course->slug ?: 'slug-do-curso' }}</code>
+                quando o curso estiver ativo, público e com a opção abaixo marcada. Números, disciplinas,
+                tópicos, preços e período de teste são carregados automaticamente.
+            </div>
+
+            <div class="form-check form-switch mb-3">
+                <input type="hidden" name="landing_enabled" value="0">
+                <input class="form-check-input" type="checkbox" role="switch" id="landing_enabled" name="landing_enabled" value="1" @checked((bool) old('landing_enabled', $course->landing_enabled ?? false))>
+                <label class="form-check-label" for="landing_enabled"><strong>Publicar landing de campanha</strong></label>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label for="landing_headline" class="form-label">Título principal</label>
+                    <input type="text" name="landing_headline" id="landing_headline" class="form-control" maxlength="180" value="{{ old('landing_headline', $course->landing_headline ?? '') }}" placeholder="Prepare-se para Soldado PMERJ resolvendo questões">
+                </div>
+                <div class="col-md-6">
+                    <label for="landing_cta_text" class="form-label">Texto dos botões</label>
+                    <input type="text" name="landing_cta_text" id="landing_cta_text" class="form-control" maxlength="80" value="{{ old('landing_cta_text', $course->landing_cta_text ?? '') }}" placeholder="Começar teste grátis">
+                </div>
+                <div class="col-12">
+                    <label for="landing_subheadline" class="form-label">Subtítulo</label>
+                    <textarea name="landing_subheadline" id="landing_subheadline" class="form-control" rows="2" maxlength="500" placeholder="Explique como o Papirar ajuda este candidato.">{{ old('landing_subheadline', $course->landing_subheadline ?? '') }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="landing_problem_title" class="form-label">Título da dor/problema</label>
+                    <input type="text" name="landing_problem_title" id="landing_problem_title" class="form-control" maxlength="180" value="{{ old('landing_problem_title', $course->landing_problem_title ?? '') }}" placeholder="Estudar muito não basta se você não sabe onde está errando">
+                </div>
+                <div class="col-md-6">
+                    <label for="landing_question_id" class="form-label">ID da questão demonstrativa</label>
+                    <input type="number" min="1" name="landing_question_id" id="landing_question_id" class="form-control" value="{{ old('landing_question_id', $course->landing_question_id ?? '') }}" placeholder="Ex.: 1004">
+                    <div class="text-muted small">A questão precisa estar publicada e pertencer ao escopo do curso.</div>
+                </div>
+                <div class="col-12">
+                    <label for="landing_problem_text" class="form-label">Texto da dor/problema</label>
+                    <textarea name="landing_problem_text" id="landing_problem_text" class="form-control" rows="3" maxlength="1000">{{ old('landing_problem_text', $course->landing_problem_text ?? '') }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="landing_final_title" class="form-label">Título da chamada final</label>
+                    <input type="text" name="landing_final_title" id="landing_final_title" class="form-control" maxlength="180" value="{{ old('landing_final_title', $course->landing_final_title ?? '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="landing_final_text" class="form-label">Texto da chamada final</label>
+                    <textarea name="landing_final_text" id="landing_final_text" class="form-control" rows="2" maxlength="500">{{ old('landing_final_text', $course->landing_final_text ?? '') }}</textarea>
+                </div>
+                <div class="col-md-6">
+                    <label for="landing_seo_title" class="form-label">Título para Google</label>
+                    <input type="text" name="landing_seo_title" id="landing_seo_title" class="form-control" maxlength="70" value="{{ old('landing_seo_title', $course->landing_seo_title ?? '') }}">
+                </div>
+                <div class="col-md-6">
+                    <label for="landing_seo_description" class="form-label">Descrição para Google</label>
+                    <textarea name="landing_seo_description" id="landing_seo_description" class="form-control" rows="2" maxlength="170">{{ old('landing_seo_description', $course->landing_seo_description ?? '') }}</textarea>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card mb-4">
         <div class="card-header d-flex justify-content-between align-items-center">
             <div>
                 <strong>Escopo manual do curso</strong>

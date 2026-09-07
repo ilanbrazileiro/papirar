@@ -122,11 +122,22 @@ class SitemapController extends Controller
             ->active()
             ->public()
             ->orderBy('id')
-            ->get(['id', 'slug', 'updated_at'])
-            ->map(fn (Course $course) => [
-                'loc' => route('site.courses.show', ['slug' => $course->slug]),
-                'lastmod' => optional($course->updated_at)?->toAtomString(),
-            ]);
+            ->get(['id', 'slug', 'landing_enabled', 'updated_at'])
+            ->flatMap(function (Course $course) {
+                $urls = [[
+                    'loc' => route('site.courses.show', ['slug' => $course->slug]),
+                    'lastmod' => optional($course->updated_at)?->toAtomString(),
+                ]];
+
+                if ($course->landing_enabled) {
+                    $urls[] = [
+                        'loc' => route('site.course-landings.show', ['slug' => $course->slug]),
+                        'lastmod' => optional($course->updated_at)?->toAtomString(),
+                    ];
+                }
+
+                return $urls;
+            });
 
         return $this->urlset($urls);
     }

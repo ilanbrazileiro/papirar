@@ -61,6 +61,7 @@ class CourseController extends Controller
             'quarterly_price' => null,
             'semiannual_price' => null,
             'sort_order' => 0,
+            'landing_enabled' => false,
         ]);
 
         return view('admin.courses.create', $this->formData($course));
@@ -259,6 +260,17 @@ class CourseController extends Controller
             'is_trial_available' => ['nullable', 'boolean'],
             'trial_days' => ['nullable', 'integer', 'min:1', 'max:30'],
             'sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
+            'landing_enabled' => ['nullable', 'boolean'],
+            'landing_headline' => ['nullable', 'string', 'max:180'],
+            'landing_subheadline' => ['nullable', 'string', 'max:500'],
+            'landing_problem_title' => ['nullable', 'string', 'max:180'],
+            'landing_problem_text' => ['nullable', 'string', 'max:1000'],
+            'landing_cta_text' => ['nullable', 'string', 'max:80'],
+            'landing_final_title' => ['nullable', 'string', 'max:180'],
+            'landing_final_text' => ['nullable', 'string', 'max:500'],
+            'landing_seo_title' => ['nullable', 'string', 'max:70'],
+            'landing_seo_description' => ['nullable', 'string', 'max:170'],
+            'landing_question_id' => ['nullable', 'integer', 'exists:questions,id'],
             'subjects' => ['nullable', 'array'],
             'subjects.*.selected' => ['nullable', 'boolean'],
             'subjects.*.topics' => ['nullable', 'array'],
@@ -315,6 +327,17 @@ class CourseController extends Controller
             'is_trial_available' => (bool) ($validated['is_trial_available'] ?? false),
             'trial_days' => $trialDays,
             'sort_order' => (int) ($validated['sort_order'] ?? 0),
+            'landing_enabled' => (bool) ($validated['landing_enabled'] ?? false),
+            'landing_headline' => $validated['landing_headline'] ?? null,
+            'landing_subheadline' => $validated['landing_subheadline'] ?? null,
+            'landing_problem_title' => $validated['landing_problem_title'] ?? null,
+            'landing_problem_text' => $validated['landing_problem_text'] ?? null,
+            'landing_cta_text' => $validated['landing_cta_text'] ?? null,
+            'landing_final_title' => $validated['landing_final_title'] ?? null,
+            'landing_final_text' => $validated['landing_final_text'] ?? null,
+            'landing_seo_title' => $validated['landing_seo_title'] ?? null,
+            'landing_seo_description' => $validated['landing_seo_description'] ?? null,
+            'landing_question_id' => $validated['landing_question_id'] ?? null,
         ];
     }
 

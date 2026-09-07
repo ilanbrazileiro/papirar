@@ -48,6 +48,17 @@ class Course extends Model
         'is_trial_available',
         'trial_days',
         'sort_order',
+        'landing_enabled',
+        'landing_headline',
+        'landing_subheadline',
+        'landing_problem_title',
+        'landing_problem_text',
+        'landing_cta_text',
+        'landing_final_title',
+        'landing_final_text',
+        'landing_seo_title',
+        'landing_seo_description',
+        'landing_question_id',
     ];
 
     protected $casts = [
@@ -63,6 +74,8 @@ class Course extends Model
         'is_trial_available' => 'boolean',
         'trial_days' => 'integer',
         'sort_order' => 'integer',
+        'landing_enabled' => 'boolean',
+        'landing_question_id' => 'integer',
     ];
 
     public static function typeOptions(): array
@@ -183,6 +196,11 @@ class Course extends Model
     {
         return $query->where('is_trial_available', true)
             ->where('trial_days', '>', 0);
+    }
+
+    public function scopeLandingEnabled($query)
+    {
+        return $query->where('landing_enabled', true);
     }
 
     public function typeLabel(): string
