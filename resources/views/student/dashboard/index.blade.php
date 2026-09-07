@@ -228,6 +228,10 @@
 @endpush
 
 @section('content')
+    @if($trialLifecycle ?? null)
+        @include('student.partials.trial-lifecycle-card', ['lifecycle' => $trialLifecycle])
+    @endif
+
     @if($needsEmailVerification ?? false)
         <div class="card-soft p-4 mb-4 border border-warning-subtle" style="background: linear-gradient(135deg, rgba(244, 197, 66, .22), rgba(255,255,255,1));">
             <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">

@@ -108,6 +108,10 @@
         <div class="alert alert-info">{{ session('info') }}</div>
     @endif
 
+    @foreach(($trialLifecycles ?? collect()) as $lifecycle)
+        @include('student.partials.trial-lifecycle-card', ['lifecycle' => $lifecycle])
+    @endforeach
+
     @if($pendingTransactions->isNotEmpty())
         <div class="card-soft p-4 mb-4">
             <div class="d-flex justify-content-between align-items-center mb-3">

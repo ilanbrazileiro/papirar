@@ -17,6 +17,27 @@
 
     var continueStudying = document.querySelector('[data-continue-studying]');
 
+    document.querySelectorAll('[data-trial-lifecycle]').forEach(function (card) {
+        send('trial_lifecycle_view', {
+            lifecycle_stage: card.dataset.stage || 'unknown',
+            course_id: card.dataset.courseId || null,
+            days_remaining: Number(card.dataset.daysRemaining || 0),
+            questions_answered: Number(card.dataset.answers || 0)
+        });
+
+        card.querySelectorAll('[data-trial-action]').forEach(function (action) {
+            var eventType = action.dataset.trialAction === 'checkout' ? 'trial_conversion_click' : 'trial_study_click';
+            action.addEventListener(action.tagName === 'FORM' ? 'submit' : 'click', function () {
+                send(eventType, {
+                    lifecycle_stage: card.dataset.stage || 'unknown',
+                    course_id: card.dataset.courseId || null,
+                    days_remaining: Number(card.dataset.daysRemaining || 0),
+                    billing_cycle: action.dataset.billingCycle || null
+                });
+            });
+        });
+    });
+
     var dailyMissions = document.querySelector('[data-daily-missions-collapse]');
 
     var studyPlan = document.querySelector('[data-study-plan-view]');

@@ -13,9 +13,12 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
+use App\Services\Billing\TrialLifecycleService;
 
 class SubscriptionController extends Controller
 {
+    public function __construct(private readonly TrialLifecycleService $trialLifecycle) {}
+
     public function index(Request $request): View
     {
         $user = Auth::user();
@@ -92,6 +95,7 @@ class SubscriptionController extends Controller
         }
 
         $paymentStatus = $request->query('payment') ?: $request->query('status');
+        $trialLifecycles = $this->trialLifecycle->forUser((int) $user->id);
 
         return view('student.subscriptions.index', [
             'activeCourseAccesses' => $activeCourseAccesses,
@@ -103,6 +107,7 @@ class SubscriptionController extends Controller
             'paymentStatus' => $paymentStatus,
             'trialUsedCourseIds' => $trialUsedCourseIds,
             'needsEmailVerification' => ! $user->hasVerifiedEmail(),
+            'trialLifecycles' => $trialLifecycles,
         ]);
     }
 
