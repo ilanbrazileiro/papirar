@@ -19,6 +19,20 @@
 
     var dailyMissions = document.querySelector('[data-daily-missions-collapse]');
 
+    var studyPlan = document.querySelector('[data-study-plan-view]');
+    if (studyPlan) {
+        send('study_plan_today_view', { course_id: studyPlan.dataset.courseId || null });
+    }
+
+    document.querySelectorAll('[data-study-plan-start]').forEach(function (form) {
+        form.addEventListener('submit', function () { send('study_plan_start', { course_id: studyPlan ? studyPlan.dataset.courseId : null }); });
+    });
+
+    var studyPlanForm = document.querySelector('[data-study-plan-form]');
+    if (studyPlanForm) {
+        studyPlanForm.addEventListener('submit', function () { send('study_plan_saved'); });
+    }
+
     if (dailyMissions) {
         dailyMissions.addEventListener('shown.bs.collapse', function () {
             send('daily_missions_view');

@@ -412,6 +412,9 @@
                     <a class="nav-link {{ request()->routeIs('student.courses.*') || request()->routeIs('student.course-study.*') ? 'active' : '' }}" href="{{ route('student.courses.index') }}">Meus cursos</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link {{ request()->routeIs('student.study-plan.*') ? 'active' : '' }}" href="{{ route('student.study-plan.index') }}">Cronograma</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link {{ request()->routeIs('student.subscriptions.*') ? 'active' : '' }}" href="{{ route('student.subscriptions.index') }}">Assinatura</a>
                 </li>
                 <li class="nav-item">
@@ -449,7 +452,8 @@
 </nav>
 
 <main class="app-shell">
-    
+    @include('components.flash')
+
     @if($errors->any())
         <div class="alert alert-danger">
             <div class="fw-semibold mb-2">Corrija os erros abaixo:</div>

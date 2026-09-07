@@ -197,6 +197,10 @@
     }
 
     .today-panel { padding:24px; border-radius:24px; background:linear-gradient(135deg,#0f2344,#173b72); color:#fff; box-shadow:0 18px 45px rgba(15,35,68,.18); }
+    .study-plan-today { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:20px; align-items:center; padding:22px; border:1px solid #cfe0f5; border-radius:22px; background:linear-gradient(135deg,#edf5ff,#fff); }
+    .study-plan-progress { height:9px; overflow:hidden; border-radius:999px; background:#dce6f3; }
+    .study-plan-progress span { display:block; height:100%; border-radius:inherit; background:#173b72; }
+    @media(max-width:767.98px){.study-plan-today{grid-template-columns:1fr}.study-plan-today .btn{width:100%}}
     .today-panel-toggle { display:block; width:100%; padding:0; border:0; background:transparent; color:inherit; text-align:left; cursor:pointer; }
     .today-panel-head { display:flex; justify-content:space-between; gap:20px; align-items:center; }
     .today-panel-head h2 { margin:0; font-size:clamp(1.5rem,3vw,2rem); font-weight:950; }
@@ -297,6 +301,41 @@
                     <span class="continue-study-arrow" aria-hidden="true">→</span>
                 </a>
             </div>
+        </section>
+    @endif
+
+    @if($studyPlanToday)
+        <section class="study-plan-today mb-4" data-study-plan-view data-course-id="{{ $studyPlanToday['plan']->course_id }}">
+            <div>
+                <div class="continue-study-label">Cronograma de estudos</div>
+                <h2 class="h4 fw-bold mb-1">Plano de hoje · {{ $studyPlanToday['plan']->course->title }}</h2>
+                @if($studyPlanToday['is_study_day'] && $studyPlanToday['subject'])
+                    <div class="continue-study-course mb-2">{{ $studyPlanToday['subject']->name }} · {{ $studyPlanToday['answered'] }}/{{ $studyPlanToday['target'] }} questões</div>
+                    <div class="study-plan-progress"><span style="width:{{ $studyPlanToday['percent'] }}%"></span></div>
+                @elseif($studyPlanToday['next'] && $studyPlanToday['next']['subject'])
+                    <div class="small-muted">Dia de descanso. Próximo estudo: {{ $studyPlanToday['next']['date']->translatedFormat('l, d/m') }} · {{ $studyPlanToday['next']['subject']->name }}.</div>
+                @endif
+            </div>
+            <div>
+                @if($studyPlanToday['is_study_day'] && $studyPlanToday['subject'] && !$studyPlanToday['completed'])
+                    <form method="POST" action="{{ route('student.course-study.start', $studyPlanToday['plan']->course_id) }}" data-study-plan-start>
+                        @csrf
+                        <input type="hidden" name="subject_ids[]" value="{{ $studyPlanToday['subject']->id }}">
+                        <input type="hidden" name="quantity" value="{{ $studyPlanToday['remaining'] }}">
+                        <input type="hidden" name="mode" value="train">
+                        <button class="btn btn-warning px-4">COMEÇAR AGORA →</button>
+                    </form>
+                @elseif($studyPlanToday['completed'])
+                    <span class="badge text-bg-success p-3">Meta concluída ✓</span>
+                @else
+                    <a href="{{ route('student.study-plan.index') }}" class="btn btn-outline-primary">Ver cronograma</a>
+                @endif
+            </div>
+        </section>
+    @elseif(!($needsCourse ?? true))
+        <section class="study-plan-today mb-4">
+            <div><div class="continue-study-label">Organize sua preparação</div><h2 class="h4 fw-bold mb-1">Crie seu cronograma de estudos</h2><div class="small-muted">Defina seus dias e receba uma disciplina para estudar a cada sessão.</div></div>
+            <a href="{{ route('student.study-plan.index') }}" class="btn btn-primary px-4">CRIAR CRONOGRAMA</a>
         </section>
     @endif
 
