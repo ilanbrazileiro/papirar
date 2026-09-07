@@ -10,12 +10,17 @@ use App\Models\PaymentTransaction;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
+use App\Services\Study\PendingErrorReviewService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class CourseController extends Controller
 {
+    public function __construct(
+        private readonly PendingErrorReviewService $pendingErrors
+    ) {}
+
     public function index(): View
     {
         $courseAccesses = CourseAccess::query()
@@ -123,8 +128,9 @@ class CourseController extends Controller
             ->latest('id')
             ->limit(5)
             ->get();
+        $pendingErrorsCount = $this->pendingErrors->countForCourse((int) Auth::id(), (int) $course->id);
 
-        return view('student.courses.show', compact('course', 'access', 'subjects', 'topics', 'sourceMaterials', 'totalQuestions', 'transactions'));
+        return view('student.courses.show', compact('course', 'access', 'subjects', 'topics', 'sourceMaterials', 'totalQuestions', 'transactions', 'pendingErrorsCount'));
     }
 
     public function study(Course $course): View

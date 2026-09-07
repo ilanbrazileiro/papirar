@@ -106,6 +106,7 @@
         $suggestedSubjectIds = request()->filled('subject_id') ? [(int) request('subject_id')] : [];
         $suggestedTopicIds = request()->filled('topic_id') ? [(int) request('topic_id')] : [];
         $suggestedSourceMaterialId = request()->integer('source_material_id') ?: null;
+        $suggestedMode = in_array(request('mode'), ['train', 'review', 'favorites'], true) ? request('mode') : 'train';
     @endphp
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
@@ -169,9 +170,9 @@
                             <div class="col-md-6">
                                 <label class="form-label">Modo</label>
                                 <select name="mode" id="study-mode" class="form-control">
-                                    <option value="train" @selected(old('mode', 'train') === 'train')>Treino</option>
-                                    <option value="review" @selected(old('mode') === 'review')>Revisar questões erradas</option>
-                                    <option value="favorites" @selected(old('mode') === 'favorites')>Estudar favoritas</option>
+                                    <option value="train" @selected(old('mode', $suggestedMode) === 'train')>Treino</option>
+                                    <option value="review" @selected(old('mode', $suggestedMode) === 'review')>Revisar questões erradas</option>
+                                    <option value="favorites" @selected(old('mode', $suggestedMode) === 'favorites')>Estudar favoritas</option>
                                 </select>
                             </div>
                         </div>
@@ -285,7 +286,7 @@
                             <div class="course-study-mobile-meta">
                                 <strong id="mobile-study-quantity">{{ old('quantity', 10) }} questões</strong>
                                 <span id="mobile-study-mode">
-                                    @switch(old('mode', 'train'))
+                                    @switch(old('mode', $suggestedMode))
                                         @case('review')
                                             Revisar questões erradas
                                             @break

@@ -241,6 +241,24 @@
         </section>
     @endif
 
+    @if(($pendingErrorsCount ?? 0) > 0 && ($reviewCourse ?? null))
+        <section class="card-soft p-4 mb-4 border border-danger-subtle" data-error-review-view data-course-id="{{ $reviewCourse->id }}" data-pending-errors="{{ $pendingErrorsCount }}">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div>
+                    <div class="small text-uppercase fw-bold text-danger mb-1">Revisão de erros</div>
+                    <h2 class="h4 fw-bold mb-1">Você possui {{ $pendingErrorsCount }} {{ $pendingErrorsCount === 1 ? 'questão pendente' : 'questões pendentes' }}.</h2>
+                    <div class="small-muted">Refaça seus erros mais recentes e acompanhe quantos já foram superados.</div>
+                </div>
+                <form method="POST" action="{{ route('student.course-study.start', $reviewCourse) }}" data-error-review-start>
+                    @csrf
+                    <input type="hidden" name="mode" value="review">
+                    <input type="hidden" name="quantity" value="{{ min(10, $pendingErrorsCount) }}">
+                    <button class="btn btn-danger px-4">Revisar agora →</button>
+                </form>
+            </div>
+        </section>
+    @endif
+
     <section class="student-hero mb-4">
         <div class="row align-items-center g-4">
             <div class="col-lg-8">

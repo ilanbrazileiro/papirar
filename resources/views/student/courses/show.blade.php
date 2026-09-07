@@ -329,6 +329,11 @@
 
                 <div class="d-grid gap-2">
                     <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">Responder Questões</a>
+                    @if(($pendingErrorsCount ?? 0) > 0)
+                        <a href="{{ route('student.courses.study', ['course' => $course, 'mode' => 'review']) }}" class="btn btn-outline-danger" data-error-review-view data-course-id="{{ $course->id }}" data-pending-errors="{{ $pendingErrorsCount }}">
+                            Revisar {{ $pendingErrorsCount }} {{ $pendingErrorsCount === 1 ? 'erro' : 'erros' }}
+                        </a>
+                    @endif
                     <a href="{{ route('student.courses.simulated.index', $course) }}" class="btn btn-outline-primary">Criar simulado</a>
                     <a href="{{ route('student.courses.performance', $course) }}" class="btn btn-outline-primary">Ver desempenho</a>
                     <a href="{{ route('student.courses.favorites.index', $course) }}" class="btn btn-outline-warning">Questões favoritas</a>

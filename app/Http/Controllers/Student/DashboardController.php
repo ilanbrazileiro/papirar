@@ -11,11 +11,16 @@ use App\Models\SimulatedExam;
 use App\Models\StudySession;
 use App\Models\SupportTicket;
 use App\Models\UserAnswer;
+use App\Services\Study\PendingErrorReviewService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
 
 class DashboardController extends Controller
 {
+    public function __construct(
+        private readonly PendingErrorReviewService $pendingErrors
+    ) {}
+
     public function index(): View
     {
         $user = Auth::user();
@@ -114,6 +119,11 @@ class DashboardController extends Controller
             $lastCourseSession,
             $activeCourseAccesses->first()?->course
         );
+        $pendingErrorsCount = $this->pendingErrors->countForCourses($userId, $activeCourseIds);
+        $reviewCourse = $activeCourseAccesses
+            ->first(fn ($access) => $access->course
+                && $this->pendingErrors->countForCourse($userId, (int) $access->course_id) > 0)
+            ?->course;
 
         return view('student.dashboard.index', [
             'activeCourseAccesses' => $activeCourseAccesses,
@@ -124,6 +134,8 @@ class DashboardController extends Controller
             'needsEmailVerification' => ! $user->hasVerifiedEmail(),
             'needsCourse' => $activeCourseAccesses->isEmpty(),
             'studyContinuation' => $studyContinuation,
+            'pendingErrorsCount' => $pendingErrorsCount,
+            'reviewCourse' => $reviewCourse,
         ]);
     }
 

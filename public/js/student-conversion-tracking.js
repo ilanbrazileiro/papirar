@@ -31,6 +31,24 @@
         });
     }
 
+    document.querySelectorAll('[data-error-review-view]').forEach(function (element) {
+        send('error_review_view', {
+            course_id: element.dataset.courseId || null,
+            pending_errors: Number(element.dataset.pendingErrors || 0)
+        });
+    });
+
+    var completedReview = document.querySelector('[data-error-review-completed]');
+
+    if (completedReview) {
+        send('error_review_completed', {
+            course_id: completedReview.dataset.courseId || null,
+            reviewed: Number(completedReview.dataset.reviewed || 0),
+            corrected: Number(completedReview.dataset.corrected || 0),
+            still_pending: Number(completedReview.dataset.stillPending || 0)
+        });
+    }
+
     document.addEventListener('submit', function (event) {
         var form = event.target;
 
@@ -38,6 +56,10 @@
 
         var action = form.getAttribute('action') || '';
         var method = (form.getAttribute('method') || 'GET').toUpperCase();
+
+        if (method === 'POST' && (form.matches('[data-error-review-start]') || new FormData(form).get('mode') === 'review')) {
+            send('error_review_start');
+        }
 
         if (method === 'POST' && action.indexOf('/checkout') !== -1) {
             var billingCycle = form.querySelector('[name="billing_cycle"]');

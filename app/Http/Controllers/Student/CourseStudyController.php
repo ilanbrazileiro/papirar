@@ -10,6 +10,7 @@ use App\Models\QuestionFavorite;
 use App\Models\StudySession;
 use App\Models\StudySessionQuestion;
 use App\Models\UserAnswer;
+use App\Services\Study\PendingErrorReviewService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,10 @@ use Illuminate\Support\Facades\DB;
 
 class CourseStudyController extends Controller
 {
+    public function __construct(
+        private readonly PendingErrorReviewService $pendingErrors
+    ) {}
+
     public function start(Request $request, Course $course): RedirectResponse
     {
         $this->authorizeCourseAccess($course);
@@ -61,8 +66,8 @@ class CourseStudyController extends Controller
             ->when(!empty($selectedTopicIds), fn ($q) => $q->whereIn('topic_id', $selectedTopicIds))
             ->when(!empty($data['source_material_id']), fn ($q) => $q->where('source_material_id', $data['source_material_id']))
             ->when(!empty($data['difficulty']), fn ($q) => $q->where('difficulty', $data['difficulty']))
-            ->when($data['mode'] === 'review', function ($q) {
-                $q->whereHas('answers', fn ($answer) => $answer->where('user_id', Auth::id())->where('is_correct', false));
+            ->when($data['mode'] === 'review', function ($q) use ($course) {
+                $q->whereIn('questions.id', $this->pendingErrors->questionIds((int) Auth::id(), (int) $course->id));
             })
             ->when($data['mode'] === 'favorites', function ($q) use ($course) {
                 $q->whereHas('favorites', fn ($favorite) => $favorite->where('user_id', Auth::id())->where('course_id', $course->id));
@@ -83,7 +88,7 @@ class CourseStudyController extends Controller
             'subject_id' => count($selectedSubjectIds) === 1 ? $selectedSubjectIds[0] : null,
             'topic_id' => count($selectedTopicIds) === 1 ? $selectedTopicIds[0] : null,
             'source_material_id' => $data['source_material_id'] ?? null,
-            'mode' => 'train',
+            'mode' => $data['mode'],
             'started_at' => now(),
         ]);
 
@@ -154,7 +159,15 @@ class CourseStudyController extends Controller
         $correct = $answers->where('is_correct', true)->count();
         $incorrect = $answers->where('is_correct', false)->count();
         $accuracy = $total > 0 ? ($correct / $total) * 100 : 0;
-        return view('student.courses.result', compact('session', 'answers', 'total', 'correct', 'incorrect', 'accuracy'));
+        $reviewSummary = $session->mode === 'review'
+            ? [
+                'reviewed' => $answers->count(),
+                'corrected' => $correct,
+                'still_pending' => $this->pendingErrors->countForCourse((int) Auth::id(), (int) $session->course_id),
+            ]
+            : null;
+
+        return view('student.courses.result', compact('session', 'answers', 'total', 'correct', 'incorrect', 'accuracy', 'reviewSummary'));
     }
 
     private function loadQuestion(int $questionId): Question

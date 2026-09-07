@@ -3,6 +3,24 @@
 @section('title', 'Resultado')
 
 @section('content')
+    @if($reviewSummary)
+        <div
+            class="card-soft p-4 mb-4 border border-success-subtle"
+            data-error-review-completed
+            data-course-id="{{ $session->course_id }}"
+            data-reviewed="{{ $reviewSummary['reviewed'] }}"
+            data-corrected="{{ $reviewSummary['corrected'] }}"
+            data-still-pending="{{ $reviewSummary['still_pending'] }}"
+        >
+            <div class="small text-uppercase fw-bold text-success mb-2">Revisão concluída</div>
+            <div class="row g-3">
+                <div class="col-4"><div class="stats-card"><div class="label">Revisadas</div><div class="value">{{ $reviewSummary['reviewed'] }}</div></div></div>
+                <div class="col-4"><div class="stats-card"><div class="label">Superadas</div><div class="value text-success">{{ $reviewSummary['corrected'] }}</div></div></div>
+                <div class="col-4"><div class="stats-card"><div class="label">Pendentes</div><div class="value text-danger">{{ $reviewSummary['still_pending'] }}</div></div></div>
+            </div>
+        </div>
+    @endif
+
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
             <h1 class="page-title">Resultado da sessão</h1>
