@@ -2,6 +2,47 @@
 
 @section('title', 'Simulado em andamento')
 
+@push('styles')
+<style>
+    .papirar-question-content,
+    .papirar-question-content * {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .papirar-question-content img,
+    .papirar-question-content video,
+    .papirar-question-content iframe,
+    .papirar-question-content svg {
+        max-width: 100% !important;
+        height: auto;
+    }
+
+    .papirar-question-content table {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .papirar-question-content .katex-display {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: .25rem;
+    }
+
+    .question-card,
+    .alt-card,
+    .alt-card span {
+        min-width: 0;
+    }
+</style>
+@endpush
+
 @section('content')
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3 mb-4">
         <div>
@@ -27,6 +68,7 @@
         <div class="col-lg-8">
             <div class="question-card mb-4">
                 <div class="d-flex flex-wrap gap-2 mb-3">
+                    <span class="meta-badge">Questão #{{ $question->id }}</span>
                     @if($question->subject)
                         <span class="meta-badge">Disciplina: {{ $question->subject->name }}</span>
                     @endif
@@ -38,7 +80,7 @@
                     @endif
                 </div>
 
-                <div class="mb-4 papirar-katex">
+                <div class="mb-4 papirar-katex papirar-question-content">
                     {!! $question->statement !!}
                 </div>
 

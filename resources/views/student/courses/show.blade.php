@@ -75,6 +75,14 @@
         display: none;
     }
 
+    .review-errors-form {
+        margin: 0;
+    }
+
+    .review-errors-form .btn {
+        width: 100%;
+    }
+
     @media (max-width: 767.98px) {
         .course-mobile-action {
             display: block;
@@ -203,8 +211,6 @@
 
     <div class="row g-4">
         <div class="col-lg-8">
-
-            {{-- Conteúdo acadêmico recolhido por padrão no desktop e no mobile --}}
             <div class="card-soft p-4 mb-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
                     <div>
@@ -329,11 +335,26 @@
 
                 <div class="d-grid gap-2">
                     <a href="{{ route('student.courses.study', $course) }}" class="btn btn-primary">Responder Questões</a>
+
                     @if(($pendingErrorsCount ?? 0) > 0)
-                        <a href="{{ route('student.courses.study', ['course' => $course, 'mode' => 'review']) }}" class="btn btn-outline-danger" data-error-review-view data-course-id="{{ $course->id }}" data-pending-errors="{{ $pendingErrorsCount }}">
-                            Revisar {{ $pendingErrorsCount }} {{ $pendingErrorsCount === 1 ? 'erro' : 'erros' }}
-                        </a>
+                        <form
+                            method="POST"
+                            action="{{ route('student.course-study.start', $course) }}"
+                            class="review-errors-form"
+                            data-error-review-view
+                            data-course-id="{{ $course->id }}"
+                            data-pending-errors="{{ $pendingErrorsCount }}"
+                        >
+                            @csrf
+                            <input type="hidden" name="mode" value="review">
+                            <input type="hidden" name="quantity" value="{{ min(100, max(1, (int) $pendingErrorsCount)) }}">
+
+                            <button type="submit" class="btn btn-outline-danger">
+                                Revisar {{ $pendingErrorsCount }} {{ $pendingErrorsCount === 1 ? 'erro' : 'erros' }}
+                            </button>
+                        </form>
                     @endif
+
                     <a href="{{ route('student.courses.simulated.index', $course) }}" class="btn btn-outline-primary">Criar simulado</a>
                     <a href="{{ route('student.courses.performance', $course) }}" class="btn btn-outline-primary">Ver desempenho</a>
                     <a href="{{ route('student.courses.favorites.index', $course) }}" class="btn btn-outline-warning">Questões favoritas</a>

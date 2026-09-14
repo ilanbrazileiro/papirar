@@ -74,6 +74,7 @@
 
     <div class="question-card mb-4">
         <div class="d-flex flex-wrap gap-2 mb-3">
+            <span class="meta-badge">Questão #{{ $question->id }}</span>
             @if($question->difficulty)
                 <span class="meta-badge">Dificuldade: {{ $difficultyLabels[$question->difficulty] ?? $question->difficulty }}</span>
             @endif
@@ -88,8 +89,8 @@
             @endif
         </div>
 
-        <div class="mb-4 papirar-katex">
-            ({!! $question->source_reference !!}) 
+        <div class="mb-4 papirar-katex papirar-question-content">
+            ({!! $question->source_reference !!})
             {!! $question->statement !!}
         </div>
 
@@ -99,14 +100,14 @@
                     $isSelected = (int) $userAnswer->selected_alternative_id === (int) $alternative->id;
                     $class = $alternative->is_correct ? 'correct' : ($isSelected ? 'wrong' : '');
                 @endphp
-                <div class="alt-card {{ $class }} mb-2">
+                <div class="alt-card {{ $class }} mb-2 papirar-question-content">
                     <strong>{{ $alternative->letter }})</strong> {!! $alternative->text !!}
                 </div>
             @endforeach
 
             <div class="card-soft p-4 mt-4">
                 <div class="section-title">Comentário da questão</div>
-                <div class="papirar-katex">{!! $question->commented_answer ?: 'Comentário ainda não cadastrado.' !!}</div>
+                <div class="papirar-katex papirar-question-content">{!! $question->commented_answer ?: 'Comentário ainda não cadastrado.' !!}</div>
             </div>
 
             @includeIf('student.courses.partials.video-lesson', ['question' => $question])
@@ -200,7 +201,7 @@
                 @foreach($question->alternatives->sortBy('letter') as $alternative)
                     <div class="alt-card d-flex align-items-start gap-2 mb-2 js-alternative-row" data-alt-id="{{ $alternative->id }}">
                         <button type="button" class="btn btn-sm btn-light border js-cut-alternative" title="Riscar alternativa" aria-label="Riscar alternativa">✂</button>
-                        <label class="d-flex align-items-start gap-2 mb-0 flex-grow-1">
+                        <label class="d-flex align-items-start gap-2 mb-0 flex-grow-1 papirar-question-content">
                             <input type="radio" name="selected_alternative_id" value="{{ $alternative->id }}" required class="mt-1">
                             <span><strong>{{ $alternative->letter }})</strong> {!! $alternative->text !!}</span>
                         </label>
@@ -225,6 +226,44 @@
     .difficulty-option input { margin: 0; }
     .student-comment-box { border: 1px solid var(--border); background: #fff; border-radius: 14px; padding: 14px; }
     .student-comment-empty { border: 1px dashed var(--border); border-radius: 14px; padding: 14px; color: var(--muted); background: #fff; }
+
+    .question-card,
+    .alt-card,
+    .alt-card label,
+    .alt-card span {
+        min-width: 0;
+    }
+
+    .papirar-question-content,
+    .papirar-question-content * {
+        min-width: 0;
+        max-width: 100%;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+    }
+
+    .papirar-question-content img,
+    .papirar-question-content video,
+    .papirar-question-content iframe,
+    .papirar-question-content svg {
+        max-width: 100% !important;
+        height: auto;
+    }
+
+    .papirar-question-content table {
+        display: block;
+        width: 100%;
+        max-width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .papirar-question-content .katex-display {
+        max-width: 100%;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: .25rem;
+    }
 </style>
 @endpush
 
