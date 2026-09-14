@@ -61,7 +61,6 @@
                             </p>
                         </a>
                         <ul class="nav nav-treeview">
-                            <li class="nav-item"><a href="{{ route('admin.reports.commercial-funnel.index') }}" class="nav-link {{ request()->routeIs('admin.reports.commercial-funnel.*') ? 'active' : '' }}"><i class="far fa-circle nav-icon"></i><p>Funil comercial</p></a></li>
                             <li class="nav-item">
                                 <a href="{{ route('admin.questions.index') }}" class="nav-link {{ request()->routeIs('admin.questions.index') && request('status') !== 'draft' ? 'active' : '' }}">
                                     <i class="fas fa-layer-group"></i>
@@ -211,24 +210,26 @@
                         <li class="nav-item">
                             <a href="{{ route('admin.courses.index') }}" class="nav-link {{ request()->routeIs('admin.courses.*') ? 'active' : '' }}">
                                 <i class="nav-icon fas fa-graduation-cap"></i>
-                                <p>Cursos/Produtos</p>
+                                <p>Cursos</p>
                             </a>
                         </li>
                     @endif
+
+                    @if(Route::has('admin.customers.index'))
+                        <li class="nav-item">
+                            <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
+                                <i class="nav-icon fas fa-users"></i>
+                                <p>Clientes</p>
+                            </a>
+                        </li>
+                    @endif
+
                     <li class="nav-item">
                         <a href="{{ route('admin.course-accesses.index') }}" class="nav-link {{ request()->routeIs('admin.course-accesses.*') ? 'active' : '' }}">
                             <i class="nav-icon fas fa-user-check"></i>
                             <p>Acessos a cursos</p>
                         </a>
                     </li>
-                    @if(Route::has('admin.plans.index'))
-                        <li class="nav-item">
-                            <a href="{{ route('admin.plans.index') }}" class="nav-link {{ request()->routeIs('admin.plans.*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-tags"></i>
-                                <p>Planos</p>
-                            </a>
-                        </li>
-                    @endif
 
                     <li class="nav-item {{ $relatorioMenuOpen ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $relatorioMenuOpen ? 'active' : '' }}">
@@ -258,26 +259,16 @@
                                     <p>Questões por Curso</p>
                                 </a>
                             </li>
+                            <li class="nav-item">
+                                <a href="{{ route('admin.reports.commercial-funnel.index') }}" class="nav-link {{ request()->routeIs('admin.reports.commercial-funnel.*') ? 'active' : '' }}">
+                                    <i class="far fa-circle nav-icon"></i>
+                                    <p>Funil comercial</p>
+                                </a>
+                            </li>
                         </ul>
                     </li>
 
-                    @if(Route::has('admin.customers.index'))
-                        <li class="nav-item">
-                            <a href="{{ route('admin.customers.index') }}" class="nav-link {{ request()->routeIs('admin.customers.*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-users"></i>
-                                <p>Clientes</p>
-                            </a>
-                        </li>
-                    @endif
-
-                    @if(Route::has('admin.subscriptions.index'))
-                        <li class="nav-item">
-                            <a href="{{ route('admin.subscriptions.index') }}" class="nav-link {{ request()->routeIs('admin.subscriptions.*') ? 'active' : '' }}">
-                                <i class="nav-icon fas fa-credit-card"></i>
-                                <p>Assinaturas</p>
-                            </a>
-                        </li>
-                    @endif
+                    <li class="nav-header">OPERACIONAL</li>
 
                     @if(Route::has('admin.collaborators.index'))
                         <li class="nav-item">
@@ -287,6 +278,7 @@
                             </a>
                         </li>
                     @endif
+                    <li class="nav-item"></li>
                 @endunless
             </ul>
         </nav>
