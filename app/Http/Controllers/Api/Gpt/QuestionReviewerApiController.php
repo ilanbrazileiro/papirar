@@ -14,6 +14,7 @@ class QuestionReviewerApiController extends Controller
     public function reviewAndPublish(Request $request, Question $question): JsonResponse
     {
         $validated = $request->validate([
+            'statement' => ['sometimes', 'string', 'min:5'],
             'commented_answer' => ['required', 'string', 'min:80'],
         ]);
 
@@ -25,14 +26,22 @@ class QuestionReviewerApiController extends Controller
             ], 409);
         }
 
-        $question->update([
+        $update = [
             'commented_answer' => trim($validated['commented_answer']),
             'status' => Question::STATUS_PUBLISHED,
-        ]);
+        ];
+
+        if (array_key_exists('statement', $validated)) {
+            $update['statement'] = trim($validated['statement']);
+        }
+
+        $question->update($update);
 
         Log::info('GPT Revisor publicou questão', [
             'question_id' => $question->id,
             'status' => $question->status,
+            'statement_updated' => array_key_exists('statement', $validated),
+            'statement_length' => mb_strlen((string) $question->statement),
             'comment_length' => mb_strlen($question->commented_answer),
             'ip' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 300),
@@ -43,6 +52,7 @@ class QuestionReviewerApiController extends Controller
             'data' => [
                 'id' => $question->id,
                 'status' => $question->status,
+                'statement' => $question->statement,
                 'commented_answer' => $question->commented_answer,
                 'updated_at' => optional($question->updated_at)->toDateTimeString(),
             ],
