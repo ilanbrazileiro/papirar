@@ -9,6 +9,7 @@ use App\Models\CourseSourceMaterial;
 use App\Models\CourseSubject;
 use App\Models\CourseTopic;
 use App\Models\Exam;
+use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\ValidationException;
 
 class CourseController extends Controller
 {
@@ -62,6 +64,12 @@ class CourseController extends Controller
             'semiannual_price' => null,
             'sort_order' => 0,
             'landing_enabled' => false,
+            'landing_show_performance' => false,
+            'landing_show_error_review' => false,
+            'landing_show_next_study' => false,
+            'landing_show_schedule' => false,
+            'landing_show_goals' => false,
+            'landing_show_simulations' => false,
         ]);
 
         return view('admin.courses.create', $this->formData($course));
@@ -71,11 +79,15 @@ class CourseController extends Controller
     {
         $data = $this->validatedData($request);
         $data = $this->handleCourseCoverUpload($request, $data);
+        $data = $this->handleLandingPerformanceImageUpload($request, $data);
 
         DB::transaction(function () use ($request, $data) {
             $course = Course::create($data);
+
             $this->syncCourseScope($course, $request);
             $this->syncBundleItems($course, $request);
+            $this->validateLandingQuestionScope($course);
+            $this->syncLandingFaqs($course, $request);
         });
 
         return redirect()
@@ -92,6 +104,7 @@ class CourseController extends Controller
             'topics.subject',
             'sourceMaterials.subject',
             'includedCourses',
+            'landingFaqs',
         ]);
 
         return view('admin.courses.show', compact('course'));
@@ -99,7 +112,13 @@ class CourseController extends Controller
 
     public function edit(Course $course)
     {
-        $course->load(['courseSubjects', 'courseTopics', 'courseSourceMaterials', 'includedCourses']);
+        $course->load([
+            'courseSubjects',
+            'courseTopics',
+            'courseSourceMaterials',
+            'includedCourses',
+            'landingFaqs',
+        ]);
 
         return view('admin.courses.edit', $this->formData($course));
     }
@@ -108,11 +127,15 @@ class CourseController extends Controller
     {
         $data = $this->validatedData($request, $course->id);
         $data = $this->handleCourseCoverUpload($request, $data, $course);
+        $data = $this->handleLandingPerformanceImageUpload($request, $data, $course);
 
         DB::transaction(function () use ($request, $course, $data) {
             $course->update($data);
+
             $this->syncCourseScope($course, $request);
             $this->syncBundleItems($course, $request);
+            $this->validateLandingQuestionScope($course);
+            $this->syncLandingFaqs($course, $request);
         });
 
         return redirect()
@@ -130,6 +153,10 @@ class CourseController extends Controller
 
         if ($course->cover_image_path) {
             Storage::disk('public')->delete($course->cover_image_path);
+        }
+
+        if ($course->landing_performance_image_path) {
+            Storage::disk('public')->delete($course->landing_performance_image_path);
         }
 
         $course->delete();
@@ -178,6 +205,10 @@ class CourseController extends Controller
         $selectedSourceMaterials = [];
         $selectedBundleCourses = [];
 
+        $landingFaqs = $course->exists
+            ? $course->landingFaqs()->get()
+            : collect();
+
         if ($course->exists) {
             $selectedSubjects = $course->courseSubjects
                 ->where('is_active', true)
@@ -222,7 +253,8 @@ class CourseController extends Controller
             'selectedSubjects',
             'selectedTopicsBySubject',
             'selectedSourceMaterials',
-            'selectedBundleCourses'
+            'selectedBundleCourses',
+            'landingFaqs'
         ) + [
             'typeOptions' => Course::typeOptions(),
         ];
@@ -271,6 +303,24 @@ class CourseController extends Controller
             'landing_seo_title' => ['nullable', 'string', 'max:70'],
             'landing_seo_description' => ['nullable', 'string', 'max:170'],
             'landing_question_id' => ['nullable', 'integer', 'exists:questions,id'],
+
+            'landing_show_performance' => ['nullable', 'boolean'],
+            'landing_show_error_review' => ['nullable', 'boolean'],
+            'landing_show_next_study' => ['nullable', 'boolean'],
+            'landing_show_schedule' => ['nullable', 'boolean'],
+            'landing_show_goals' => ['nullable', 'boolean'],
+            'landing_show_simulations' => ['nullable', 'boolean'],
+            'landing_performance_image' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remove_landing_performance_image' => ['nullable', 'boolean'],
+            'landing_final_cta_text' => ['nullable', 'string', 'max:80'],
+
+            'landing_faqs' => ['nullable', 'array'],
+            'landing_faqs.*.id' => ['nullable', 'integer'],
+            'landing_faqs.*.question' => ['nullable', 'string', 'max:255'],
+            'landing_faqs.*.answer' => ['nullable', 'string', 'max:5000'],
+            'landing_faqs.*.sort_order' => ['nullable', 'integer', 'min:0', 'max:999999'],
+            'landing_faqs.*.is_active' => ['nullable', 'boolean'],
+
             'subjects' => ['nullable', 'array'],
             'subjects.*.selected' => ['nullable', 'boolean'],
             'subjects.*.topics' => ['nullable', 'array'],
@@ -282,6 +332,7 @@ class CourseController extends Controller
         ]);
 
         $slug = trim((string) ($validated['slug'] ?? ''));
+
         if ($slug === '') {
             $slug = Str::slug($validated['title']);
         } else {
@@ -338,6 +389,14 @@ class CourseController extends Controller
             'landing_seo_title' => $validated['landing_seo_title'] ?? null,
             'landing_seo_description' => $validated['landing_seo_description'] ?? null,
             'landing_question_id' => $validated['landing_question_id'] ?? null,
+
+            'landing_show_performance' => (bool) ($validated['landing_show_performance'] ?? false),
+            'landing_show_error_review' => (bool) ($validated['landing_show_error_review'] ?? false),
+            'landing_show_next_study' => (bool) ($validated['landing_show_next_study'] ?? false),
+            'landing_show_schedule' => (bool) ($validated['landing_show_schedule'] ?? false),
+            'landing_show_goals' => (bool) ($validated['landing_show_goals'] ?? false),
+            'landing_show_simulations' => (bool) ($validated['landing_show_simulations'] ?? false),
+            'landing_final_cta_text' => $validated['landing_final_cta_text'] ?? null,
         ];
     }
 
@@ -366,6 +425,32 @@ class CourseController extends Controller
             }
 
             $data['cover_image_path'] = $request->file('cover_image')->store('courses/covers', 'public');
+        }
+
+        return $data;
+    }
+
+    private function handleLandingPerformanceImageUpload(
+        Request $request,
+        array $data,
+        ?Course $course = null
+    ): array {
+        if (
+            $request->boolean('remove_landing_performance_image')
+            && $course?->landing_performance_image_path
+        ) {
+            Storage::disk('public')->delete($course->landing_performance_image_path);
+            $data['landing_performance_image_path'] = null;
+        }
+
+        if ($request->hasFile('landing_performance_image')) {
+            if ($course?->landing_performance_image_path) {
+                Storage::disk('public')->delete($course->landing_performance_image_path);
+            }
+
+            $data['landing_performance_image_path'] = $request
+                ->file('landing_performance_image')
+                ->store('courses/landing', 'public');
         }
 
         return $data;
@@ -471,6 +556,180 @@ class CourseController extends Controller
             ->map(fn ($id) => (int) $id)
             ->all();
 
-        $course->includedCourses()->sync($course->course_type === Course::TYPE_COMBO ? $validBundleCourseIds : []);
+        $course->includedCourses()->sync(
+            $course->course_type === Course::TYPE_COMBO
+                ? $validBundleCourseIds
+                : []
+        );
+    }
+
+    private function validateLandingQuestionScope(Course $course): void
+    {
+        if (! $course->landing_question_id) {
+            return;
+        }
+
+        $scope = $this->resolveCourseScope($course);
+
+        $isValid = Question::query()
+            ->visibleToStudent()
+            ->whereKey($course->landing_question_id)
+            ->when(
+                ! empty($scope['subject_ids']),
+                fn ($query) => $query->whereIn('subject_id', $scope['subject_ids'])
+            )
+            ->when(
+                ! empty($scope['topic_ids']),
+                fn ($query) => $query->whereIn('topic_id', $scope['topic_ids'])
+            )
+            ->when(
+                ! empty($scope['source_material_ids']),
+                fn ($query) => $query->whereIn('source_material_id', $scope['source_material_ids'])
+            )
+            ->exists();
+
+        if (! $isValid) {
+            throw ValidationException::withMessages([
+                'landing_question_id' => 'A questão demonstrativa precisa estar visível ao aluno e pertencer ao escopo deste curso.',
+            ]);
+        }
+    }
+
+    private function resolveCourseScope(Course $course): array
+    {
+        if ($course->inherit_exam_scope && $course->exam_id) {
+            $subjectIds = DB::table('exam_subjects')
+                ->where('exam_id', $course->exam_id)
+                ->where('is_active', true)
+                ->pluck('subject_id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all();
+
+            $topicIds = DB::table('exam_subject_topics')
+                ->join(
+                    'exam_subjects',
+                    'exam_subject_topics.exam_subject_id',
+                    '=',
+                    'exam_subjects.id'
+                )
+                ->where('exam_subjects.exam_id', $course->exam_id)
+                ->where('exam_subjects.is_active', true)
+                ->where('exam_subject_topics.is_active', true)
+                ->pluck('exam_subject_topics.topic_id')
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            $sourceMaterialIds = DB::table('exam_subject_source_materials')
+                ->join(
+                    'exam_subjects',
+                    'exam_subject_source_materials.exam_subject_id',
+                    '=',
+                    'exam_subjects.id'
+                )
+                ->where('exam_subjects.exam_id', $course->exam_id)
+                ->where('exam_subjects.is_active', true)
+                ->where('exam_subject_source_materials.is_active', true)
+                ->pluck('exam_subject_source_materials.source_material_id')
+                ->filter()
+                ->map(fn ($id) => (int) $id)
+                ->unique()
+                ->values()
+                ->all();
+
+            return [
+                'subject_ids' => $subjectIds,
+                'topic_ids' => $topicIds,
+                'source_material_ids' => $sourceMaterialIds,
+            ];
+        }
+
+        return [
+            'subject_ids' => DB::table('course_subjects')
+                ->where('course_id', $course->id)
+                ->where('is_active', true)
+                ->pluck('subject_id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all(),
+
+            'topic_ids' => DB::table('course_topics')
+                ->where('course_id', $course->id)
+                ->where('is_active', true)
+                ->pluck('topic_id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all(),
+
+            'source_material_ids' => DB::table('course_source_materials')
+                ->where('course_id', $course->id)
+                ->where('is_active', true)
+                ->pluck('source_material_id')
+                ->map(fn ($id) => (int) $id)
+                ->values()
+                ->all(),
+        ];
+    }
+
+    private function syncLandingFaqs(Course $course, Request $request): void
+    {
+        $rows = collect($request->input('landing_faqs', []))->values();
+        $keptIds = [];
+
+        foreach ($rows as $index => $row) {
+            $question = trim((string) ($row['question'] ?? ''));
+            $answer = trim((string) ($row['answer'] ?? ''));
+
+            if ($question === '' && $answer === '') {
+                continue;
+            }
+
+            if ($question === '' || $answer === '') {
+                throw ValidationException::withMessages([
+                    "landing_faqs.{$index}.question" => 'Preencha pergunta e resposta do FAQ ou remova a linha incompleta.',
+                ]);
+            }
+
+            $faqId = isset($row['id']) && $row['id'] !== ''
+                ? (int) $row['id']
+                : null;
+
+            $faq = $faqId
+                ? $course->landingFaqs()->whereKey($faqId)->first()
+                : null;
+
+            if ($faqId && ! $faq) {
+                throw ValidationException::withMessages([
+                    "landing_faqs.{$index}.id" => 'FAQ inválido para este curso.',
+                ]);
+            }
+
+            $payload = [
+                'question' => $question,
+                'answer' => $answer,
+                'sort_order' => isset($row['sort_order'])
+                    ? max(0, (int) $row['sort_order'])
+                    : ($index + 1),
+                'is_active' => (bool) ($row['is_active'] ?? false),
+            ];
+
+            if ($faq) {
+                $faq->update($payload);
+            } else {
+                $faq = $course->landingFaqs()->create($payload);
+            }
+
+            $keptIds[] = (int) $faq->id;
+        }
+
+        $deleteQuery = $course->landingFaqs();
+
+        if ($keptIds !== []) {
+            $deleteQuery->whereNotIn('id', $keptIds);
+        }
+
+        $deleteQuery->delete();
     }
 }

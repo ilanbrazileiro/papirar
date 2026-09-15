@@ -59,6 +59,14 @@ class Course extends Model
         'landing_seo_title',
         'landing_seo_description',
         'landing_question_id',
+        'landing_show_performance',
+        'landing_show_error_review',
+        'landing_show_next_study',
+        'landing_show_schedule',
+        'landing_show_goals',
+        'landing_show_simulations',
+        'landing_performance_image_path',
+        'landing_final_cta_text',
     ];
 
     protected $casts = [
@@ -76,6 +84,12 @@ class Course extends Model
         'sort_order' => 'integer',
         'landing_enabled' => 'boolean',
         'landing_question_id' => 'integer',
+        'landing_show_performance' => 'boolean',
+        'landing_show_error_review' => 'boolean',
+        'landing_show_next_study' => 'boolean',
+        'landing_show_schedule' => 'boolean',
+        'landing_show_goals' => 'boolean',
+        'landing_show_simulations' => 'boolean',
     ];
 
     public static function typeOptions(): array
@@ -121,6 +135,13 @@ class Course extends Model
     public function courseSourceMaterials(): HasMany
     {
         return $this->hasMany(CourseSourceMaterial::class)->orderBy('sort_order');
+    }
+
+    public function landingFaqs(): HasMany
+    {
+        return $this->hasMany(CourseLandingFaq::class)
+            ->orderBy('sort_order')
+            ->orderBy('id');
     }
 
     public function subjects(): BelongsToMany
@@ -268,6 +289,22 @@ class Course extends Model
         }
 
         return Storage::disk('public')->url($this->cover_image_path);
+    }
+
+    public function landingPerformanceImageUrl(): ?string
+    {
+        if (!$this->landing_performance_image_path) {
+            return null;
+        }
+
+        if (
+            str_starts_with($this->landing_performance_image_path, 'http://')
+            || str_starts_with($this->landing_performance_image_path, 'https://')
+        ) {
+            return $this->landing_performance_image_path;
+        }
+
+        return Storage::disk('public')->url($this->landing_performance_image_path);
     }
 
     public function salesBulletsList(): array
