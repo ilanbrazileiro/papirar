@@ -278,6 +278,8 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::get('questions/similar', [QuestionSimilarityController::class, 'index'])->name('questions.similar.index');
             Route::post('questions/imports/{batch}/rows/{row}/import', [QuestionImportReviewController::class, 'importRow'])->name('question-import-batches.rows.import');
             Route::post('questions/imports/{batch}/rows/{row}/ignore', [QuestionImportReviewController::class, 'ignoreRow'])->name('question-import-batches.rows.ignore');
+            Route::get('questions/imports/{batch}/rows/{row}/edit', [QuestionImportReviewController::class, 'editRow'])->name('question-import-batches.rows.edit');
+            Route::put('questions/imports/{batch}/rows/{row}', [QuestionImportReviewController::class, 'updateRow'])->name('question-import-batches.rows.update');
             Route::patch('questions/bulk-status', [QuestionBulkStatusController::class, 'update'])->name('questions.bulk-status');
             Route::get('questions/bulk-status', fn () => redirect()->route('admin.questions.index'))->name('questions.bulk-status.redirect');
             Route::patch('questions/bulk-status', [QuestionBulkStatusController::class, 'update'])->name('questions.bulk-status');
@@ -290,6 +292,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::get('questions/imports', [QuestionImportBatchController::class, 'index'])->name('question-import-batches.index');
             Route::get('questions/imports/{questionImportBatch}', [QuestionImportBatchController::class, 'show'])->name('question-import-batches.show');
             Route::get('questions/import', [QuestionImportController::class, 'create'])->name('questions.import.create');
+            Route::post('questions/import/ai', [QuestionImportController::class, 'storeAi'])->name('questions.import.ai');
             Route::post('questions/import/direct', [QuestionImportController::class, 'storeDirect'])->name('questions.import.direct');
             Route::post('questions/import', [QuestionImportController::class, 'store'])->name('questions.import.store');
             Route::get('questions/import/template', [QuestionImportController::class, 'downloadTemplate'])->name('questions.import.template');

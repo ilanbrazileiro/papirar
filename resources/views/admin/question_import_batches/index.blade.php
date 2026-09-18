@@ -7,7 +7,7 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <div>
             <h1 class="h3 mb-1">Importações de questões</h1>
-            <p class="text-muted mb-0">Histórico dos lotes enviados por CSV.</p>
+            <p class="text-muted mb-0">Histórico dos lotes enviados por IA e CSV.</p>
         </div>
         <a href="{{ route('admin.questions.import.create') }}" class="btn btn-primary">
             Nova importação
@@ -45,6 +45,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Arquivo</th>
+                        <th>Tipo</th>
                         <th>Usuário</th>
                         <th>Status</th>
                         <th>Total</th>
@@ -60,6 +61,7 @@
                         <tr>
                             <td>#{{ $batch->id }}</td>
                             <td>{{ $batch->original_filename ?? $batch->filename ?? '-' }}</td>
+                            <td>{{ $batch->import_type === 'ai' ? 'IA' : 'CSV' }}</td>
                             <td>{{ optional($batch->user)->name ?? '-' }}</td>
                             <td><span class="badge bg-secondary">{{ $batch->status }}</span></td>
                             <td>{{ $batch->total_rows }}</td>
@@ -76,7 +78,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="10" class="text-center text-muted py-4">Nenhum lote de importação registrado.</td>
+                            <td colspan="11" class="text-center text-muted py-4">Nenhum lote de importação registrado.</td>
                         </tr>
                     @endforelse
                 </tbody>

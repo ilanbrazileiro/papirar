@@ -38,8 +38,55 @@
                 <strong>Observações:</strong>
                 <div class="text-muted">{{ $batch->notes }}</div>
             @endif
+            @if($batch->import_type === 'ai')
+                <hr>
+                <div class="row">
+                    <div class="col-md-3"><strong>Origem:</strong> {{ ['exam' => 'Prova oficial', 'authored' => 'Autoral', 'adapted' => 'Adaptada'][$batch->source_type] ?? $batch->source_type }}</div>
+                    <div class="col-md-3"><strong>Corporação:</strong> {{ optional($batch->corporation)->name ?? '-' }}</div>
+                    <div class="col-md-3"><strong>Prova:</strong> {{ optional($batch->exam)->title ?? '-' }}</div>
+                    <div class="col-md-3"><strong>Banca:</strong> {{ optional($batch->examBoard)->name ?? '-' }}</div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-3"><strong>Ano:</strong> {{ $batch->exam_year ?? '-' }}</div>
+                    <div class="col-md-3"><strong>Cargo/concurso:</strong> {{ $batch->exam_reference ?? '-' }}</div>
+                    <div class="col-md-3"><strong>Modelo utilizado:</strong> {{ $batch->ai_model ?? 'Processando' }}</div>
+                    <div class="col-md-3"><strong>Tentativas:</strong> {{ $batch->ai_attempts }}</div>
+                </div>
+                <div class="row mt-2">
+                    <div class="col-md-12"><strong>Gabarito:</strong> {{ $batch->answer_original_filename ?? 'No mesmo documento' }}</div>
+                </div>
+            @endif
+            @if($batch->processing_error)
+                <hr>
+                <div class="alert alert-danger mb-0"><strong>Falha no processamento:</strong> {{ $batch->processing_error }}</div>
+            @elseif($batch->status === 'validating')
+                <hr>
+                <div class="alert alert-info mb-0">Extração em processamento. Atualize esta página em alguns instantes.</div>
+            @endif
         </div>
     </div>
+
+    @if($batch->import_type === 'ai' && $batch->attempts->isNotEmpty())
+        <div class="card mb-3">
+            <div class="card-header"><strong>Tentativas da IA</strong></div>
+            <div class="table-responsive">
+                <table class="table table-sm mb-0">
+                    <thead><tr><th>Modelo</th><th>Status</th><th>HTTP</th><th>Erro</th><th>Início</th></tr></thead>
+                    <tbody>
+                    @foreach($batch->attempts as $attempt)
+                        <tr>
+                            <td>{{ $attempt->model }}</td>
+                            <td>{{ $attempt->status }}</td>
+                            <td>{{ $attempt->http_status ?? '-' }}</td>
+                            <td>{{ $attempt->error_message ? \Illuminate\Support\Str::limit($attempt->error_message, 180) : '-' }}</td>
+                            <td>{{ optional($attempt->started_at)->format('d/m/Y H:i:s') }}</td>
+                        </tr>
+                    @endforeach
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    @endif
 
     <div class="card">
         <div class="card-header">

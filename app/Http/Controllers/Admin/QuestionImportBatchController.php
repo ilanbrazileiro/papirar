@@ -37,7 +37,7 @@ class QuestionImportBatchController extends Controller
 
     public function show(QuestionImportBatch $questionImportBatch)
     {
-        $questionImportBatch->load('user');
+        $questionImportBatch->load(['user', 'corporation', 'exam', 'examBoard', 'attempts']);
 
         $rows = $questionImportBatch->rows()
             ->with(['createdQuestion.subject', 'createdQuestion.topic', 'duplicateQuestion.subject', 'duplicateQuestion.topic'])

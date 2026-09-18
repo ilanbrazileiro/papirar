@@ -3,19 +3,105 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessAiQuestionImport;
+use App\Models\Corporation;
+use App\Models\Exam;
+use App\Models\ExamBoard;
+use App\Models\QuestionImportBatch;
 use App\Models\SourceMaterial;
 use App\Services\Questions\QuestionCsvImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\Rule;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class QuestionImportController extends Controller
 {
     public function create()
     {
-        return view('admin.questions.import.create');
+        return view('admin.questions.import.create', [
+            'corporations' => Corporation::query()->where('active', true)->orderBy('name')->get(['id', 'name']),
+            'exams' => Exam::query()->where('active', true)->with('corporation:id,name')->orderByDesc('year')->orderBy('title')->get(),
+            'examBoards' => ExamBoard::query()->where('active', true)->orderBy('name')->get(['id', 'name']),
+        ]);
+    }
+
+    public function storeAi(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'corporation_id' => ['nullable', 'integer', 'exists:corporations,id'],
+            'exam_id' => ['nullable', 'integer', 'exists:exams,id'],
+            'source_type' => ['required', Rule::in(['exam', 'authored', 'adapted'])],
+            'exam_board_id' => ['nullable', 'integer', 'exists:exam_boards,id'],
+            'exam_year' => [Rule::requiredIf($request->input('source_type') === 'exam'), 'nullable', 'integer', 'min:1900', 'max:'.(now()->year + 1)],
+            'exam_reference' => [Rule::requiredIf($request->input('source_type') === 'exam'), 'nullable', 'string', 'max:180'],
+            'source_file' => ['required', 'file', 'mimes:pdf,docx,jpg,jpeg,png', 'max:15360'],
+            'answer_file' => ['nullable', 'file', 'mimes:pdf,docx,jpg,jpeg,png', 'max:8192'],
+        ], [
+            'source_file.required' => 'Envie o arquivo da prova ou documento com as questões.',
+            'source_file.mimes' => 'A prova deve estar em PDF, DOCX, JPG ou PNG.',
+            'answer_file.mimes' => 'O gabarito deve estar em PDF, DOCX, JPG ou PNG.',
+        ]);
+
+        $isAuthored = $data['source_type'] === 'authored';
+        $exam = !$isAuthored && !empty($data['exam_id']) ? Exam::query()->findOrFail($data['exam_id']) : null;
+
+        if ($exam && !empty($data['corporation_id']) && (int) $exam->corporation_id !== (int) $data['corporation_id']) {
+            return back()->withInput()->with('error', 'A prova selecionada não pertence à corporação informada.');
+        }
+
+        $corporationId = $data['corporation_id'] ?? $exam?->corporation_id;
+
+        $sourceSize = (int) $request->file('source_file')->getSize();
+        $answerSize = $request->file('answer_file') ? (int) $request->file('answer_file')->getSize() : 0;
+
+        if (($sourceSize + $answerSize) > (18 * 1024 * 1024)) {
+            return back()->withInput()->with('error', 'A soma dos arquivos não pode ultrapassar 18 MB nesta versão do importador.');
+        }
+
+        $batch = QuestionImportBatch::query()->create([
+            'user_id' => (int) auth()->id(),
+            'import_type' => 'ai',
+            'corporation_id' => $corporationId,
+            'exam_id' => $isAuthored ? null : ($data['exam_id'] ?? null),
+            'exam_board_id' => $isAuthored ? null : ($data['exam_board_id'] ?? null),
+            'exam_year' => $isAuthored ? null : ($data['exam_year'] ?? null),
+            'exam_reference' => $isAuthored ? null : (isset($data['exam_reference']) ? trim($data['exam_reference']) : null),
+            'source_type' => $data['source_type'],
+            'filename' => $request->file('source_file')->hashName(),
+            'original_filename' => $request->file('source_file')->getClientOriginalName(),
+            'answer_original_filename' => $request->file('answer_file')?->getClientOriginalName(),
+            'status' => 'uploaded',
+            'started_at' => now(),
+        ]);
+
+        try {
+            $directory = 'question-imports/'.$batch->id;
+            $sourcePath = $request->file('source_file')->store($directory, 'local');
+            $answerPath = $request->file('answer_file')?->store($directory, 'local');
+
+            $batch->update([
+                'source_file_path' => $sourcePath,
+                'answer_file_path' => $answerPath,
+                'status' => 'validating',
+            ]);
+
+            ProcessAiQuestionImport::dispatch($batch->id);
+
+            return redirect()
+                ->route('admin.question-import-batches.show', $batch)
+                ->with('success', 'Arquivos recebidos. A extração foi enviada para processamento.');
+        } catch (\Throwable $exception) {
+            $batch->update([
+                'status' => 'failed',
+                'processing_error' => $exception->getMessage(),
+                'finished_at' => now(),
+            ]);
+
+            return back()->withInput()->with('error', 'Não foi possível iniciar a extração: '.$exception->getMessage());
+        }
     }
 
     public function store(Request $request, QuestionCsvImportService $importService): RedirectResponse

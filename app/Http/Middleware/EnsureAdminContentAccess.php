@@ -26,6 +26,7 @@ class EnsureAdminContentAccess
             'admin.account.update',
             'admin.account.password.update',
             'admin.questions.*',
+            'admin.question-import-batches.*',
             'admin.editor-images.*',
             'admin.comments.*',
             'admin.corporations.*',

@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\QuestionImportBatch;
 use App\Models\QuestionImportBatchRow;
+use App\Models\Subject;
 use App\Services\Questions\QuestionCsvImportService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -55,6 +56,47 @@ class QuestionImportReviewController extends Controller
         } catch (\Throwable $e) {
             return back()->with('error', $e->getMessage());
         }
+    }
+
+    public function editRow(QuestionImportBatch $batch, QuestionImportBatchRow $row)
+    {
+        abort_unless((int) $row->batch_id === (int) $batch->id, 404);
+
+        $subjects = Subject::query()
+            ->where('active', true)
+            ->with(['topics' => fn ($query) => $query->where('active', true)->orderBy('name')])
+            ->orderBy('name')
+            ->get();
+
+        return view('admin.question_import_batches.edit-row', compact('batch', 'row', 'subjects'));
+    }
+
+    public function updateRow(
+        Request $request,
+        QuestionImportBatch $batch,
+        QuestionImportBatchRow $row,
+        QuestionCsvImportService $importService
+    ): RedirectResponse {
+        abort_unless((int) $row->batch_id === (int) $batch->id, 404);
+
+        $data = $request->validate([
+            'subject_id' => ['required', 'integer', 'exists:subjects,id'],
+            'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
+            'statement' => ['required', 'string'],
+            'correct_letter' => ['required', 'in:A,B,C,D,E'],
+            'alternatives' => ['required', 'array', 'size:5'],
+            'alternatives.A' => ['required', 'string'],
+            'alternatives.B' => ['required', 'string'],
+            'alternatives.C' => ['required', 'string'],
+            'alternatives.D' => ['required', 'string'],
+            'alternatives.E' => ['required', 'string'],
+        ]);
+
+        $importService->updatePreviewRow($batch, $row, $data);
+
+        return redirect()
+            ->route('admin.question-import-batches.review', $batch)
+            ->with('success', "Questão original {$row->row_number} revalidada.");
     }
 
     public function importRow(QuestionImportBatch $batch, QuestionImportBatchRow $row, QuestionCsvImportService $importService): RedirectResponse

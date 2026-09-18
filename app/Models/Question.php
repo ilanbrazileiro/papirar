@@ -45,6 +45,7 @@ class Question extends Model
         'commented_answer',
         'status',
         'created_by',
+        'question_import_batch_id',
     ];
 
     protected $casts = [
@@ -55,6 +56,7 @@ class Question extends Model
         'topic_id' => 'integer',
         'source_material_id' => 'integer',
         'created_by' => 'integer',
+        'question_import_batch_id' => 'integer',
     ];
 
     public function scopeVisibleToStudent(Builder $query): Builder
@@ -100,6 +102,11 @@ class Question extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function importBatch(): BelongsTo
+    {
+        return $this->belongsTo(QuestionImportBatch::class, 'question_import_batch_id');
     }
 
     public function alternatives(): HasMany

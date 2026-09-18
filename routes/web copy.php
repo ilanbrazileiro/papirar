@@ -6,6 +6,7 @@ use App\Http\Controllers\Admin\ContentDashboardController;
 use App\Http\Controllers\Admin\CorporationController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DashboardController as AdminDashboardController;
+use App\Http\Controllers\Admin\CommercialFunnelController;
 use App\Http\Controllers\Admin\ExamController;
 use App\Http\Controllers\Admin\PlanController;
 use App\Http\Controllers\Admin\PlannedExamController;
@@ -56,6 +57,8 @@ use App\Http\Controllers\Student\TicketController;
 use App\Http\Controllers\Student\ExamStudyController;
 use App\Http\Controllers\Student\CourseController as StudentCourseController;
 use App\Http\Controllers\Student\CourseStudyController;
+use App\Http\Controllers\Student\StudyPlanController;
+use App\Http\Controllers\Student\RetentionFeedbackController;
 use App\Http\Controllers\Student\CourseSimulatedController;
 use App\Http\Controllers\Student\CourseCheckoutController;
 use App\Http\Controllers\Student\CoursePurchaseController;
@@ -127,6 +130,10 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
 
     Route::prefix('aluno')->name('student.')->group(function () {
         Route::get('/dashboard', [StudentDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/cronograma', [StudyPlanController::class, 'index'])->name('study-plan.index');
+        Route::post('/cronograma', [StudyPlanController::class, 'store'])->name('study-plan.store');
+        Route::delete('/cronograma', [StudyPlanController::class, 'destroy'])->name('study-plan.destroy');
+        Route::post('/acessos/{courseAccess}/nao-renovar', [RetentionFeedbackController::class, 'store'])->name('retention-feedback.store');
         Route::get('/minha-conta', [AccountController::class, 'edit'])->name('account.edit');
         Route::put('/minha-conta', [AccountController::class, 'update'])->name('account.update');
         Route::put('/minha-conta/senha', [AccountController::class, 'updatePassword'])->name('account.password.update');
@@ -249,6 +256,7 @@ Route::middleware([CheckIsLogged::class, EnsureSingleSession::class])->group(fun
             Route::resource('course-accesses', CourseAccessController::class)->except(['show']);
             Route::patch('course-accesses/{courseAccess}/cancel', [CourseAccessController::class, 'cancel'])->name('course-accesses.cancel');
             Route::prefix('reports')->name('reports.')->group(function () {
+                Route::get('/commercial-funnel', [CommercialFunnelController::class, 'index'])->name('commercial-funnel.index');
                 Route::get('/courses', [CourseReportController::class, 'index'])->name('courses.index');
                 Route::get('/courses/{course}', [CourseReportController::class, 'show'])->name('courses.show');
                 Route::get('/questions', [QuestionReportController::class, 'index'])->name('questions.index');

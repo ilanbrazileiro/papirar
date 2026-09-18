@@ -90,7 +90,7 @@
         <div class="card">
             <div class="card-header d-flex justify-content-between align-items-center">
                 <div>
-                    <strong>Linhas do CSV</strong>
+                    <strong>{{ $batch->import_type === 'ai' ? 'Questões extraídas' : 'Linhas do CSV' }}</strong>
                     <span class="text-muted small d-block">Você pode importar todas as válidas, selecionar algumas ou tratar linha por linha.</span>
                 </div>
                 <div class="d-flex gap-2">
@@ -118,6 +118,7 @@
                             @php
                                 $raw = is_array($row->raw_data) ? $row->raw_data : [];
                                 $statement = $raw['statement'] ?? null;
+                                $meta = is_array($raw['_meta'] ?? null) ? $raw['_meta'] : [];
                             @endphp
                             <tr>
                                 <td>
@@ -159,9 +160,24 @@
                                     @if($row->error_message)
                                         <div class="text-muted small mt-1">{{ $row->error_message }}</div>
                                     @endif
+                                    @if(isset($meta['classification_confidence']))
+                                        <div class="small mt-1">
+                                            <span class="badge {{ !empty($meta['needs_human_review']) ? 'badge-warning' : 'badge-info' }}">
+                                                Classificação: {{ number_format(((float) $meta['classification_confidence']) * 100, 0) }}%
+                                            </span>
+                                            @if(!empty($meta['page_number']))
+                                                <span class="badge badge-light border">Página {{ $meta['page_number'] }}</span>
+                                            @endif
+                                        </div>
+                                    @endif
                                 </td>
                                 <td>
                                     <div class="btn-group btn-group-sm" role="group">
+                                        @if(in_array($row->status, ['valid', 'error', 'duplicate'], true) && $batch->import_type === 'ai')
+                                            <a href="{{ route('admin.question-import-batches.rows.edit', [$batch, $row]) }}" class="btn btn-outline-primary">
+                                                Conferir
+                                            </a>
+                                        @endif
                                         @if($row->status === 'valid')
                                             <button type="submit"
                                                 formaction="{{ route('admin.question-import-batches.rows.import', [$batch, $row]) }}"

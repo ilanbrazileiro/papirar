@@ -19,6 +19,195 @@ use RuntimeException;
 
 class QuestionCsvImportService
 {
+    public function populatePreviewFromStructuredQuestions(QuestionImportBatch $batch, array $questions): QuestionImportBatch
+    {
+        $batch->loadMissing(['corporation', 'exam', 'examBoard']);
+        $totalRows = 0;
+        $validRows = 0;
+        $duplicateRows = 0;
+        $errorRows = 0;
+        $seenInBatch = [];
+        $confidenceThreshold = (float) config('services.gemini.classification_confidence', 0.75);
+
+        DB::transaction(function () use (
+            $batch,
+            $questions,
+            &$totalRows,
+            &$validRows,
+            &$duplicateRows,
+            &$errorRows,
+            &$seenInBatch,
+            $confidenceThreshold
+        ) {
+            $batch->rows()->delete();
+
+            foreach (array_values($questions) as $index => $question) {
+                $rowNumber = (int) ($question['original_number'] ?? ($index + 1));
+                $totalRows++;
+                $alternatives = collect($question['alternatives'] ?? [])->mapWithKeys(
+                    fn ($alternative) => [strtoupper((string) ($alternative['letter'] ?? '')) => trim((string) ($alternative['text'] ?? ''))]
+                );
+                $warnings = array_values(array_filter((array) ($question['warnings'] ?? [])));
+                $confidence = max(0, min(1, (float) ($question['confidence'] ?? 0)));
+                $payload = [
+                    'corporation_id' => $batch->corporation_id,
+                    'exam_id' => $batch->exam_id,
+                    'subject_id' => $question['subject_id'] ?? null,
+                    'topic_id' => $question['topic_id'] ?? null,
+                    'exam_board_id' => $batch->exam_board_id,
+                    'exam_board' => null,
+                    'statement' => trim((string) ($question['statement'] ?? '')),
+                    'question_type' => 'multiple_choice',
+                    'difficulty' => 'medium',
+                    'source_type' => $batch->source_type ?: 'exam',
+                    'source_reference' => $this->buildAutomaticReference($batch),
+                    'source_material_id' => $batch->source_material_id,
+                    'commented_answer' => null,
+                    'status' => 'draft',
+                    'alternative_a' => $alternatives->get('A'),
+                    'alternative_b' => $alternatives->get('B'),
+                    'alternative_c' => $alternatives->get('C'),
+                    'alternative_d' => $alternatives->get('D'),
+                    'alternative_e' => $alternatives->get('E'),
+                    'correct_letter' => $question['correct_letter'] ?? null,
+                    '_meta' => [
+                        'original_number' => $rowNumber,
+                        'page_number' => $question['page_number'] ?? null,
+                        'classification_confidence' => $confidence,
+                        'has_image' => (bool) ($question['has_image'] ?? false),
+                        'needs_human_review' => $confidence < $confidenceThreshold || !empty($question['has_image']),
+                        'warnings' => $warnings,
+                    ],
+                ];
+
+                if (!empty($question['cancelled'])) {
+                    $errorRows++;
+                    QuestionImportBatchRow::query()->create([
+                        'batch_id' => $batch->id,
+                        'row_number' => $rowNumber,
+                        'status' => 'error',
+                        'raw_data' => $payload,
+                        'error_message' => 'Questão anulada no gabarito oficial. Confirme antes de cadastrar.',
+                    ]);
+                    continue;
+                }
+
+                try {
+                    $validated = $this->validateRow($payload, $rowNumber);
+                    $validated['_meta'] = $payload['_meta'];
+                    $normalizedStatement = $this->normalizeText($validated['statement']);
+                    $duplicateQuestionId = $this->findExactDuplicateQuestionId(
+                        $normalizedStatement,
+                        $validated['subject_id'],
+                        $validated['topic_id']
+                    );
+                    $batchKey = $validated['subject_id'].'|'.($validated['topic_id'] ?? 'null').'|'.$normalizedStatement;
+                    $duplicateInBatch = isset($seenInBatch[$batchKey]);
+
+                    if ($duplicateQuestionId || $duplicateInBatch) {
+                        $duplicateRows++;
+                        QuestionImportBatchRow::query()->create([
+                            'batch_id' => $batch->id,
+                            'row_number' => $rowNumber,
+                            'status' => 'duplicate',
+                            'raw_data' => $validated,
+                            'normalized_statement' => $normalizedStatement,
+                            'error_message' => $duplicateInBatch
+                                ? 'Possível duplicidade dentro do próprio lote.'
+                                : 'Questão com enunciado idêntico já encontrada no banco.',
+                            'duplicate_question_id' => $duplicateQuestionId,
+                        ]);
+                        continue;
+                    }
+
+                    $seenInBatch[$batchKey] = true;
+                    $needsReview = $confidence < $confidenceThreshold || !empty($question['has_image']);
+                    $needsReview ? $errorRows++ : $validRows++;
+                    QuestionImportBatchRow::query()->create([
+                        'batch_id' => $batch->id,
+                        'row_number' => $rowNumber,
+                        'status' => $needsReview ? 'error' : 'valid',
+                        'raw_data' => $validated,
+                        'normalized_statement' => $normalizedStatement,
+                        'error_message' => $needsReview
+                            ? (!empty($question['has_image'])
+                                ? 'A questão depende de elemento visual. Confira o original e inclua a imagem antes de importar.'
+                                : 'Classificação com baixa confiança. Confira disciplina e tópico antes de importar.')
+                            : ($warnings ? implode(' | ', $warnings) : null),
+                    ]);
+                } catch (RuntimeException $exception) {
+                    $errorRows++;
+                    QuestionImportBatchRow::query()->create([
+                        'batch_id' => $batch->id,
+                        'row_number' => $rowNumber,
+                        'status' => 'error',
+                        'raw_data' => $payload,
+                        'error_message' => $exception->getMessage(),
+                    ]);
+                }
+            }
+
+            $batch->update([
+                'status' => $totalRows > 0 ? 'ready' : 'failed',
+                'total_rows' => $totalRows,
+                'valid_rows' => $validRows,
+                'duplicate_rows' => $duplicateRows,
+                'error_rows' => $errorRows,
+                'processing_error' => null,
+                'finished_at' => now(),
+            ]);
+        });
+
+        return $batch->fresh(['rows']);
+    }
+
+    public function updatePreviewRow(QuestionImportBatch $batch, QuestionImportBatchRow $row, array $changes): QuestionImportBatchRow
+    {
+        if ((int) $row->batch_id !== (int) $batch->id) {
+            throw new RuntimeException('A linha não pertence ao lote informado.');
+        }
+
+        if ($row->status === 'imported') {
+            throw new RuntimeException('Uma linha já importada não pode ser alterada.');
+        }
+
+        $payload = array_merge((array) $row->raw_data, $changes);
+        $payload['alternative_a'] = $changes['alternatives']['A'] ?? $payload['alternative_a'] ?? data_get($payload, 'alternatives.A');
+        $payload['alternative_b'] = $changes['alternatives']['B'] ?? $payload['alternative_b'] ?? data_get($payload, 'alternatives.B');
+        $payload['alternative_c'] = $changes['alternatives']['C'] ?? $payload['alternative_c'] ?? data_get($payload, 'alternatives.C');
+        $payload['alternative_d'] = $changes['alternatives']['D'] ?? $payload['alternative_d'] ?? data_get($payload, 'alternatives.D');
+        $payload['alternative_e'] = $changes['alternatives']['E'] ?? $payload['alternative_e'] ?? data_get($payload, 'alternatives.E');
+        $meta = (array) ($payload['_meta'] ?? []);
+        $meta['needs_human_review'] = false;
+        $meta['manually_checked'] = true;
+
+        try {
+            $validated = $this->validateRow($payload, $row->row_number);
+            $validated['_meta'] = $meta;
+            $normalized = $this->normalizeText($validated['statement']);
+            $duplicateId = $this->findExactDuplicateQuestionId($normalized, $validated['subject_id'], $validated['topic_id']);
+
+            $row->update([
+                'status' => $duplicateId ? 'duplicate' : 'valid',
+                'raw_data' => $validated,
+                'normalized_statement' => $normalized,
+                'duplicate_question_id' => $duplicateId,
+                'error_message' => $duplicateId ? 'Questão com enunciado idêntico já encontrada no banco.' : null,
+            ]);
+        } catch (RuntimeException $exception) {
+            $row->update([
+                'status' => 'error',
+                'raw_data' => $payload,
+                'error_message' => $exception->getMessage(),
+                'duplicate_question_id' => null,
+            ]);
+        }
+
+        $this->refreshBatchCounters($batch);
+
+        return $row->fresh();
+    }
+
     public function createPreview(UploadedFile $file, int $userId): QuestionImportBatch
     {
         $path = $file->getRealPath();
@@ -684,6 +873,25 @@ class QuestionCsvImportService
     {
         $value = trim((string) ($value ?? ''));
         return $value === '' ? null : $value;
+    }
+
+    private function buildAutomaticReference(QuestionImportBatch $batch): string
+    {
+        if ($batch->source_type === 'authored') {
+            return 'Papirar Concursos - Questão autoral';
+        }
+
+        $parts = array_filter([
+            $batch->examBoard?->name,
+            $batch->exam_year,
+            $batch->exam_reference,
+        ], fn ($value) => $value !== null && $value !== '');
+
+        if ($batch->source_type === 'adapted') {
+            $parts[] = 'Questão adaptada';
+        }
+
+        return mb_substr($parts ? implode(' - ', $parts) : 'Origem não informada', 0, 255);
     }
 
     private function isEmptyRow(array $row): bool
