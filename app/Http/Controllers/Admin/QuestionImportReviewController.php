@@ -7,6 +7,7 @@ use App\Models\QuestionImportBatch;
 use App\Models\QuestionImportBatchRow;
 use App\Models\Subject;
 use App\Services\Questions\QuestionCsvImportService;
+use App\Services\Questions\QuestionImportFileCleanupService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 
@@ -137,7 +138,10 @@ class QuestionImportReviewController extends Controller
         return back()->with('success', "Linha {$row->row_number} ignorada com sucesso.");
     }
 
-    public function cancel(QuestionImportBatch $batch): RedirectResponse
+    public function cancel(
+        QuestionImportBatch $batch,
+        QuestionImportFileCleanupService $fileCleanup
+    ): RedirectResponse
     {
         if (in_array($batch->status, ['imported', 'partial_imported', 'partial'], true)) {
             return back()->with('error', 'Este lote já possui questões importadas e não pode ser cancelado totalmente.');
@@ -147,6 +151,12 @@ class QuestionImportReviewController extends Controller
             'status' => 'cancelled',
             'finished_at' => now(),
         ]);
+
+        try {
+            $fileCleanup->deleteFiles($batch->fresh());
+        } catch (\Throwable $exception) {
+            report($exception);
+        }
 
         return redirect()
             ->route('admin.question-import-batches.index')

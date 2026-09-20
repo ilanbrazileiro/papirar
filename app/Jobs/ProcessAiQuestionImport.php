@@ -5,6 +5,7 @@ namespace App\Jobs;
 use App\Models\QuestionImportBatch;
 use App\Services\Questions\GeminiQuestionExtractionService;
 use App\Services\Questions\QuestionCsvImportService;
+use App\Services\Questions\QuestionImportFileCleanupService;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -22,7 +23,8 @@ class ProcessAiQuestionImport implements ShouldQueue
 
     public function handle(
         GeminiQuestionExtractionService $gemini,
-        QuestionCsvImportService $imports
+        QuestionCsvImportService $imports,
+        QuestionImportFileCleanupService $fileCleanup
     ): void {
         $batch = QuestionImportBatch::query()->findOrFail($this->batchId);
 
@@ -39,12 +41,31 @@ class ProcessAiQuestionImport implements ShouldQueue
         try {
             $result = $gemini->extract($batch);
             $imports->populatePreviewFromStructuredQuestions($batch, $result['questions']);
+
+            try {
+                $fileCleanup->deleteFiles($batch->fresh());
+            } catch (\Throwable $cleanupException) {
+                Log::warning('A extração foi concluída, mas os arquivos temporários não puderam ser excluídos.', [
+                    'batch_id' => $batch->id,
+                    'exception' => $cleanupException,
+                ]);
+            }
         } catch (\Throwable $exception) {
             $batch->update([
                 'status' => 'failed',
                 'processing_error' => $exception->getMessage(),
                 'finished_at' => now(),
             ]);
+
+            try {
+                DeleteFailedQuestionImportFiles::dispatch($batch->id)
+                    ->delay(now()->addHours(24));
+            } catch (\Throwable $cleanupDispatchException) {
+                Log::warning('Não foi possível agendar a exclusão dos arquivos da importação com falha.', [
+                    'batch_id' => $batch->id,
+                    'exception' => $cleanupDispatchException,
+                ]);
+            }
 
             Log::error('Falha no importador de questões por IA.', [
                 'batch_id' => $batch->id,
