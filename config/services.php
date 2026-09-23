@@ -49,7 +49,7 @@ return [
     'gemini' => [
         'api_key' => env('GEMINI_API_KEY'),
         'base_url' => env('GEMINI_API_BASE_URL', 'https://generativelanguage.googleapis.com/v1beta'),
-        'primary_model' => env('GEMINI_PRIMARY_MODEL', 'gemini-3.8-flash'),
+        'primary_model' => env('GEMINI_PRIMARY_MODEL', 'gemini-3.5-flash'),
         'fallback_model' => env('GEMINI_FALLBACK_MODEL', 'gemini-3.5-flash-lite'),
         'retry_delay' => (int) env('GEMINI_RETRY_DELAY', 10),
         'classification_confidence' => (float) env('GEMINI_CLASSIFICATION_CONFIDENCE', 0.75),

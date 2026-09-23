@@ -23,17 +23,38 @@ class GeminiQuestionExtractionService
             throw new RuntimeException('GEMINI_API_KEY não configurada.');
         }
 
-        $primary = (string) config('services.gemini.primary_model', 'gemini-3.8-flash');
+        $primary = (string) config('services.gemini.primary_model', 'gemini-3.5-flash');
         $fallback = (string) config('services.gemini.fallback_model', 'gemini-3.5-flash-lite');
 
+        $index = $this->requestWithFallback($batch, $primary, $fallback, $apiKey, true);
+        $numbers = $this->expectedNumbers($index);
+        $questions = [];
+
+        foreach (array_chunk($numbers, 12) as $chunk) {
+            $this->collectQuestions($batch, $primary, $fallback, $apiKey, $chunk, $questions);
+        }
+
+        ksort($questions, SORT_NUMERIC);
+
+        return ['questions' => array_values($questions)];
+    }
+
+    private function requestWithFallback(
+        QuestionImportBatch $batch,
+        string $primary,
+        string $fallback,
+        string $apiKey,
+        bool $indexOnly = false,
+        array $numbers = []
+    ): array {
         try {
-            return $this->request($batch, $primary, $apiKey);
+            return $this->request($batch, $primary, $apiKey, $indexOnly, $numbers);
         } catch (GeminiExtractionException $exception) {
             if ($exception->temporarilyUnavailable) {
                 sleep(max(1, (int) config('services.gemini.retry_delay', 10)));
 
                 try {
-                    return $this->request($batch, $primary, $apiKey);
+                    return $this->request($batch, $primary, $apiKey, $indexOnly, $numbers);
                 } catch (GeminiExtractionException $retryException) {
                     $exception = $retryException;
                 }
@@ -45,11 +66,67 @@ class GeminiQuestionExtractionService
                 throw $exception;
             }
 
-            return $this->request($batch, $fallback, $apiKey);
+            return $this->request($batch, $fallback, $apiKey, $indexOnly, $numbers);
         }
     }
 
-    private function request(QuestionImportBatch $batch, string $model, string $apiKey): array
+    private function expectedNumbers(array $index): array
+    {
+        $first = $index['first_number'] ?? null;
+        $last = $index['last_number'] ?? null;
+        $found = $index['question_numbers'] ?? null;
+
+        if (!is_int($first) || !is_int($last) || $first < 1 || $last < $first
+            || $last - $first >= 300 || !is_array($found) || $found === []) {
+            throw new GeminiExtractionException('Não foi possível identificar a numeração completa da prova. Confira o arquivo e tente novamente.');
+        }
+
+        $numbers = range($first, $last);
+        $reported = array_values(array_unique(array_filter($found, fn ($n) => is_int($n) && $n >= $first && $n <= $last)));
+        if (!in_array($first, $reported, true) || !in_array($last, $reported, true)) {
+            throw new GeminiExtractionException('A conferência inicial não identificou os extremos da prova. Nenhuma questão foi importada.');
+        }
+
+        return $numbers;
+    }
+
+    private function collectQuestions(
+        QuestionImportBatch $batch,
+        string $primary,
+        string $fallback,
+        string $apiKey,
+        array $numbers,
+        array &$questions
+    ): void {
+        $missing = $numbers;
+
+        for ($try = 0; $try < 2 && $missing !== []; $try++) {
+            try {
+                $result = $this->requestWithFallback($batch, $primary, $fallback, $apiKey, false, $missing);
+            } catch (GeminiExtractionException $exception) {
+                if ($exception->errorCode === 'INCOMPLETE_RESPONSE' && $try === 0) {
+                    continue;
+                }
+                throw $exception;
+            }
+
+            foreach ($result['questions'] as $question) {
+                $number = $question['original_number'] ?? null;
+                if (is_int($number) && in_array($number, $numbers, true)
+                    && !empty(trim((string) ($question['statement'] ?? '')))) {
+                    $questions[$number] = $question;
+                }
+            }
+
+            $missing = array_values(array_diff($numbers, array_keys($questions)));
+        }
+
+        if ($missing !== []) {
+            throw new GeminiExtractionException('Extração incompleta: faltaram as questões '.implode(', ', $missing).'. Nenhuma questão deste lote foi importada.');
+        }
+    }
+
+    private function request(QuestionImportBatch $batch, string $model, string $apiKey, bool $indexOnly, array $numbers): array
     {
         $attempt = QuestionImportAiAttempt::query()->create([
             'batch_id' => $batch->id,
@@ -65,13 +142,21 @@ class GeminiQuestionExtractionService
             $response = Http::acceptJson()
                 ->withHeaders(['x-goog-api-key' => $apiKey])
                 ->timeout((int) config('services.gemini.timeout', 600))
-                ->post($this->endpoint($model), $this->payload($batch));
+                ->post($this->endpoint($model), $this->payload($batch, $indexOnly, $numbers));
 
             if (!$response->successful()) {
                 throw $this->apiException($response);
             }
 
             $body = $response->json();
+            $finishReason = data_get($body, 'candidates.0.finishReason');
+            if ($finishReason !== null && $finishReason !== 'STOP') {
+                throw new GeminiExtractionException(
+                    'A resposta da IA foi interrompida ('.$finishReason.'). Tente novamente com o documento.',
+                    null,
+                    $finishReason === 'MAX_TOKENS' ? 'INCOMPLETE_RESPONSE' : (string) $finishReason
+                );
+            }
             $text = data_get($body, 'candidates.0.content.parts.0.text');
 
             if (!is_string($text) || trim($text) === '') {
@@ -84,7 +169,11 @@ class GeminiQuestionExtractionService
                 throw new GeminiExtractionException('O Gemini devolveu JSON inválido: '.$exception->getMessage());
             }
 
-            if (!isset($result['questions']) || !is_array($result['questions'])) {
+            if ($indexOnly) {
+                if (!is_array($result) || !isset($result['question_numbers']) || !is_array($result['question_numbers'])) {
+                    throw new GeminiExtractionException('A IA não devolveu o índice das questões.');
+                }
+            } elseif (!isset($result['questions']) || !is_array($result['questions'])) {
                 throw new GeminiExtractionException('O JSON devolvido não contém a lista questions.');
             }
 
@@ -124,11 +213,11 @@ class GeminiQuestionExtractionService
             .'/models/'.rawurlencode($model).':generateContent';
     }
 
-    private function payload(QuestionImportBatch $batch): array
+    private function payload(QuestionImportBatch $batch, bool $indexOnly, array $numbers): array
     {
         $parts = [
-            ...$this->fileParts($batch),
-            ['text' => $this->prompt($batch)],
+            ...$this->fileParts($batch, !$indexOnly),
+            ['text' => $indexOnly ? $this->indexPrompt() : $this->prompt($batch, $numbers)],
         ];
 
         return [
@@ -136,12 +225,34 @@ class GeminiQuestionExtractionService
             'generationConfig' => [
                 'temperature' => 0,
                 'responseMimeType' => 'application/json',
-                'responseJsonSchema' => $this->schema(),
+                'responseJsonSchema' => $indexOnly ? $this->indexSchema() : $this->schema(),
             ],
         ];
     }
 
-    private function prompt(QuestionImportBatch $batch): string
+    private function indexPrompt(): string
+    {
+        return 'Leia TODAS as páginas do ARQUIVO DA PROVA, inclusive a primeira e a última página com questões. '
+            .'Identifique somente a numeração impressa das questões objetivas da prova; ignore números de páginas, exemplos, sumário e gabarito. '
+            .'Informe first_number (primeira questão da prova), last_number (última questão da prova) '
+            .'e question_numbers (todos os números de questões encontrados, em ordem). '
+            .'Verifique especialmente o fim do documento. Se houver numeração contínua, percorra até a última questão; não interrompa a leitura na metade.';
+    }
+
+    private function indexSchema(): array
+    {
+        return [
+            'type' => 'object',
+            'required' => ['first_number', 'last_number', 'question_numbers'],
+            'properties' => [
+                'first_number' => ['type' => 'integer'],
+                'last_number' => ['type' => 'integer'],
+                'question_numbers' => ['type' => 'array', 'items' => ['type' => 'integer']],
+            ],
+        ];
+    }
+
+    private function prompt(QuestionImportBatch $batch, array $numbers): string
     {
         $batch->loadMissing(['corporation', 'exam', 'examBoard']);
 
@@ -169,7 +280,12 @@ class GeminiQuestionExtractionService
             'source_type' => $batch->source_type,
         ];
 
-        return <<<'PROMPT'
+        $instruction = 'Extraia SOMENTE as questões de números '.implode(', ', $numbers).'. '
+            .'Consulte o documento inteiro para localizar cada número, seu texto-base e o gabarito. '
+            .'Retorne uma entrada por número solicitado, na ordem. Não pule números. '
+            .'Nunca invente uma questão que não está no documento.' . "\n\n";
+
+        return $instruction . <<<'PROMPT'
 Você é um extrator documental. Transcreva fielmente todas as questões objetivas e associe o gabarito informado no documento ou no arquivo separado. Não resuma, não reescreva, não corrija e não crie comentários. Não invente questões nem respostas. A saída sempre contém as letras A-E. Se uma alternativa não existir, use texto vazio e registre o problema em warnings; nunca invente conteúdo.
 
 Para interpretação, transcreva integralmente o texto-base, poema, tabela textual ou trecho compartilhado em passage, mesmo quando ele aparecer em página anterior. Repita esse passage para cada questão que o utiliza. Em statement coloque apenas o comando e o enunciado específico da questão; não repita ali o passage. Se não houver texto-base, use passage vazio. Se o texto-base for necessário e estiver ilegível ou ausente, marque missing_passage=true e avise em warnings; não o invente. Nos demais casos use missing_passage=false. Preserve a ordem, os parágrafos e as marcações originais em HTML simples com <p>. Deixe cada parágrafo justificado com style="text-align: justify;". Não crie negritos ou ênfases ausentes do documento. Faça o mesmo com os parágrafos das alternativas.
@@ -183,7 +299,7 @@ PROMPT
             .json_encode($taxonomy, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
     }
 
-    private function fileParts(QuestionImportBatch $batch): array
+    private function fileParts(QuestionImportBatch $batch, bool $includeAnswer): array
     {
         $parts = [];
 
@@ -192,6 +308,9 @@ PROMPT
             ['path' => $batch->answer_file_path, 'label' => 'ARQUIVO DO GABARITO'],
         ] as $file) {
             if (!$file['path']) {
+                continue;
+            }
+            if (!$includeAnswer && $file['label'] === 'ARQUIVO DO GABARITO') {
                 continue;
             }
 

@@ -2,6 +2,7 @@
 
 namespace App\Jobs;
 
+use App\Exceptions\GeminiExtractionException;
 use App\Models\QuestionImportBatch;
 use App\Services\Questions\GeminiQuestionExtractionService;
 use App\Services\Questions\QuestionCsvImportService;
@@ -14,7 +15,7 @@ class ProcessAiQuestionImport implements ShouldQueue
 {
     use Queueable;
 
-    public int $tries = 1;
+    public int $tries = 4;
     public int $timeout = 900;
 
     public function __construct(public int $batchId)
@@ -51,6 +52,23 @@ class ProcessAiQuestionImport implements ShouldQueue
                 ]);
             }
         } catch (\Throwable $exception) {
+            if ($exception instanceof GeminiExtractionException
+                && $exception->temporarilyUnavailable
+                && $this->job !== null
+                && $this->attempts() < $this->tries) {
+                $delays = [60, 180, 420];
+                $delay = $delays[$this->attempts() - 1] + random_int(0, 15);
+
+                Log::warning('Gemini indisponível; importação reagendada.', [
+                    'batch_id' => $batch->id,
+                    'attempt' => $this->attempts(),
+                    'retry_in_seconds' => $delay,
+                ]);
+
+                $this->release($delay);
+                return;
+            }
+
             $batch->update([
                 'status' => 'failed',
                 'processing_error' => $exception->getMessage(),
