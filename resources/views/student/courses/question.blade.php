@@ -159,7 +159,7 @@
                                     <div class="student-comment-box">
                                         <div class="d-flex justify-content-between gap-2 mb-1">
                                             <strong>{{ $comment->user->name ?? 'Aluno' }}</strong>
-                                            <span class="small-muted">{{ optional($comment->created_at)->format('d/m/Y H:i') }}</span>
+                                            <span class="small-muted">{{ \App\Support\DisplayDate::format($comment->created_at) }}</span>
                                         </div>
                                         <div>{{ $comment->comment }}</div>
                                     </div>

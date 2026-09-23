@@ -77,7 +77,7 @@ class CourseSimulatedController extends Controller
             return back()->with('error', 'Nenhuma questão publicada ou revisada foi encontrada para este curso e disciplinas.')->withInput();
         }
 
-        $title = trim((string) ($data['title'] ?? '')) ?: 'Simulado ' . now()->format('d/m/Y H:i');
+        $title = trim((string) ($data['title'] ?? '')) ?: 'Simulado ' . \App\Support\DisplayDate::format(now());
         $startedAt = now();
         $endsAt = $startedAt->copy()->addMinutes((int) $data['duration_minutes']);
 

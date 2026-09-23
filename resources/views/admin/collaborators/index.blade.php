@@ -73,7 +73,7 @@
                                 <span class="badge bg-danger">Inativo</span>
                             @endif
                         </td>
-                        <td>{{ optional($item->created_at)->format('d/m/Y H:i') }}</td>
+                        <td>{{ \App\Support\DisplayDate::format($item->created_at) }}</td>
                         <td class="text-end">
                             <a href="{{ route('admin.collaborators.edit', $item) }}" class="btn btn-sm btn-outline-primary">Editar</a>
                         </td>

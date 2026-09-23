@@ -27,8 +27,8 @@
                     <span class="badge text-bg-secondary">Inativa</span>
                 @endif
             </div>
-            <div class="mb-2"><strong>Cadastro:</strong> {{ $customer->created_at?->format('d/m/Y H:i') }}</div>
-            <div class="mb-2"><strong>Último login:</strong> {{ $customer->last_login_at?->format('d/m/Y H:i') ?: 'Sem registro' }}</div>
+            <div class="mb-2"><strong>Cadastro:</strong> {{ \App\Support\DisplayDate::format($customer->created_at) }}</div>
+            <div class="mb-2"><strong>Último login:</strong> {{ \App\Support\DisplayDate::format($customer->last_login_at) ?: 'Sem registro' }}</div>
         </div>
     </div>
 
@@ -92,7 +92,7 @@
     <div class="row g-3 mb-4">
         <div class="col-md-4"><div class="border rounded-4 p-3 h-100"><div class="small-muted">Sessões de estudo</div><div class="fw-bold fs-5">{{ $usage->sessions }}</div><div class="small-muted">{{ $usage->finished_sessions }} concluídas</div></div></div>
         <div class="col-md-4"><div class="border rounded-4 p-3 h-100"><div class="small-muted">Questões por dia ativo</div><div class="fw-bold fs-5">{{ number_format($usage->questions_per_active_day, 1, ',', '.') }}</div><div class="small-muted">média no período</div></div></div>
-        <div class="col-md-4"><div class="border rounded-4 p-3 h-100"><div class="small-muted">Última atividade de estudo</div><div class="fw-bold fs-6">{{ $usage->last_study_activity_at ? \Carbon\Carbon::parse($usage->last_study_activity_at)->format('d/m/Y H:i') : 'Sem atividade' }}</div><div class="small-muted">não confundir com simples login</div></div></div>
+        <div class="col-md-4"><div class="border rounded-4 p-3 h-100"><div class="small-muted">Última atividade de estudo</div><div class="fw-bold fs-6">{{ $usage->last_study_activity_at ? \App\Support\DisplayDate::format($usage->last_study_activity_at) : 'Sem atividade' }}</div><div class="small-muted">não confundir com simples login</div></div></div>
     </div>
 
     <h6 class="fw-bold mb-3">Uso por curso</h6>
@@ -108,7 +108,7 @@
                         <td class="text-center">{{ $row->distinct_questions }}</td>
                         <td class="text-center">{{ number_format($row->accuracy, 1, ',', '.') }}%</td>
                         <td class="text-center">{{ $row->simulations_finished }}/{{ $row->simulations }}</td>
-                        <td class="text-end">{{ $row->last_activity_at ? \Carbon\Carbon::parse($row->last_activity_at)->format('d/m/Y H:i') : '-' }}</td>
+                        <td class="text-end">{{ $row->last_activity_at ? \App\Support\DisplayDate::format($row->last_activity_at) : '-' }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="7" class="text-center text-muted py-4">Nenhuma atividade de estudo encontrada no período.</td></tr>
@@ -155,9 +155,9 @@
                         <td>#{{ $subscription->id }}</td>
                         <td>{{ $subscription->plan?->name ?: '-' }}</td>
                         <td>@if($subscription->isActive())<span class="badge text-bg-success">Ativa</span>@else<span class="badge text-bg-secondary">{{ $subscription->status }}</span>@endif</td>
-                        <td>{{ $subscription->starts_at?->format('d/m/Y H:i') ?: '-' }}</td>
-                        <td>{{ $subscription->expires_at?->format('d/m/Y H:i') ?: '-' }}</td>
-                        <td>{{ $subscription->canceled_at?->format('d/m/Y H:i') ?: '-' }}</td>
+                        <td>{{ \App\Support\DisplayDate::format($subscription->starts_at) ?: '-' }}</td>
+                        <td>{{ \App\Support\DisplayDate::format($subscription->expires_at) ?: '-' }}</td>
+                        <td>{{ \App\Support\DisplayDate::format($subscription->canceled_at) ?: '-' }}</td>
                     </tr>
                 @empty
                     <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma assinatura encontrada.</td></tr>

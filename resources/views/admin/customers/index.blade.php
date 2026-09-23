@@ -29,7 +29,7 @@
                         <td>{{ $customer->email }}</td>
                         <td>@if($customer->is_active)<span class="badge text-bg-success">Ativa</span>@else<span class="badge text-bg-secondary">Inativa</span>@endif</td>
                         <td>@if($activeSubscription)<span class="badge text-bg-primary">Com acesso</span><div class="small-muted">{{ $activeSubscription->plan?->name }}</div>@else<span class="badge text-bg-warning">Sem acesso</span>@endif</td>
-                        <td>@if($activeSubscription?->expires_at){{ $activeSubscription->expires_at->format('d/m/Y H:i') }}@else<span class="small-muted">-</span>@endif</td>
+                        <td>@if($activeSubscription?->expires_at){{ \App\Support\DisplayDate::format($activeSubscription->expires_at) }}@else<span class="small-muted">-</span>@endif</td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-outline-primary" href="{{ route('admin.customers.show', $customer) }}">Ver</a>
                             <a class="btn btn-sm btn-outline-success" href="{{ route('admin.customers.show', $customer) }}#uso-papirar">Uso</a>

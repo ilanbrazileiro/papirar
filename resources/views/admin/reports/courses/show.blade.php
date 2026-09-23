@@ -95,7 +95,7 @@
                                     <td>{{ $answer->user_name ?? 'Aluno' }}<br><small class="text-muted">{{ $answer->user_email }}</small></td>
                                     <td>#{{ $answer->question_id }}<br><small class="text-muted">{{ \Illuminate\Support\Str::limit(strip_tags($answer->statement), 70) }}</small></td>
                                     <td>{!! $answer->is_correct ? '<span class="badge badge-success">Certa</span>' : '<span class="badge badge-danger">Errada</span>' !!}</td>
-                                    <td>{{ \Carbon\Carbon::parse($answer->answered_at)->format('d/m/Y H:i') }}</td>
+                                    <td>{{ \App\Support\DisplayDate::format($answer->answered_at) }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="4" class="text-center text-muted py-3">Sem respostas recentes.</td></tr>
@@ -129,7 +129,7 @@
                                     <td>{{ $payment->status }}</td>
                                     <td>{{ $payment->billing_cycle ?? '-' }}</td>
                                     <td class="text-right">R$ {{ number_format((float) $payment->amount, 2, ',', '.') }}</td>
-                                    <td>{{ $payment->created_at ? \Carbon\Carbon::parse($payment->created_at)->format('d/m/Y H:i') : '-' }}</td>
+                                    <td>{{ $payment->created_at ? \App\Support\DisplayDate::format($payment->created_at) : '-' }}</td>
                                 </tr>
                             @empty
                                 <tr><td colspan="5" class="text-center text-muted py-3">Sem pagamentos no período.</td></tr>

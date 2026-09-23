@@ -67,6 +67,9 @@ return [
 
     'timezone' => 'UTC',
 
+    // Horários persistidos em UTC; converter apenas na apresentação ao usuário.
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'America/Sao_Paulo'),
+
     /*
     |--------------------------------------------------------------------------
     | Application Locale Configuration

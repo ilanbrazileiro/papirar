@@ -44,10 +44,10 @@
                             <div class="small-muted">
                                 Status: <span class="fw-semibold">{{ strtoupper($subscription->status) }}</span>
                                 @if($subscription->starts_at)
-                                    · início {{ $subscription->starts_at->format('d/m/Y H:i') }}
+                                    · início {{ \App\Support\DisplayDate::format($subscription->starts_at) }}
                                 @endif
                                 @if($subscription->expires_at)
-                                    · expira {{ $subscription->expires_at->format('d/m/Y H:i') }}
+                                    · expira {{ \App\Support\DisplayDate::format($subscription->expires_at) }}
                                 @endif
                             </div>
 
@@ -69,7 +69,7 @@
                                     {{ strtoupper($transaction->status) }} ·
                                     R$ {{ number_format((float) $transaction->amount, 2, ',', '.') }}
                                     @if($transaction->created_at)
-                                        · {{ $transaction->created_at->format('d/m/Y H:i') }}
+                                        · {{ \App\Support\DisplayDate::format($transaction->created_at) }}
                                     @endif
                                 </div>
                             @empty

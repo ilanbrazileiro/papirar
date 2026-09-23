@@ -63,7 +63,7 @@
                                         <span class="text-muted">-</span>
                                     @endif
                                 </td>
-                                <td>{{ optional($favorite->created_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ \App\Support\DisplayDate::format($favorite->created_at) }}</td>
                                 <td class="text-end">
                                     @if($question)
                                         <div class="d-flex justify-content-end gap-2 flex-wrap">

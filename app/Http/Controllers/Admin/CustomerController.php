@@ -361,6 +361,6 @@ class CustomerController extends Controller
 
         return redirect()
             ->route('admin.customers.show', $customer)
-            ->with('success', "Acesso liberado até {$subscription->expires_at->format('d/m/Y H:i')}.");
+            ->with('success', 'Acesso liberado até '.\App\Support\DisplayDate::format($subscription->expires_at).'.');
     }
 }

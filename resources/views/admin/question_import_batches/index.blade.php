@@ -68,7 +68,7 @@
                             <td>{{ $batch->imported_rows }}</td>
                             <td>{{ $batch->duplicate_rows }}</td>
                             <td>{{ $batch->error_rows }}</td>
-                            <td>{{ optional($batch->created_at)->format('d/m/Y H:i') }}</td>
+                            <td>{{ \App\Support\DisplayDate::format($batch->created_at) ?? '-' }}</td>
                             <td class="text-end">
                                 @if(in_array($batch->status, ['ready', 'partial']))
                                     <a href="{{ route('admin.question-import-batches.review', $batch) }}" class="btn btn-sm btn-success">Revisar</a>

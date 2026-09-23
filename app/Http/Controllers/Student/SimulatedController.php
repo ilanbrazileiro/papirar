@@ -195,7 +195,7 @@ class SimulatedController extends Controller
                 ->withInput();
         }
 
-        $title = trim((string) ($data['title'] ?? '')) ?: 'Simulado ' . now()->format('d/m/Y H:i');
+        $title = trim((string) ($data['title'] ?? '')) ?: 'Simulado ' . \App\Support\DisplayDate::format(now());
         $startedAt = now();
         $endsAt = $startedAt->copy()->addMinutes((int) $data['duration_minutes']);
 

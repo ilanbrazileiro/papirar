@@ -120,7 +120,7 @@
                                         <span class="badge badge-secondary">{{ $ticket->status_label }}</span>
                                     @endif
                                 </td>
-                                <td>{{ optional($ticket->last_message_at ?? $ticket->updated_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ \App\Support\DisplayDate::format($ticket->last_message_at ?? $ticket->updated_at) }}</td>
                                 <td class="text-right">
                                     <a href="{{ route('admin.tickets.show', $ticket) }}" class="btn btn-sm btn-primary">Atender</a>
                                 </td>

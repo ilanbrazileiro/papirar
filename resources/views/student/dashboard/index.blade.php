@@ -525,7 +525,7 @@
                                         <td class="fw-semibold">{{ $exam->title }}</td>
                                         <td>{{ $exam->total_questions }}</td>
                                         <td>{{ number_format((float) $exam->accuracy, 2, ',', '.') }}%</td>
-                                        <td>{{ $exam->finished_at ? $exam->finished_at->format('d/m/Y H:i') : 'Em andamento' }}</td>
+                                        <td>{{ $exam->finished_at ? \App\Support\DisplayDate::format($exam->finished_at) : 'Em andamento' }}</td>
                                         <td class="text-end">
                                             @if($exam->course)
                                                 <a href="{{ route('student.courses.simulated.show', [$exam->course, $exam]) }}" class="btn btn-sm btn-outline-primary">Abrir</a>

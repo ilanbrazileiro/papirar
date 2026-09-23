@@ -409,7 +409,7 @@
                                 <td>{{ $transaction->course->title ?? 'Curso removido' }}</td>
                                 <td>{{ $transactionStatusLabels[$transaction->status] ?? ucfirst((string) $transaction->status) }}</td>
                                 <td>R$ {{ number_format((float) $transaction->amount, 2, ',', '.') }}</td>
-                                <td>{{ optional($transaction->created_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ \App\Support\DisplayDate::format($transaction->created_at) }}</td>
                             </tr>
                         @endforeach
                     </tbody>

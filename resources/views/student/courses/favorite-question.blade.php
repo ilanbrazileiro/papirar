@@ -42,7 +42,7 @@
                     · marcada: {{ $lastAnswer->selectedAlternative->letter }}
                 @endif
                 @if($lastAnswer->answered_at)
-                    · {{ $lastAnswer->answered_at->format('d/m/Y H:i') }}
+                    · {{ \App\Support\DisplayDate::format($lastAnswer->answered_at) }}
                 @endif
             </div>
         @endif
@@ -100,7 +100,7 @@
                 @foreach($question->comments as $comment)
                     <div class="border-bottom pb-3 mb-3">
                         <div class="small-muted mb-1">
-                            {{ $comment->user->name ?? 'Aluno' }} · {{ optional($comment->created_at)->format('d/m/Y H:i') }}
+                            {{ $comment->user->name ?? 'Aluno' }} · {{ \App\Support\DisplayDate::format($comment->created_at) }}
                         </div>
                         <div>{!! nl2br(e($comment->body ?? $comment->comment ?? '')) !!}</div>
                     </div>

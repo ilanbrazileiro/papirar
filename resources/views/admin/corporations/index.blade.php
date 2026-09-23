@@ -53,7 +53,7 @@
                                         <span class="badge text-bg-secondary">Inativa</span>
                                     @endif
                                 </td>
-                                <td>{{ optional($corporation->created_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ \App\Support\DisplayDate::format($corporation->created_at) }}</td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
                                         <a href="{{ route('admin.corporations.show', $corporation) }}" class="btn btn-sm btn-outline-secondary">Ver</a>

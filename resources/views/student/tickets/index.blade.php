@@ -77,7 +77,7 @@
                                         <span class="badge text-bg-secondary">Fechado</span>
                                     @endif
                                 </td>
-                                <td>{{ optional($ticket->last_message_at ?? $ticket->updated_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ \App\Support\DisplayDate::format($ticket->last_message_at ?? $ticket->updated_at) }}</td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
                                         <a href="{{ route('student.tickets.show', $ticket) }}" class="btn btn-sm btn-outline-primary">

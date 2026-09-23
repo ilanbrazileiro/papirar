@@ -136,7 +136,7 @@
                         <div class="ticket-bubble">
                             <div class="ticket-meta">
                                 <span class="ticket-name">{{ $displayName }}</span>
-                                <span class="ticket-time">{{ optional($ticketMessage->created_at)->format('d/m/Y H:i') }}</span>
+                                <span class="ticket-time">{{ \App\Support\DisplayDate::format($ticketMessage->created_at) }}</span>
                             </div>
 
                             <div style="white-space: pre-line; line-height: 1.65;">{{ $ticketMessage->message }}</div>

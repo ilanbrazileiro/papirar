@@ -36,7 +36,7 @@
             </div>
             <div class="col-md-6">
                 <div class="text-muted mb-1">Criada em</div>
-                <div>{{ optional($subject->created_at)->format('d/m/Y H:i') ?: '-' }}</div>
+                <div>{{ \App\Support\DisplayDate::format($subject->created_at) ?: '-' }}</div>
             </div>
             <div class="col-12">
                 <div class="text-muted mb-1">Descrição</div>

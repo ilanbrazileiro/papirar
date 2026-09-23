@@ -312,7 +312,7 @@
                                         <td>{{ $statusLabel }}</td>
                                         <td>{{ $cycleLabel }}</td>
                                         <td>R$ {{ number_format((float) $transaction->amount, 2, ',', '.') }}</td>
-                                        <td>{{ optional($transaction->created_at)->format('d/m/Y H:i') }}</td>
+                                        <td>{{ \App\Support\DisplayDate::format($transaction->created_at) }}</td>
                                         <td class="text-end">
                                             @if($transaction->checkoutUrl())
                                                 <a href="{{ $transaction->checkoutUrl() }}" class="btn btn-sm btn-primary">Pagar</a>

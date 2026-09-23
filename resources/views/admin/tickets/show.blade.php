@@ -100,7 +100,7 @@
                         <div class="ticket-bubble">
                             <div class="ticket-meta">
                                 <span class="ticket-name">{{ $displayName }}</span>
-                                <span class="ticket-time">{{ optional($message->created_at)->format('d/m/Y H:i') }}</span>
+                                <span class="ticket-time">{{ \App\Support\DisplayDate::format($message->created_at) }}</span>
                             </div>
 
                             <div style="white-space: pre-line;">{{ $message->message }}</div>

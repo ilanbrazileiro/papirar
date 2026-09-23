@@ -107,7 +107,7 @@
                                             <span class="badge badge-secondary">Fechado</span>
                                         @endif
                                     </td>
-                                    <td>{{ optional($ticket->last_message_at ?? $ticket->updated_at)->format('d/m/Y H:i') }}</td>
+                                    <td>{{ \App\Support\DisplayDate::format($ticket->last_message_at ?? $ticket->updated_at) }}</td>
                                     <td class="text-right">
                                         <a class="btn btn-sm {{ in_array($ticket->status, ['open', 'in_progress'], true) ? 'btn-primary' : 'btn-outline-primary' }}" href="{{ route('admin.tickets.show', $ticket) }}">
                                             {{ in_array($ticket->status, ['open', 'in_progress'], true) ? 'Atender' : 'Abrir' }}

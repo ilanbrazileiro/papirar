@@ -85,7 +85,7 @@
                                 </td>
                                 <td>R$ {{ number_format((float) $transaction->amount, 2, ',', '.') }}</td>
                                 <td>
-                                    {{ optional($transaction->paid_at ?: $transaction->created_at)->format('d/m/Y H:i') }}<br>
+                                    {{ \App\Support\DisplayDate::format($transaction->paid_at ?: $transaction->created_at) }}<br>
                                     <span class="small-muted">{{ $transaction->gateway }}</span>
                                 </td>
                                 <td class="text-end">

@@ -141,7 +141,7 @@
                                         <td>
                                             <div class="fw-semibold">{{ $simulatedExam->title }}</div>
                                             <div class="small-muted">
-                                                Criado em {{ optional($simulatedExam->created_at)->format('d/m/Y H:i') }}
+                                                Criado em {{ \App\Support\DisplayDate::format($simulatedExam->created_at) }}
                                             </div>
                                         </td>
                                         <td>{{ $simulatedExam->total_questions }}</td>

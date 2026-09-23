@@ -30,8 +30,8 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-md-4"><strong>Usuário:</strong> {{ optional($batch->user)->name ?? '-' }}</div>
-                <div class="col-md-4"><strong>Início:</strong> {{ optional($batch->started_at)->format('d/m/Y H:i') ?? '-' }}</div>
-                <div class="col-md-4"><strong>Fim:</strong> {{ optional($batch->finished_at)->format('d/m/Y H:i') ?? '-' }}</div>
+                <div class="col-md-4"><strong>Início:</strong> {{ \App\Support\DisplayDate::format($batch->started_at) ?? '-' }}</div>
+                <div class="col-md-4"><strong>Fim:</strong> {{ \App\Support\DisplayDate::format($batch->finished_at) ?? '-' }}</div>
             </div>
             @if($batch->notes)
                 <hr>
@@ -79,7 +79,7 @@
                             <td>{{ $attempt->status }}</td>
                             <td>{{ $attempt->http_status ?? '-' }}</td>
                             <td>{{ $attempt->error_message ? \Illuminate\Support\Str::limit($attempt->error_message, 180) : '-' }}</td>
-                            <td>{{ optional($attempt->started_at)->format('d/m/Y H:i:s') }}</td>
+                            <td>{{ \App\Support\DisplayDate::format($attempt->started_at, 'd/m/Y H:i:s') ?? '-' }}</td>
                         </tr>
                     @endforeach
                     </tbody>

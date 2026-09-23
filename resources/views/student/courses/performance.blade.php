@@ -35,7 +35,7 @@
             <div class="stats-card">
                 <div class="label">Sessões de estudo</div>
                 <div class="value">{{ (int) ($training->sessions ?? 0) }}</div>
-                <div class="small-muted">Última: {{ $training->last_answered_at ? \Carbon\Carbon::parse($training->last_answered_at)->format('d/m/Y H:i') : '-' }}</div>
+                <div class="small-muted">Última: {{ $training->last_answered_at ? \App\Support\DisplayDate::format($training->last_answered_at) : '-' }}</div>
             </div>
         </div>
         <div class="col-md-6 col-xl-3">
@@ -197,7 +197,7 @@
                                         <td>{{ $row->short_statement }}</td>
                                         <td>{{ $row->subject_name }}</td>
                                         <td class="text-center">{{ $row->wrong_count }}</td>
-                                        <td class="text-end">{{ $row->last_wrong_at ? \Carbon\Carbon::parse($row->last_wrong_at)->format('d/m/Y') : '-' }}</td>
+                                        <td class="text-end">{{ $row->last_wrong_at ? \App\Support\DisplayDate::format($row->last_wrong_at, 'd/m/Y') : '-' }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -273,7 +273,7 @@
                                 <td>{{ $row->short_statement }}</td>
                                 <td>{{ $row->subject_name }}</td>
                                 <td>{{ $row->topic_name ?: '-' }}</td>
-                                <td class="text-end">{{ $row->answered_at ? \Carbon\Carbon::parse($row->answered_at)->format('d/m/Y H:i') : '-' }}</td>
+                                <td class="text-end">{{ $row->answered_at ? \App\Support\DisplayDate::format($row->answered_at) : '-' }}</td>
                             </tr>
                         @endforeach
                     </tbody>

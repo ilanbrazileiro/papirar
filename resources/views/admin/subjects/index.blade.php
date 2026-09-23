@@ -51,7 +51,7 @@
                                         <span class="badge text-bg-secondary">Inativa</span>
                                     @endif
                                 </td>
-                                <td>{{ optional($subject->created_at)->format('d/m/Y H:i') }}</td>
+                                <td>{{ \App\Support\DisplayDate::format($subject->created_at) }}</td>
                                 <td class="text-end">
                                     <div class="d-inline-flex gap-2">
                                         <a href="{{ route('admin.subjects.show', $subject) }}" class="btn btn-sm btn-outline-secondary">Ver</a>
