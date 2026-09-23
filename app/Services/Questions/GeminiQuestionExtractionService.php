@@ -170,7 +170,11 @@ class GeminiQuestionExtractionService
         ];
 
         return <<<'PROMPT'
-Você é um extrator documental. Transcreva fielmente todas as questões objetivas e associe o gabarito informado no documento ou no arquivo separado. Não resuma, não reescreva, não corrija e não crie comentários. Não invente questões nem respostas. Preserve parágrafos e marcações relevantes em HTML simples. A saída desta versão sempre contém as letras A-E. Se alguma alternativa não existir no original, use texto vazio nessa letra e registre o problema em warnings; nunca invente conteúdo. Informe has_image=true quando a questão depender de imagem, gráfico, tabela ou diagrama. Classifique usando exclusivamente os IDs fornecidos na taxonomia. Nunca crie disciplina ou tópico. Se não houver tópico seguro, use topic_id null. A confiança deve variar de 0 a 1. Informe a página do documento quando identificável. Questões anuladas devem usar null em correct_letter e cancelled=true.
+Você é um extrator documental. Transcreva fielmente todas as questões objetivas e associe o gabarito informado no documento ou no arquivo separado. Não resuma, não reescreva, não corrija e não crie comentários. Não invente questões nem respostas. A saída sempre contém as letras A-E. Se uma alternativa não existir, use texto vazio e registre o problema em warnings; nunca invente conteúdo.
+
+Para interpretação, transcreva integralmente o texto-base, poema, tabela textual ou trecho compartilhado em passage, mesmo quando ele aparecer em página anterior. Repita esse passage para cada questão que o utiliza. Em statement coloque apenas o comando e o enunciado específico da questão; não repita ali o passage. Se não houver texto-base, use passage vazio. Se o texto-base for necessário e estiver ilegível ou ausente, marque missing_passage=true e avise em warnings; não o invente. Nos demais casos use missing_passage=false. Preserve a ordem, os parágrafos e as marcações originais em HTML simples com <p>. Deixe cada parágrafo justificado com style="text-align: justify;". Não crie negritos ou ênfases ausentes do documento. Faça o mesmo com os parágrafos das alternativas.
+
+Informe has_image=true quando a questão depender de imagem, gráfico, tabela visual ou diagrama. Não crie imagens artificiais. Classifique somente com IDs existentes na taxonomia. Nunca crie disciplina ou tópico. Se nenhuma disciplina encaixar com segurança, use subject_id null, topic_id null e preencha suggested_subject_name, suggested_topic_name e classification_reason com sua sugestão e motivo breve. Se houver disciplina existente mas não tópico seguro, mantenha subject_id e use topic_id null; pode sugerir o tópico. A confiança deve variar de 0 a 1. Informe a página quando identificável. Questões anuladas usam correct_letter null e cancelled=true.
 
 CONTEXTO DA ORIGEM:
 PROMPT
@@ -257,10 +261,12 @@ PROMPT
                     'type' => 'array',
                     'items' => [
                         'type' => 'object',
-                        'required' => ['original_number', 'statement', 'alternatives', 'correct_letter', 'subject_id', 'confidence', 'cancelled', 'has_image'],
+                        'required' => ['original_number', 'passage', 'missing_passage', 'statement', 'alternatives', 'correct_letter', 'subject_id', 'confidence', 'cancelled', 'has_image'],
                         'properties' => [
                             'original_number' => ['type' => 'integer'],
                             'page_number' => ['type' => ['integer', 'null']],
+                            'passage' => ['type' => 'string'],
+                            'missing_passage' => ['type' => 'boolean'],
                             'statement' => ['type' => 'string'],
                             'alternatives' => [
                                 'type' => 'array',
@@ -276,8 +282,11 @@ PROMPT
                                 ],
                             ],
                             'correct_letter' => ['type' => ['string', 'null'], 'enum' => ['A', 'B', 'C', 'D', 'E', null]],
-                            'subject_id' => ['type' => 'integer'],
+                            'subject_id' => ['type' => ['integer', 'null']],
                             'topic_id' => ['type' => ['integer', 'null']],
+                            'suggested_subject_name' => ['type' => ['string', 'null']],
+                            'suggested_topic_name' => ['type' => ['string', 'null']],
+                            'classification_reason' => ['type' => ['string', 'null']],
                             'confidence' => ['type' => 'number', 'minimum' => 0, 'maximum' => 1],
                             'cancelled' => ['type' => 'boolean'],
                             'has_image' => ['type' => 'boolean'],

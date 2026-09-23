@@ -19,6 +19,8 @@ use RuntimeException;
 
 class QuestionCsvImportService
 {
+    private ?array $aiDuplicateIndex = null;
+
     public function populatePreviewFromStructuredQuestions(QuestionImportBatch $batch, array $questions): QuestionImportBatch
     {
         $batch->loadMissing(['corporation', 'exam', 'examBoard']);
@@ -49,6 +51,8 @@ class QuestionCsvImportService
                 );
                 $warnings = array_values(array_filter((array) ($question['warnings'] ?? [])));
                 $confidence = max(0, min(1, (float) ($question['confidence'] ?? 0)));
+                $questionText = $this->formatExtractedHtml((string) ($question['statement'] ?? ''));
+                $passage = $this->formatExtractedHtml((string) ($question['passage'] ?? ''));
                 $payload = [
                     'corporation_id' => $batch->corporation_id,
                     'exam_id' => $batch->exam_id,
@@ -56,7 +60,7 @@ class QuestionCsvImportService
                     'topic_id' => $question['topic_id'] ?? null,
                     'exam_board_id' => $batch->exam_board_id,
                     'exam_board' => null,
-                    'statement' => trim((string) ($question['statement'] ?? '')),
+                    'statement' => trim($passage."\n".$questionText),
                     'question_type' => 'multiple_choice',
                     'difficulty' => 'medium',
                     'source_type' => $batch->source_type ?: 'exam',
@@ -64,19 +68,25 @@ class QuestionCsvImportService
                     'source_material_id' => $batch->source_material_id,
                     'commented_answer' => null,
                     'status' => 'draft',
-                    'alternative_a' => $alternatives->get('A'),
-                    'alternative_b' => $alternatives->get('B'),
-                    'alternative_c' => $alternatives->get('C'),
-                    'alternative_d' => $alternatives->get('D'),
-                    'alternative_e' => $alternatives->get('E'),
+                    'alternative_a' => $this->formatExtractedHtml((string) $alternatives->get('A')),
+                    'alternative_b' => $this->formatExtractedHtml((string) $alternatives->get('B')),
+                    'alternative_c' => $this->formatExtractedHtml((string) $alternatives->get('C')),
+                    'alternative_d' => $this->formatExtractedHtml((string) $alternatives->get('D')),
+                    'alternative_e' => $this->formatExtractedHtml((string) $alternatives->get('E')),
                     'correct_letter' => $question['correct_letter'] ?? null,
                     '_meta' => [
                         'original_number' => $rowNumber,
                         'page_number' => $question['page_number'] ?? null,
                         'classification_confidence' => $confidence,
                         'has_image' => (bool) ($question['has_image'] ?? false),
-                        'needs_human_review' => $confidence < $confidenceThreshold || !empty($question['has_image']),
+                        'needs_human_review' => $confidence < $confidenceThreshold || !empty($question['has_image']) || !empty($question['missing_passage']),
+                        'missing_passage' => (bool) ($question['missing_passage'] ?? false),
                         'warnings' => $warnings,
+                        'question_text' => $questionText,
+                        'passage' => $passage,
+                        'suggested_subject_name' => trim((string) ($question['suggested_subject_name'] ?? '')),
+                        'suggested_topic_name' => trim((string) ($question['suggested_topic_name'] ?? '')),
+                        'classification_reason' => trim((string) ($question['classification_reason'] ?? '')),
                     ],
                 ];
 
@@ -96,12 +106,8 @@ class QuestionCsvImportService
                     $validated = $this->validateRow($payload, $rowNumber);
                     $validated['_meta'] = $payload['_meta'];
                     $normalizedStatement = $this->normalizeText($validated['statement']);
-                    $duplicateQuestionId = $this->findExactDuplicateQuestionId(
-                        $normalizedStatement,
-                        $validated['subject_id'],
-                        $validated['topic_id']
-                    );
-                    $batchKey = $validated['subject_id'].'|'.($validated['topic_id'] ?? 'null').'|'.$normalizedStatement;
+                    [$duplicateQuestionId, $similar] = $this->findAiDuplicate($validated['statement'], $questionText);
+                    $batchKey = $normalizedStatement;
                     $duplicateInBatch = isset($seenInBatch[$batchKey]);
 
                     if ($duplicateQuestionId || $duplicateInBatch) {
@@ -114,14 +120,14 @@ class QuestionCsvImportService
                             'normalized_statement' => $normalizedStatement,
                             'error_message' => $duplicateInBatch
                                 ? 'Possível duplicidade dentro do próprio lote.'
-                                : 'Questão com enunciado idêntico já encontrada no banco.',
+                                : ($similar ? 'Possível questão semelhante já cadastrada. Confira antes de importar.' : 'Questão com enunciado idêntico já encontrada no banco.'),
                             'duplicate_question_id' => $duplicateQuestionId,
                         ]);
                         continue;
                     }
 
                     $seenInBatch[$batchKey] = true;
-                    $needsReview = $confidence < $confidenceThreshold || !empty($question['has_image']);
+                    $needsReview = $confidence < $confidenceThreshold || !empty($question['has_image']) || !empty($question['missing_passage']);
                     $needsReview ? $errorRows++ : $validRows++;
                     QuestionImportBatchRow::query()->create([
                         'batch_id' => $batch->id,
@@ -132,7 +138,9 @@ class QuestionCsvImportService
                         'error_message' => $needsReview
                             ? (!empty($question['has_image'])
                                 ? 'A questão depende de elemento visual. Confira o original e inclua a imagem antes de importar.'
-                                : 'Classificação com baixa confiança. Confira disciplina e tópico antes de importar.')
+                                : (!empty($question['missing_passage'])
+                                    ? 'Texto-base ausente ou ilegível. Confira e inclua o texto antes de importar.'
+                                    : 'Classificação com baixa confiança. Confira disciplina e tópico antes de importar.'))
                             : ($warnings ? implode(' | ', $warnings) : null),
                     ]);
                 } catch (RuntimeException $exception) {
@@ -180,19 +188,31 @@ class QuestionCsvImportService
         $meta = (array) ($payload['_meta'] ?? []);
         $meta['needs_human_review'] = false;
         $meta['manually_checked'] = true;
+        $meta['duplicate_override'] = !empty($changes['allow_duplicate']);
+        if ($batch->import_type === 'ai') {
+            $editedStatement = trim((string) ($changes['statement'] ?? ''));
+            $passage = (string) ($meta['passage'] ?? '');
+            $meta['question_text'] = $passage !== '' && str_starts_with($editedStatement, $passage)
+                ? trim(substr($editedStatement, strlen($passage)))
+                : $editedStatement;
+        }
 
         try {
             $validated = $this->validateRow($payload, $row->row_number);
             $validated['_meta'] = $meta;
             $normalized = $this->normalizeText($validated['statement']);
-            $duplicateId = $this->findExactDuplicateQuestionId($normalized, $validated['subject_id'], $validated['topic_id']);
+            [$duplicateId, $similar] = $batch->import_type === 'ai'
+                ? $this->findAiDuplicate($validated['statement'], (string) ($meta['question_text'] ?? ''))
+                : [$this->findExactDuplicateQuestionId($normalized, $validated['subject_id'], $validated['topic_id']), false];
 
             $row->update([
-                'status' => $duplicateId ? 'duplicate' : 'valid',
+                'status' => $duplicateId && !$meta['duplicate_override'] ? 'duplicate' : 'valid',
                 'raw_data' => $validated,
                 'normalized_statement' => $normalized,
-                'duplicate_question_id' => $duplicateId,
-                'error_message' => $duplicateId ? 'Questão com enunciado idêntico já encontrada no banco.' : null,
+                'duplicate_question_id' => $duplicateId && !$meta['duplicate_override'] ? $duplicateId : null,
+                'error_message' => $duplicateId && !$meta['duplicate_override']
+                    ? ($similar ? 'Possível questão semelhante já cadastrada. Confira antes de importar.' : 'Questão com enunciado idêntico já encontrada no banco.')
+                    : null,
             ]);
         } catch (RuntimeException $exception) {
             $row->update([
@@ -398,10 +418,29 @@ class QuestionCsvImportService
         }
 
         $inserted = 0;
+        $duplicatesFound = 0;
 
-        DB::transaction(function () use ($rows, $userId, &$inserted) {
+        DB::transaction(function () use ($rows, $batch, $userId, &$inserted, &$duplicatesFound) {
             foreach ($rows as $batchRow) {
                 $data = $batchRow->raw_data;
+
+                if ($batch->import_type === 'ai' && empty($data['_meta']['duplicate_override'])) {
+                    [$duplicateId, $similar] = $this->findAiDuplicate(
+                        (string) $data['statement'],
+                        (string) ($data['_meta']['question_text'] ?? '')
+                    );
+                    if ($duplicateId) {
+                        $batchRow->update([
+                            'status' => 'duplicate',
+                            'duplicate_question_id' => $duplicateId,
+                            'error_message' => $similar
+                                ? 'Possível questão semelhante já cadastrada. Confira antes de importar.'
+                                : 'Questão com enunciado idêntico já encontrada no banco.',
+                        ]);
+                        $duplicatesFound++;
+                        continue;
+                    }
+                }
 
                 $questionData = [
                     'corporation_id' => $data['corporation_id'] ?? null,
@@ -425,6 +464,9 @@ class QuestionCsvImportService
                 }
 
                 $question = Question::query()->create($questionData);
+                if ($batch->import_type === 'ai' && $this->aiDuplicateIndex !== null) {
+                    $this->indexAiQuestion($question);
+                }
 
                 foreach (['A', 'B', 'C', 'D', 'E'] as $letter) {
                     $question->alternatives()->create([
@@ -449,7 +491,8 @@ class QuestionCsvImportService
 
         return [
             'inserted' => $inserted,
-            'message' => "{$inserted} questão(ões) importada(s) como rascunho.",
+            'message' => "{$inserted} questão(ões) importada(s) como rascunho."
+                .($duplicatesFound ? " {$duplicatesFound} duplicata(s) encontrada(s) na conferência final." : ''),
         ];
     }
 
@@ -831,6 +874,93 @@ class QuestionCsvImportService
         return (int) $examBoard->id;
     }
 
+    /** @return array{0: ?int, 1: bool} */
+    private function findAiDuplicate(string $statement, string $questionText = ''): array
+    {
+        if ($this->aiDuplicateIndex === null) {
+            $this->aiDuplicateIndex = ['exact' => [], 'prefix' => []];
+            Question::query()->select(['id', 'statement'])->orderBy('id')->chunkById(500, function ($questions): void {
+                foreach ($questions as $question) {
+                    $this->indexAiQuestion($question);
+                }
+            });
+        }
+
+        $full = $this->normalizeText($statement);
+        $core = $this->normalizeText($questionText);
+        foreach (array_unique([$full, $core]) as $text) {
+            $minimumLength = $text === $core && $core !== $full ? 100 : 40;
+            if (mb_strlen($text) >= $minimumLength && isset($this->aiDuplicateIndex['exact'][$text])) {
+                return [$this->aiDuplicateIndex['exact'][$text], false];
+            }
+        }
+
+        // Somente candidatos com começo igual e comprimento próximo: OCR e pequenas variações.
+        // Textos-base compartilhados podem ocupar quase todo o enunciado;
+        // a similaridade deve comparar o comando da questão, não o texto-base.
+        foreach (($core !== '' ? [$core] : [$full]) as $text) {
+            if (mb_strlen($text) < 100) {
+                continue;
+            }
+            $prefix = mb_substr($text, 0, 24);
+            foreach ($this->aiDuplicateIndex['prefix'][$prefix] ?? [] as [$candidate, $id]) {
+                if (abs(mb_strlen($candidate) - mb_strlen($text)) > mb_strlen($text) * 0.06) {
+                    continue;
+                }
+                similar_text($text, $candidate, $percent);
+                if ($percent >= 96) {
+                    return [$id, true];
+                }
+            }
+        }
+
+        return [null, false];
+    }
+
+    private function indexAiQuestion(Question $question): void
+    {
+        $normalized = $this->normalizeText($question->statement);
+        if (mb_strlen($normalized) < 40) {
+            return;
+        }
+        $this->aiDuplicateIndex['exact'][$normalized] ??= (int) $question->id;
+        $prefix = mb_substr($normalized, 0, 24);
+        $this->aiDuplicateIndex['prefix'][$prefix][] = [$normalized, (int) $question->id];
+    }
+
+    private function formatExtractedHtml(string $text): string
+    {
+        $text = trim($text);
+        if ($text === '') {
+            return '';
+        }
+
+        if (preg_match('/<p\b/i', $text)) {
+            return preg_replace_callback('/<p\b([^>]*)>/i', function (array $match): string {
+                $attributes = $match[1];
+                if (preg_match('/\bstyle\s*=\s*(["\']).*?\1/is', $attributes)) {
+                    $attributes = preg_replace_callback('/\bstyle\s*=\s*(["\'])(.*?)\1/is', function (array $style): string {
+                        $css = preg_replace('/(?:^|;)\s*text-align\s*:[^;]*/i', '', $style[2]);
+                        return 'style="'.trim((string) $css, ' ;').'; text-align: justify;"';
+                    }, $attributes);
+                    return '<p'.$attributes.'>';
+                }
+                return '<p'.$attributes.' style="text-align: justify;">';
+            }, $text) ?? $text;
+        }
+
+        if (preg_match('/<[^>]+>/', $text)) {
+            if (preg_match('/<(?:table|div|ul|ol|blockquote|h[1-6])\b/i', $text)) {
+                return '<div style="text-align: justify;">'.$text.'</div>';
+            }
+            return '<p style="text-align: justify;">'.$text.'</p>';
+        }
+
+        return collect(preg_split('/\R{2,}/u', $text))
+            ->map(fn ($paragraph) => '<p style="text-align: justify;">'.nl2br(e(trim($paragraph))).'</p>')
+            ->implode("\n");
+    }
+
     private function findExactDuplicateQuestionId(string $normalizedStatement, int $subjectId, ?int $topicId = null): ?int
     {
         if ($normalizedStatement === '') {
@@ -856,8 +986,9 @@ class QuestionCsvImportService
 
     private function normalizeText(?string $text): string
     {
+        $text = preg_replace('/<\/(?:p|div|li|tr|h[1-6])\s*>/i', ' ', (string) $text);
         $text = html_entity_decode(strip_tags((string) $text), ENT_QUOTES | ENT_HTML5, 'UTF-8');
-        $text = mb_strtolower($text, 'UTF-8');
+        $text = Str::ascii(mb_strtolower($text, 'UTF-8'));
         $text = preg_replace('/\s+/u', ' ', $text);
         $text = preg_replace('/[^\p{L}\p{N}\s]/u', '', $text);
         return trim((string) $text);
