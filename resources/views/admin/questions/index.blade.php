@@ -101,6 +101,10 @@
     <div class="card mb-3">
         <div class="card-body">
             <form method="GET" action="{{ route('admin.questions.index') }}" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label" for="question-id-filter">ID da questão</label>
+                    <input type="number" min="1" name="question_id" id="question-id-filter" value="{{ $questionId ?? '' }}" class="form-control" placeholder="ID exato">
+                </div>
                 <div class="col-md-3">
                     <label class="form-label">Buscar</label>
                     <input type="text" name="search" value="{{ $search ?? '' }}" class="form-control" placeholder="Enunciado, fonte ou referência">
@@ -164,6 +168,14 @@
                         <option value="hard" @selected(($difficulty ?? '') === 'hard')>Difícil</option>
                     </select>
                 </div>
+                <div class="col-md-2">
+                    <label class="form-label" for="per-page-filter">Por página</label>
+                    <select name="per_page" id="per-page-filter" class="form-control">
+                        @foreach([15, 50, 100, 1000] as $pageSize)
+                            <option value="{{ $pageSize }}" @selected(($perPage ?? 15) === $pageSize)>{{ $pageSize }}</option>
+                        @endforeach
+                    </select>
+                </div>
                 <div class="col-md-1 d-grid">
                     <button type="submit" class="btn btn-outline-primary">Filtrar</button>
                 </div>
@@ -176,7 +188,7 @@
             @csrf
             @method('PATCH')
             <input type="hidden" name="redirect_to" value="{{ request()->fullUrl() }}" id="bulk-redirect-to">
-            <div id="bulk-selected-inputs"></div>
+            <input type="hidden" name="question_ids_json" id="bulk-selected-ids" value="[]">
 
             <div class="card mb-3">
                 <div class="card-body d-flex flex-wrap gap-2 align-items-center justify-content-between">
@@ -294,26 +306,18 @@
         const checkboxes = document.querySelectorAll('.question-checkbox');
         const submitButton = document.getElementById('bulk-submit-button');
         const selectedCount = document.getElementById('bulk-selected-count');
-        const selectedInputs = document.getElementById('bulk-selected-inputs');
+        const selectedIdsInput = document.getElementById('bulk-selected-ids');
 
         function getCheckedBoxes() {
             return Array.from(document.querySelectorAll('.question-checkbox:checked'));
         }
 
         function rebuildHiddenInputs() {
-            if (!selectedInputs) {
-                return;
+            if (selectedIdsInput) {
+                selectedIdsInput.value = JSON.stringify(getCheckedBoxes().map(function (checkbox) {
+                    return Number(checkbox.value);
+                }));
             }
-
-            selectedInputs.innerHTML = '';
-
-            getCheckedBoxes().forEach(function (checkbox) {
-                const input = document.createElement('input');
-                input.type = 'hidden';
-                input.name = 'question_ids[]';
-                input.value = checkbox.value;
-                selectedInputs.appendChild(input);
-            });
         }
 
         function updateBulkState() {

@@ -14,8 +14,14 @@ class QuestionBulkStatusController extends Controller
 {
     public function update(Request $request): RedirectResponse
     {
+        // Um único campo evita o limite de max_input_vars quando a lista exibe 1000 questões.
+        if (!$request->has('question_ids') && $request->filled('question_ids_json')) {
+            $decoded = json_decode((string) $request->input('question_ids_json'), true);
+            $request->merge(['question_ids' => is_array($decoded) ? $decoded : []]);
+        }
+
         $validator = Validator::make($request->all(), [
-            'question_ids' => ['required', 'array', 'min:1'],
+            'question_ids' => ['required', 'array', 'min:1', 'max:1000'],
             'question_ids.*' => ['required', 'integer', 'distinct', 'exists:questions,id'],
             'status' => ['required', Rule::in([
                 Question::STATUS_DRAFT,

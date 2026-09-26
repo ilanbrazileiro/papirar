@@ -23,7 +23,13 @@ class QuestionController extends Controller
 {
     public function index(Request $request)
     {
+        $paginationFilters = $request->validate([
+            'question_id' => ['nullable', 'integer', 'min:1'],
+            'per_page' => ['nullable', Rule::in([15, 50, 100, 1000])],
+        ]);
         $search = trim((string) $request->get('search', ''));
+        $questionId = isset($paginationFilters['question_id']) ? (int) $paginationFilters['question_id'] : null;
+        $perPage = (int) ($paginationFilters['per_page'] ?? 15);
         $status = trim((string) $request->get('status', ''));
         $difficulty = trim((string) $request->get('difficulty', ''));
         $corporationId = $request->integer('corporation_id');
@@ -32,6 +38,7 @@ class QuestionController extends Controller
         $sourceMaterialId = $request->integer('source_material_id');
 
         $baseQuery = Question::query()
+            ->when($questionId !== null, fn ($query) => $query->whereKey($questionId))
             ->when($search !== '', function ($query) use ($search) {
                 $query->where(function ($q) use ($search) {
                     $q->where('statement', 'like', "%{$search}%")
@@ -53,10 +60,10 @@ class QuestionController extends Controller
             ->when($sourceMaterialId, fn ($q) => $q->where('source_material_id', $sourceMaterialId));
 
         $questions = (clone $baseQuery)
-            ->with(['corporation', 'exam', 'examBoard', 'subject', 'topic', 'sourceMaterial'])
+            ->with(['corporation', 'examBoard', 'subject', 'topic'])
             ->when($status !== '', fn ($q) => $q->where('status', $status))
             ->orderByDesc('id')
-            ->paginate(15)
+            ->paginate($perPage)
             ->withQueryString();
 
         $statusCounts = [
@@ -123,6 +130,8 @@ class QuestionController extends Controller
         return view('admin.questions.index', [
             'questions' => $questions,
             'search' => $search,
+            'questionId' => $questionId,
+            'perPage' => $perPage,
             'status' => $status,
             'difficulty' => $difficulty,
             'corporationId' => $corporationId,
