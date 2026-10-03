@@ -1,0 +1,641 @@
+[
+  {
+    "name": "checkPapirarApi",
+    "title": "Verifica a API",
+    "description": "Diagnóstico da conexão e capacidades.",
+    "method": "GET",
+    "path": "/health",
+    "controller": "QuestionReviewApiController",
+    "action": "health",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {}
+    }
+  },
+  {
+    "name": "listCorporations",
+    "title": "Lista corporações",
+    "description": "Use quando a corporação for relevante.",
+    "method": "GET",
+    "path": "/corporations",
+    "controller": "QuestionReviewApiController",
+    "action": "corporations",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "active": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "searchExamBoards",
+    "title": "Pesquisa bancas",
+    "description": "Use q para localizar exam_board_id.",
+    "method": "GET",
+    "path": "/exam-boards",
+    "controller": "QuestionReviewApiController",
+    "action": "examBoards",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "q": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 10
+        }
+      }
+    }
+  },
+  {
+    "name": "searchExams",
+    "title": "Pesquisa provas",
+    "description": "Use corporation_id e q quando possível.",
+    "method": "GET",
+    "path": "/exams",
+    "controller": "QuestionReviewApiController",
+    "action": "exams",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "corporation_id": {
+          "type": "integer"
+        },
+        "q": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 10
+        }
+      }
+    }
+  },
+  {
+    "name": "searchSubjects",
+    "title": "Pesquisa disciplinas",
+    "description": "Descobre subject_id. Nunca invente IDs.",
+    "method": "GET",
+    "path": "/subjects",
+    "controller": "QuestionReviewApiController",
+    "action": "subjects",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "q": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        }
+      }
+    }
+  },
+  {
+    "name": "createSubject",
+    "title": "Cria disciplina autorizada",
+    "description": "Use somente após autorização do usuário.",
+    "method": "POST",
+    "path": "/subjects",
+    "controller": "TaxonomyWriteApiController",
+    "action": "storeSubject",
+    "read_only": false,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "scope": {
+          "type": "string",
+          "enum": [
+            "general",
+            "corporation_specific"
+          ]
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "searchTopics",
+    "title": "Pesquisa tópicos",
+    "description": "Informe subject_id quando possível.",
+    "method": "GET",
+    "path": "/topics",
+    "controller": "QuestionReviewApiController",
+    "action": "topics",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject_id": {
+          "type": "integer"
+        },
+        "q": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 50,
+          "default": 20
+        }
+      }
+    }
+  },
+  {
+    "name": "createTopic",
+    "title": "Cria tópico autorizado",
+    "description": "Use somente após autorização do usuário.",
+    "method": "POST",
+    "path": "/topics",
+    "controller": "TaxonomyWriteApiController",
+    "action": "storeTopic",
+    "read_only": false,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_id",
+        "name"
+      ],
+      "properties": {
+        "subject_id": {
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        }
+      }
+    }
+  },
+  {
+    "name": "checkTaxonomy",
+    "title": "Verifica taxonomia",
+    "description": "Verifica disciplina e tópicos antes de criar.",
+    "method": "POST",
+    "path": "/taxonomy/check",
+    "controller": "TaxonomyWriteApiController",
+    "action": "check",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject"
+      ],
+      "properties": {
+        "subject": {
+          "type": "string"
+        },
+        "topics": {
+          "type": "array",
+          "maxItems": 50,
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "searchSourceMaterials",
+    "title": "Pesquisa fontes",
+    "description": "Use quando houver material-fonte relevante.",
+    "method": "GET",
+    "path": "/source-materials",
+    "controller": "QuestionReviewApiController",
+    "action": "sourceMaterials",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "corporation_id": {
+          "type": "integer"
+        },
+        "subject_id": {
+          "type": "integer"
+        },
+        "q": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 30,
+          "default": 10
+        }
+      }
+    }
+  },
+  {
+    "name": "searchQuestions",
+    "title": "Pesquisa questões",
+    "description": "Pesquisa questões existentes com filtros.",
+    "method": "GET",
+    "path": "/questions",
+    "controller": "QuestionReviewApiController",
+    "action": "questions",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "corporation_id": {
+          "type": "integer"
+        },
+        "exam_id": {
+          "type": "integer"
+        },
+        "exam_board_id": {
+          "type": "integer"
+        },
+        "subject_id": {
+          "type": "integer"
+        },
+        "topic_id": {
+          "type": "integer"
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "draft",
+            "published",
+            "reviewed",
+            "archived"
+          ]
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "exam",
+            "authored",
+            "adapted"
+          ]
+        },
+        "q": {
+          "type": "string"
+        },
+        "per_page": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 20,
+          "default": 10
+        },
+        "page": {
+          "type": "integer",
+          "minimum": 1,
+          "default": 1
+        }
+      }
+    }
+  },
+  {
+    "name": "createDraftQuestion",
+    "title": "Cria uma questão",
+    "description": "Para uma questão. Para duas ou mais use batch.",
+    "method": "POST",
+    "path": "/questions",
+    "controller": "QuestionWriteApiController",
+    "action": "store",
+    "read_only": false,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "subject_id",
+        "topic_id",
+        "statement",
+        "question_type",
+        "difficulty",
+        "source_type",
+        "correct_letter",
+        "alternatives"
+      ],
+      "properties": {
+        "corporation_id": {
+          "type": "integer"
+        },
+        "exam_id": {
+          "type": "integer"
+        },
+        "exam_board_id": {
+          "type": "integer"
+        },
+        "subject_id": {
+          "type": "integer"
+        },
+        "topic_id": {
+          "type": "integer"
+        },
+        "source_material_id": {
+          "type": "integer"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 5
+        },
+        "question_type": {
+          "type": "string",
+          "description": "Normalmente multiple_choice."
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ]
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "exam",
+            "authored",
+            "adapted"
+          ]
+        },
+        "source_reference": {
+          "type": "string"
+        },
+        "commented_answer": {
+          "type": "string"
+        },
+        "correct_letter": {
+          "type": "string",
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ]
+        },
+        "allow_duplicate": {
+          "type": "boolean",
+          "default": false
+        },
+        "alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "letter",
+              "text"
+            ],
+            "properties": {
+              "letter": {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ]
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "createDraftQuestionsBatch",
+    "title": "Cadastra lote",
+    "description": "Use para 2 a 20 questões. Cada item é isolado.",
+    "method": "POST",
+    "path": "/questions/batch",
+    "controller": "QuestionBatchWriteApiController",
+    "action": "store",
+    "read_only": false,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "questions"
+      ],
+      "properties": {
+        "questions": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 20,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "subject_id",
+              "topic_id",
+              "statement",
+              "question_type",
+              "difficulty",
+              "source_type",
+              "correct_letter",
+              "alternatives"
+            ],
+            "properties": {
+              "corporation_id": {
+                "type": "integer"
+              },
+              "exam_id": {
+                "type": "integer"
+              },
+              "exam_board_id": {
+                "type": "integer"
+              },
+              "subject_id": {
+                "type": "integer"
+              },
+              "topic_id": {
+                "type": "integer"
+              },
+              "source_material_id": {
+                "type": "integer"
+              },
+              "statement": {
+                "type": "string",
+                "minLength": 5
+              },
+              "question_type": {
+                "type": "string",
+                "description": "Normalmente multiple_choice."
+              },
+              "difficulty": {
+                "type": "string",
+                "enum": [
+                  "easy",
+                  "medium",
+                  "hard"
+                ]
+              },
+              "source_type": {
+                "type": "string",
+                "enum": [
+                  "exam",
+                  "authored",
+                  "adapted"
+                ]
+              },
+              "source_reference": {
+                "type": "string"
+              },
+              "commented_answer": {
+                "type": "string"
+              },
+              "correct_letter": {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ]
+              },
+              "allow_duplicate": {
+                "type": "boolean",
+                "default": false
+              },
+              "alternatives": {
+                "type": "array",
+                "minItems": 2,
+                "maxItems": 5,
+                "items": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "letter",
+                    "text"
+                  ],
+                  "properties": {
+                    "letter": {
+                      "type": "string",
+                      "enum": [
+                        "A",
+                        "B",
+                        "C",
+                        "D",
+                        "E"
+                      ]
+                    },
+                    "text": {
+                      "type": "string",
+                      "minLength": 1
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  {
+    "name": "checkQuestionDuplicate",
+    "title": "Verifica duplicidade",
+    "description": "Use antes de criação individual. Batch já verifica.",
+    "method": "POST",
+    "path": "/questions/duplicate-check",
+    "controller": "QuestionReviewApiController",
+    "action": "duplicateCheck",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "statement"
+      ],
+      "properties": {
+        "statement": {
+          "type": "string"
+        },
+        "ignore_question_id": {
+          "type": "integer"
+        }
+      }
+    }
+  },
+  {
+    "name": "getQuestion",
+    "title": "Consulta questão",
+    "description": "Retorna a questão completa pelo ID.",
+    "method": "GET",
+    "path": "/questions/{question}",
+    "controller": "QuestionReviewApiController",
+    "action": "question",
+    "read_only": true,
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "question": {
+          "type": "integer"
+        }
+      },
+      "required": [
+        "question"
+      ]
+    }
+  }
+]
