@@ -72,28 +72,8 @@ class PapirarApiTool extends Tool
 
             Validator::make($arguments, $this->rules($this->definition['schema']))->validate();
 
-            $method = strtoupper($this->definition['method']);
-            $apiRequest = HttpRequest::create(
-                '/api/gpt'.$this->definition['path'],
-                $method,
-                $method === 'GET' ? $arguments : [],
-                [],
-                [],
-                [
-                    'CONTENT_TYPE' => 'application/json',
-                    'HTTP_ACCEPT' => 'application/json',
-                    'REMOTE_ADDR' => $original->ip(),
-                    'HTTP_USER_AGENT' => $original->userAgent(),
-                ],
-                $method === 'GET' ? null : json_encode($arguments, JSON_THROW_ON_ERROR),
-            );
-            $apiRequest->setUserResolver(fn () => $user);
-
-            app()->instance('request', $apiRequest);
-
-            $controller = app('App\\Http\\Controllers\\Api\\Gpt\\'.$this->definition['controller']);
-            $parameters = ['request' => $apiRequest];
-
+            $payload = $arguments;
+            $parameters = [];
             foreach ($this->definition['bindings'] ?? [] as $parameter => $binding) {
                 $argument = $binding['argument'] ?? $parameter;
                 $modelClass = $binding['model'] ?? null;
@@ -111,7 +91,29 @@ class PapirarApiTool extends Tool
                 }
 
                 $parameters[$parameter] = $modelClass::query()->findOrFail($arguments[$argument]);
+                unset($payload[$argument]);
             }
+
+            $method = strtoupper($this->definition['method']);
+            $apiRequest = HttpRequest::create(
+                '/api/gpt'.$this->definition['path'],
+                $method,
+                $method === 'GET' ? $payload : [],
+                [],
+                [],
+                [
+                    'CONTENT_TYPE' => 'application/json',
+                    'HTTP_ACCEPT' => 'application/json',
+                    'REMOTE_ADDR' => $original->ip(),
+                    'HTTP_USER_AGENT' => $original->userAgent(),
+                ],
+                $method === 'GET' ? null : json_encode($payload, JSON_THROW_ON_ERROR),
+            );
+            $apiRequest->setUserResolver(fn () => $user);
+
+            app()->instance('request', $apiRequest);
+            $controller = app('App\\Http\\Controllers\\Api\\Gpt\\'.$this->definition['controller']);
+            $parameters['request'] = $apiRequest;
 
             $response = app()->call([$controller, $this->definition['action']], $parameters);
             $data = $response->getData(true);
