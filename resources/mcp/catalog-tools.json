@@ -1,1 +1,117 @@
-[]
+[
+  {
+    "name": "createCorporation",
+    "title": "Criar corporação",
+    "description": "Cria uma corporação no catálogo do Papirar.",
+    "method": "POST",
+    "path": "/catalog/corporations",
+    "controller": "CatalogCourseApiController",
+    "action": "storeCorporation",
+    "read_only": false,
+    "roles": ["admin"],
+    "schema": {"type":"object","properties":{"name":{"type":"string","minLength":2},"slug":{"type":"string"},"description":{"type":"string"},"active":{"type":"boolean"}},"required":["name"]}
+  },
+  {
+    "name": "updateCorporation",
+    "title": "Atualizar corporação",
+    "description": "Atualiza dados textuais de uma corporação existente.",
+    "method": "PATCH",
+    "path": "/catalog/corporations/{corporation}",
+    "controller": "CatalogCourseApiController",
+    "action": "updateCorporation",
+    "read_only": false,
+    "roles": ["admin"],
+    "bindings": {"corporation":{"argument":"corporation","model":"App\\Models\\Corporation"}},
+    "schema": {"type":"object","properties":{"corporation":{"type":"integer","minimum":1},"name":{"type":"string","minLength":2},"slug":{"type":"string"},"description":{"type":"string"}},"required":["corporation"]}
+  },
+  {
+    "name": "createExamBoard",
+    "title": "Criar banca",
+    "description": "Cria uma banca examinadora.",
+    "method": "POST",
+    "path": "/catalog/exam-boards",
+    "controller": "CatalogCourseApiController",
+    "action": "storeExamBoard",
+    "read_only": false,
+    "roles": ["admin"],
+    "schema": {"type":"object","properties":{"name":{"type":"string","minLength":2},"slug":{"type":"string"},"description":{"type":"string"},"active":{"type":"boolean"}},"required":["name"]}
+  },
+  {
+    "name": "updateExamBoard",
+    "title": "Atualizar banca",
+    "description": "Atualiza dados textuais de uma banca existente.",
+    "method": "PATCH",
+    "path": "/catalog/exam-boards/{examBoard}",
+    "controller": "CatalogCourseApiController",
+    "action": "updateExamBoard",
+    "read_only": false,
+    "roles": ["admin"],
+    "bindings": {"examBoard":{"argument":"exam_board","model":"App\\Models\\ExamBoard"}},
+    "schema": {"type":"object","properties":{"exam_board":{"type":"integer","minimum":1},"name":{"type":"string","minLength":2},"slug":{"type":"string"},"description":{"type":"string"}},"required":["exam_board"]}
+  },
+  {
+    "name": "createSourceMaterial",
+    "title": "Criar material-fonte",
+    "description": "Cria bibliografia ou material-fonte vinculado a uma disciplina.",
+    "method": "POST",
+    "path": "/catalog/source-materials",
+    "controller": "CatalogCourseApiController",
+    "action": "storeSourceMaterial",
+    "read_only": false,
+    "roles": ["admin","content"],
+    "schema": {"type":"object","properties":{"corporation_id":{"type":"integer","minimum":1},"subject_id":{"type":"integer","minimum":1},"title":{"type":"string","minLength":2},"slug":{"type":"string"},"description":{"type":"string"},"material_type":{"type":"string"},"year":{"type":"integer","minimum":1800},"reference_code":{"type":"string"},"url":{"type":"string"}},"required":["subject_id","title","material_type"]}
+  },
+  {
+    "name": "updateSourceMaterial",
+    "title": "Atualizar material-fonte",
+    "description": "Atualiza um material-fonte existente sem removê-lo ou desativá-lo.",
+    "method": "PATCH",
+    "path": "/catalog/source-materials/{sourceMaterial}",
+    "controller": "CatalogCourseApiController",
+    "action": "updateSourceMaterial",
+    "read_only": false,
+    "roles": ["admin","content"],
+    "bindings": {"sourceMaterial":{"argument":"source_material","model":"App\\Models\\SourceMaterial"}},
+    "schema": {"type":"object","properties":{"source_material":{"type":"integer","minimum":1},"corporation_id":{"type":"integer","minimum":1},"subject_id":{"type":"integer","minimum":1},"title":{"type":"string"},"slug":{"type":"string"},"description":{"type":"string"},"material_type":{"type":"string"},"year":{"type":"integer","minimum":1800},"reference_code":{"type":"string"},"url":{"type":"string"}},"required":["source_material"]}
+  },
+  {
+    "name": "createExam",
+    "title": "Criar concurso",
+    "description": "Cria concurso previsto ou publicado já com disciplinas e tópicos. Use após conferir a taxonomia.",
+    "method": "POST",
+    "path": "/catalog/exams",
+    "controller": "CatalogCourseApiController",
+    "action": "storeExam",
+    "read_only": false,
+    "roles": ["admin"],
+    "schema": {"type":"object","properties":{"corporation_id":{"type":"integer","minimum":1},"title":{"type":"string","minLength":2},"year":{"type":"integer","minimum":1900,"maximum":2100},"exam_type":{"type":"string"},"status":{"type":"string","enum":["planned","published"]},"description":{"type":"string"},"active":{"type":"boolean"},"scope":{"type":"array","minItems":1,"items":{"type":"object","properties":{"subject_id":{"type":"integer","minimum":1},"topic_ids":{"type":"array","items":{"type":"integer"}}},"required":["subject_id"]}}},"required":["corporation_id","title","year","exam_type","status","scope"]}
+  },
+  {
+    "name": "updateExam",
+    "title": "Atualizar concurso",
+    "description": "Atualiza metadados de um concurso sem alterar seu escopo.",
+    "method": "PATCH",
+    "path": "/catalog/exams/{exam}",
+    "controller": "CatalogCourseApiController",
+    "action": "updateExam",
+    "read_only": false,
+    "roles": ["admin"],
+    "bindings": {"exam":{"argument":"exam","model":"App\\Models\\Exam"}},
+    "schema": {"type":"object","properties":{"exam":{"type":"integer","minimum":1},"corporation_id":{"type":"integer","minimum":1},"title":{"type":"string"},"year":{"type":"integer","minimum":1900,"maximum":2100},"exam_type":{"type":"string"},"description":{"type":"string"}},"required":["exam"]}
+  },
+  {
+    "name": "replaceExamScope",
+    "title": "Substituir escopo do concurso",
+    "description": "Substitui disciplinas e tópicos do concurso. É alteração em massa e exige confirmação explícita.",
+    "method": "PUT",
+    "path": "/catalog/exams/{exam}/scope",
+    "controller": "CatalogCourseApiController",
+    "action": "replaceExamScopeApi",
+    "read_only": false,
+    "destructive": true,
+    "confirmation_required": true,
+    "roles": ["admin"],
+    "bindings": {"exam":{"argument":"exam","model":"App\\Models\\Exam"}},
+    "schema": {"type":"object","properties":{"exam":{"type":"integer","minimum":1},"confirm":{"type":"boolean"},"reason":{"type":"string","minLength":10},"subjects":{"type":"array","minItems":1,"items":{"type":"object","properties":{"subject_id":{"type":"integer","minimum":1},"topic_ids":{"type":"array","items":{"type":"integer"}}},"required":["subject_id"]}}},"required":["exam","confirm","reason","subjects"]}
+  }
+]
