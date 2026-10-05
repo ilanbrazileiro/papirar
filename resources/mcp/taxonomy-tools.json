@@ -1,1 +1,133 @@
-[]
+[
+  {
+    "name": "reviewTaxonomy",
+    "title": "Audita taxonomia",
+    "description": "Lista disciplinas ou tópicos com contagens de questões para apoiar auditoria e consolidação.",
+    "method": "GET",
+    "path": "/taxonomy/review",
+    "controller": "QuestionTaxonomyReviewApiController",
+    "action": "reviewTaxonomy",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "subject_id": {"type": "integer", "minimum": 1},
+        "active": {"type": "boolean"},
+        "per_page": {"type": "integer", "minimum": 1, "maximum": 100}
+      }
+    }
+  },
+  {
+    "name": "updateQuestionClassification",
+    "title": "Reclassifica questão",
+    "description": "Altera disciplina e tópico de uma questão após validação de pertencimento do tópico. Registra justificativa.",
+    "method": "PATCH",
+    "path": "/questions/{question}/classification",
+    "controller": "QuestionTaxonomyReviewApiController",
+    "action": "updateQuestionClassification",
+    "read_only": false,
+    "destructive": false,
+    "idempotent": true,
+    "roles": ["admin", "content"],
+    "bindings": {
+      "question": {"argument": "question", "model": "App\\Models\\Question"}
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "subject_id", "topic_id", "reason"],
+      "properties": {
+        "question": {"type": "integer", "minimum": 1},
+        "subject_id": {"type": "integer", "minimum": 1},
+        "topic_id": {"type": "integer", "minimum": 1},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  },
+  {
+    "name": "moveTopic",
+    "title": "Move tópico",
+    "description": "Move um tópico e as questões vinculadas para outra disciplina. Exige confirmação explícita.",
+    "method": "PATCH",
+    "path": "/topics/{topic}/move",
+    "controller": "QuestionTaxonomyReviewApiController",
+    "action": "moveTopic",
+    "read_only": false,
+    "destructive": true,
+    "idempotent": false,
+    "confirmation_required": true,
+    "roles": ["admin"],
+    "bindings": {
+      "topic": {"argument": "topic", "model": "App\\Models\\Topic"}
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["topic", "target_subject_id", "confirm", "reason"],
+      "properties": {
+        "topic": {"type": "integer", "minimum": 1},
+        "target_subject_id": {"type": "integer", "minimum": 1},
+        "confirm": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  },
+  {
+    "name": "mergeTopic",
+    "title": "Mescla tópicos",
+    "description": "Move questões e vínculos do tópico origem para o destino e desativa a origem. Exige confirmação explícita.",
+    "method": "POST",
+    "path": "/topics/{sourceTopic}/merge",
+    "controller": "QuestionTaxonomyReviewApiController",
+    "action": "mergeTopic",
+    "read_only": false,
+    "destructive": true,
+    "idempotent": false,
+    "confirmation_required": true,
+    "roles": ["admin"],
+    "bindings": {
+      "sourceTopic": {"argument": "source_topic", "model": "App\\Models\\Topic"}
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_topic", "target_topic_id", "confirm", "reason"],
+      "properties": {
+        "source_topic": {"type": "integer", "minimum": 1},
+        "target_topic_id": {"type": "integer", "minimum": 1},
+        "confirm": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  },
+  {
+    "name": "mergeSubject",
+    "title": "Mescla disciplinas",
+    "description": "Migra vínculos da disciplina origem para a destino e desativa a origem. Exige que não restem tópicos ativos e confirmação explícita.",
+    "method": "POST",
+    "path": "/subjects/{sourceSubject}/merge",
+    "controller": "QuestionTaxonomyReviewApiController",
+    "action": "mergeSubject",
+    "read_only": false,
+    "destructive": true,
+    "idempotent": false,
+    "confirmation_required": true,
+    "roles": ["admin"],
+    "bindings": {
+      "sourceSubject": {"argument": "source_subject", "model": "App\\Models\\Subject"}
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_subject", "target_subject_id", "confirm", "reason"],
+      "properties": {
+        "source_subject": {"type": "integer", "minimum": 1},
+        "target_subject_id": {"type": "integer", "minimum": 1},
+        "confirm": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  }
+]
