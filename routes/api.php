@@ -1,17 +1,18 @@
 <?php
 
-use App\Http\Controllers\Api\Gpt\QuestionReviewApiController;
-use App\Http\Middleware\EnsureGptApiToken;
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Billing\MercadoPagoWebhookController;
-use App\Http\Controllers\Api\Gpt\QuestionWriteApiController;
-use App\Http\Controllers\Api\Gpt\TaxonomyWriteApiController;
+use App\Http\Controllers\Api\Gpt\CatalogCourseApiController;
+use App\Http\Controllers\Api\Gpt\Ga4MarketingApiController;
+use App\Http\Controllers\Api\Gpt\MarketingReadApiController;
 use App\Http\Controllers\Api\Gpt\QuestionBatchWriteApiController;
+use App\Http\Controllers\Api\Gpt\QuestionReviewApiController;
 use App\Http\Controllers\Api\Gpt\QuestionReviewerApiController;
 use App\Http\Controllers\Api\Gpt\QuestionTaxonomyReviewApiController;
-use App\Http\Controllers\Api\Gpt\MarketingReadApiController;
-use App\Http\Controllers\Api\Gpt\Ga4MarketingApiController;
+use App\Http\Controllers\Api\Gpt\QuestionWriteApiController;
+use App\Http\Controllers\Api\Gpt\TaxonomyWriteApiController;
+use App\Http\Controllers\Billing\MercadoPagoWebhookController;
+use App\Http\Middleware\EnsureGptApiToken;
 use App\Http\Middleware\EnsureMarketingGptApiToken;
+use Illuminate\Support\Facades\Route;
 
 Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle']);
 
@@ -30,6 +31,7 @@ Route::prefix('gpt')
         Route::get('/questions', [QuestionReviewApiController::class, 'questions']);
         Route::post('/questions/duplicate-check', [QuestionReviewApiController::class, 'duplicateCheck']);
         Route::post('/questions', [QuestionWriteApiController::class, 'store']);
+        Route::post('/questions/batch', [QuestionBatchWriteApiController::class, 'store']);
 
         Route::post('/taxonomy/check', [TaxonomyWriteApiController::class, 'check']);
         Route::post('/subjects', [TaxonomyWriteApiController::class, 'storeSubject']);
@@ -39,14 +41,10 @@ Route::prefix('gpt')
         Route::get('/questions/{question}/comments', [QuestionReviewApiController::class, 'comments']);
         Route::get('/questions/{question}/stats', [QuestionReviewApiController::class, 'stats']);
 
-        Route::post('/questions/batch', [QuestionBatchWriteApiController::class, 'store']);
-
         // Revisor 2.0
         Route::patch('/questions/{question}/review-content', [QuestionReviewerApiController::class, 'updateContent']);
         Route::patch('/questions/{question}/review-finalize', [QuestionReviewerApiController::class, 'finalizeReview']);
         Route::patch('/questions/{question}/archive', [QuestionReviewerApiController::class, 'archive']);
-
-        // Compatibilidade temporária com integrações anteriores.
         Route::patch('/questions/{question}/review-publish', [QuestionReviewerApiController::class, 'reviewAndPublish']);
 
         Route::get('/taxonomy/review', [QuestionTaxonomyReviewApiController::class, 'reviewTaxonomy']);
@@ -54,6 +52,21 @@ Route::prefix('gpt')
         Route::patch('/topics/{topic}/move', [QuestionTaxonomyReviewApiController::class, 'moveTopic']);
         Route::post('/topics/{sourceTopic}/merge', [QuestionTaxonomyReviewApiController::class, 'mergeTopic']);
         Route::post('/subjects/{sourceSubject}/merge', [QuestionTaxonomyReviewApiController::class, 'mergeSubject']);
+
+        // Catálogo administrativo e preparação de cursos.
+        Route::post('/catalog/corporations', [CatalogCourseApiController::class, 'storeCorporation']);
+        Route::patch('/catalog/corporations/{corporation}', [CatalogCourseApiController::class, 'updateCorporation']);
+        Route::post('/catalog/exam-boards', [CatalogCourseApiController::class, 'storeExamBoard']);
+        Route::patch('/catalog/exam-boards/{examBoard}', [CatalogCourseApiController::class, 'updateExamBoard']);
+        Route::post('/catalog/source-materials', [CatalogCourseApiController::class, 'storeSourceMaterial']);
+        Route::patch('/catalog/source-materials/{sourceMaterial}', [CatalogCourseApiController::class, 'updateSourceMaterial']);
+        Route::post('/catalog/exams', [CatalogCourseApiController::class, 'storeExam']);
+        Route::patch('/catalog/exams/{exam}', [CatalogCourseApiController::class, 'updateExam']);
+        Route::put('/catalog/exams/{exam}/scope', [CatalogCourseApiController::class, 'replaceExamScopeApi']);
+
+        Route::get('/courses', [CatalogCourseApiController::class, 'courses']);
+        Route::get('/courses/{course}', [CatalogCourseApiController::class, 'course']);
+        Route::get('/courses/{course}/coverage', [CatalogCourseApiController::class, 'courseCoverage']);
     });
 
 Route::prefix('gpt/marketing')
