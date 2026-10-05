@@ -89,7 +89,7 @@ class PapirarReviewerMcpTest extends TestCase
     public function test_unified_server_lists_reviewer_and_taxonomy_tools_with_safety_metadata(): void
     {
         $this->signIn();
-        $tools = $this->rpc('tools/list')->assertOk()->json('result.tools');
+        $tools = $this->listAllTools();
         $names = array_column($tools, 'name');
 
         foreach (['updateQuestionContent', 'finalizeQuestionReview', 'archiveQuestion', 'reviewTaxonomy', 'updateQuestionClassification', 'moveTopic', 'mergeTopic', 'mergeSubject'] as $name) {
@@ -237,6 +237,29 @@ class PapirarReviewerMcpTest extends TestCase
     private function signIn(): void
     {
         Passport::actingAs(new User(['role' => 'admin', 'is_active' => true]), ['mcp:use'], 'api');
+    }
+
+    private function listAllTools(): array
+    {
+        $tools = [];
+        $cursor = null;
+        $seenCursors = [];
+
+        do {
+            $params = $cursor ? ['cursor' => $cursor] : [];
+            $response = $this->rpc('tools/list', $params)->assertOk();
+            $tools = array_merge($tools, $response->json('result.tools') ?? []);
+            $nextCursor = $response->json('result.nextCursor');
+
+            if (! $nextCursor || in_array($nextCursor, $seenCursors, true)) {
+                break;
+            }
+
+            $seenCursors[] = $nextCursor;
+            $cursor = $nextCursor;
+        } while (count($seenCursors) < 20);
+
+        return $tools;
     }
 
     private function rpc(string $method, array $params = [])
