@@ -1,1 +1,40 @@
-[]
+[
+  {
+    "name": "searchCourses",
+    "title": "Pesquisar cursos",
+    "description": "Pesquisa cursos do Papirar por texto, corporação, concurso, atividade e visibilidade.",
+    "method": "GET",
+    "path": "/courses",
+    "controller": "CatalogCourseApiController",
+    "action": "courses",
+    "read_only": true,
+    "roles": ["admin","content"],
+    "schema": {"type":"object","properties":{"q":{"type":"string"},"active":{"type":"boolean"},"is_public":{"type":"boolean"},"corporation_id":{"type":"integer","minimum":1},"exam_id":{"type":"integer","minimum":1},"per_page":{"type":"integer","minimum":1,"maximum":100}}}
+  },
+  {
+    "name": "getCourse",
+    "title": "Consultar curso",
+    "description": "Retorna configuração, escopo e vínculos de um curso.",
+    "method": "GET",
+    "path": "/courses/{course}",
+    "controller": "CatalogCourseApiController",
+    "action": "course",
+    "read_only": true,
+    "roles": ["admin","content"],
+    "bindings": {"course":{"argument":"course","model":"App\\Models\\Course"}},
+    "schema": {"type":"object","properties":{"course":{"type":"integer","minimum":1}},"required":["course"]}
+  },
+  {
+    "name": "getCourseCoverage",
+    "title": "Auditar cobertura do curso",
+    "description": "Calcula a cobertura de questões do curso por disciplina e status, respeitando escopo próprio ou herdado do concurso.",
+    "method": "GET",
+    "path": "/courses/{course}/coverage",
+    "controller": "CatalogCourseApiController",
+    "action": "courseCoverage",
+    "read_only": true,
+    "roles": ["admin","content"],
+    "bindings": {"course":{"argument":"course","model":"App\\Models\\Course"}},
+    "schema": {"type":"object","properties":{"course":{"type":"integer","minimum":1}},"required":["course"]}
+  }
+]
