@@ -159,6 +159,7 @@ class PapirarApiTool extends Tool
             $field[] = match ($type) {
                 'object' => 'array:'.implode(',', array_keys($property['properties'] ?? [])),
                 'array' => 'array',
+                'number' => 'numeric',
                 default => $type,
             };
 
@@ -182,7 +183,10 @@ class PapirarApiTool extends Tool
                     $rules[$key.'.*'] = ['required', 'array:'.implode(',', array_keys($item['properties']))];
                     $rules += $this->rules($item, $key.'.*.');
                 } else {
-                    $rules[$key.'.*'] = ['required', $item['type']];
+                    $rules[$key.'.*'] = ['required', match ($item['type']) {
+                        'number' => 'numeric',
+                        default => $item['type'],
+                    }];
                 }
             }
         }
