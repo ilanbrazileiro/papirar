@@ -1,1 +1,122 @@
-[]
+[
+  {
+    "name": "marketingHealth",
+    "title": "Saúde do Marketing Papirar",
+    "description": "Verifica a disponibilidade da camada analítica interna de marketing do Papirar.",
+    "method": "GET",
+    "path": "/marketing/health",
+    "controller": "MarketingReadApiController",
+    "action": "health",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {}, "additionalProperties": false}
+  },
+  {
+    "name": "getMarketingFunnel",
+    "title": "Funil de Marketing",
+    "description": "Consulta cadastros, trials, pagantes, assinaturas ativas, renovações e taxas de conversão no período.",
+    "method": "GET",
+    "path": "/marketing/funnel",
+    "controller": "MarketingReadApiController",
+    "action": "funnel",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "course_id": {"type": "integer", "minimum": 1}}, "additionalProperties": false}
+  },
+  {
+    "name": "getMarketingAcquisition",
+    "title": "Aquisição de Marketing",
+    "description": "Consulta origens, mídias, campanhas e landing pages responsáveis por cadastros de alunos.",
+    "method": "GET",
+    "path": "/marketing/acquisition",
+    "controller": "MarketingReadApiController",
+    "action": "acquisition",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 100}}, "additionalProperties": false}
+  },
+  {
+    "name": "getMarketingCourses",
+    "title": "Desempenho Comercial dos Cursos",
+    "description": "Consulta trial, pagantes, usuários ativos, receita e conversão trial para pago por curso.",
+    "method": "GET",
+    "path": "/marketing/courses",
+    "controller": "MarketingReadApiController",
+    "action": "courses",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}}, "additionalProperties": false}
+  },
+  {
+    "name": "getMarketingRevenue",
+    "title": "Receita de Marketing",
+    "description": "Consulta faturamento, transações pagas, usuários pagantes, ticket médio e receita por curso.",
+    "method": "GET",
+    "path": "/marketing/revenue",
+    "controller": "MarketingReadApiController",
+    "action": "revenue",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "course_id": {"type": "integer", "minimum": 1}}, "additionalProperties": false}
+  },
+  {
+    "name": "ga4Health",
+    "title": "Saúde do GA4",
+    "description": "Verifica a configuração e disponibilidade da integração Google Analytics 4 Data API.",
+    "method": "GET",
+    "path": "/marketing/ga4/health",
+    "controller": "Ga4MarketingApiController",
+    "action": "health",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {}, "additionalProperties": false}
+  },
+  {
+    "name": "getGa4Overview",
+    "title": "Visão Geral GA4",
+    "description": "Consulta a visão geral do tráfego e comportamento no Google Analytics 4 para o período.",
+    "method": "GET",
+    "path": "/marketing/ga4/overview",
+    "controller": "Ga4MarketingApiController",
+    "action": "overview",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}}, "additionalProperties": false}
+  },
+  {
+    "name": "getGa4Acquisition",
+    "title": "Aquisição GA4",
+    "description": "Consulta canais de aquisição do Google Analytics 4 no período.",
+    "method": "GET",
+    "path": "/marketing/ga4/acquisition",
+    "controller": "Ga4MarketingApiController",
+    "action": "acquisition",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 100}}, "additionalProperties": false}
+  },
+  {
+    "name": "getGa4LandingPages",
+    "title": "Landing Pages GA4",
+    "description": "Consulta o desempenho das landing pages no Google Analytics 4.",
+    "method": "GET",
+    "path": "/marketing/ga4/landing-pages",
+    "controller": "Ga4MarketingApiController",
+    "action": "landingPages",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 100}}, "additionalProperties": false}
+  },
+  {
+    "name": "getGa4Events",
+    "title": "Eventos GA4",
+    "description": "Consulta eventos registrados no Google Analytics 4 para análise de comportamento e conversão.",
+    "method": "GET",
+    "path": "/marketing/ga4/events",
+    "controller": "Ga4MarketingApiController",
+    "action": "events",
+    "read_only": true,
+    "roles": ["admin", "content"],
+    "schema": {"type": "object", "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "limit": {"type": "integer", "minimum": 1, "maximum": 100}}, "additionalProperties": false}
+  }
+]
