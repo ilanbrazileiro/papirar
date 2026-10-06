@@ -1,0 +1,104 @@
+[
+  {
+    "name": "updateQuestionContent",
+    "title": "Atualiza conteúdo da questão",
+    "description": "Corrige conteúdo editorial de uma questão existente. Não altera disciplina/tópico nem status. Use reason para registrar a justificativa. Ao alterar alternativas, envie também correct_letter.",
+    "method": "PATCH",
+    "path": "/questions/{question}/review-content",
+    "controller": "QuestionReviewerApiController",
+    "action": "updateContent",
+    "read_only": false,
+    "destructive": false,
+    "idempotent": true,
+    "roles": ["admin", "content"],
+    "bindings": {
+      "question": {"argument": "question", "model": "App\\Models\\Question"}
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "reason"],
+      "properties": {
+        "question": {"type": "integer", "minimum": 1},
+        "corporation_id": {"type": "integer", "minimum": 1},
+        "exam_id": {"type": "integer", "minimum": 1},
+        "exam_board_id": {"type": "integer", "minimum": 1},
+        "source_material_id": {"type": "integer", "minimum": 1},
+        "statement": {"type": "string", "minLength": 5},
+        "question_type": {"type": "string"},
+        "difficulty": {"type": "string", "enum": ["easy", "medium", "hard"]},
+        "source_type": {"type": "string", "enum": ["exam", "authored", "adapted"]},
+        "source_reference": {"type": "string"},
+        "commented_answer": {"type": "string"},
+        "correct_letter": {"type": "string", "enum": ["A", "B", "C", "D", "E"]},
+        "alternatives": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 5,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["letter", "text"],
+            "properties": {
+              "letter": {"type": "string", "enum": ["A", "B", "C", "D", "E"]},
+              "text": {"type": "string", "minLength": 1}
+            }
+          }
+        },
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  },
+  {
+    "name": "finalizeQuestionReview",
+    "title": "Finaliza revisão da questão",
+    "description": "Valida os requisitos editoriais e marca a questão como reviewed. Use somente após conferir conteúdo, gabarito, comentário e classificação.",
+    "method": "PATCH",
+    "path": "/questions/{question}/review-finalize",
+    "controller": "QuestionReviewerApiController",
+    "action": "finalizeReview",
+    "read_only": false,
+    "destructive": false,
+    "idempotent": false,
+    "roles": ["admin", "content"],
+    "bindings": {
+      "question": {"argument": "question", "model": "App\\Models\\Question"}
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "reason"],
+      "properties": {
+        "question": {"type": "integer", "minimum": 1},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  },
+  {
+    "name": "archiveQuestion",
+    "title": "Arquiva questão",
+    "description": "Arquiva uma questão. Operação sensível: somente use após confirmação explícita do usuário.",
+    "method": "PATCH",
+    "path": "/questions/{question}/archive",
+    "controller": "QuestionReviewerApiController",
+    "action": "archive",
+    "read_only": false,
+    "destructive": true,
+    "idempotent": true,
+    "confirmation_required": true,
+    "roles": ["admin", "content"],
+    "bindings": {
+      "question": {"argument": "question", "model": "App\\Models\\Question"}
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "confirm", "reason"],
+      "properties": {
+        "question": {"type": "integer", "minimum": 1},
+        "confirm": {"type": "boolean"},
+        "reason": {"type": "string", "minLength": 10}
+      }
+    }
+  }
+]
