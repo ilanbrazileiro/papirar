@@ -54,9 +54,12 @@ class PapirarCoursePreparationMcpTest extends TestCase
     {
         $this->signIn(); $tools=$this->listAllTools(); $names=array_column($tools,'name');
         foreach (['createCourse','updateCourseMetadata','replaceCourseScope','replaceCourseBundle','updateCoursePricing','updateCourseLanding','setCoursePublication','deleteCourse'] as $name) $this->assertContains($name,$names);
-        foreach (['replaceCourseScope','replaceCourseBundle','updateCoursePricing','setCoursePublication','deleteCourse'] as $name) {
+        foreach (['replaceCourseScope','replaceCourseBundle','setCoursePublication','deleteCourse'] as $name) {
             $tool=collect($tools)->firstWhere('name',$name); $this->assertTrue($tool['annotations']['destructiveHint']); $this->assertTrue($tool['_meta']['confirmationRequired']);
         }
+        $pricing=collect($tools)->firstWhere('name','updateCoursePricing');
+        $this->assertFalse($pricing['annotations']['destructiveHint']);
+        $this->assertTrue($pricing['_meta']['confirmationRequired']);
     }
 
     public function test_create_course_is_safe_by_default(): void
