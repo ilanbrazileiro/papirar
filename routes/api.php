@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\Gpt\CatalogCourseApiController;
 use App\Http\Controllers\Api\Gpt\CoursePreparationApiController;
 use App\Http\Controllers\Api\Gpt\Ga4MarketingApiController;
+use App\Http\Controllers\Api\Gpt\MarketingEngagementApiController;
 use App\Http\Controllers\Api\Gpt\MarketingReadApiController;
 use App\Http\Controllers\Api\Gpt\QuestionBatchWriteApiController;
 use App\Http\Controllers\Api\Gpt\QuestionReviewApiController;
@@ -77,6 +78,7 @@ Route::prefix('gpt/marketing')->middleware([EnsureMarketingGptApiToken::class])-
     Route::get('/acquisition', [MarketingReadApiController::class, 'acquisition']);
     Route::get('/courses', [MarketingReadApiController::class, 'courses']);
     Route::get('/revenue', [MarketingReadApiController::class, 'revenue']);
+    Route::get('/engagement', [MarketingEngagementApiController::class, 'cohort']);
     Route::get('/ga4/health', [Ga4MarketingApiController::class, 'health']);
     Route::get('/ga4/overview', [Ga4MarketingApiController::class, 'overview']);
     Route::get('/ga4/acquisition', [Ga4MarketingApiController::class, 'acquisition']);
