@@ -22,6 +22,7 @@ class PapirarServer extends Server
             'catalog-tools.json',
             'course-tools.json',
             'marketing-tools.json',
+            'engagement-tools.json',
         ];
 
         $definitions = [];
