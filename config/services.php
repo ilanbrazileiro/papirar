@@ -56,4 +56,13 @@ return [
         'classification_confidence' => (float) env('GEMINI_CLASSIFICATION_CONFIDENCE', 0.75),
         'timeout' => (int) env('GEMINI_TIMEOUT', 600),
     ],
+    'google_ads' => [
+    'customer_id' => env('GOOGLE_ADS_CUSTOMER_ID'),
+    'login_customer_id' => env('GOOGLE_ADS_LOGIN_CUSTOMER_ID'),
+    'developer_token' => env('GOOGLE_ADS_DEVELOPER_TOKEN'),
+    'client_id' => env('GOOGLE_ADS_CLIENT_ID'),
+    'client_secret' => env('GOOGLE_ADS_CLIENT_SECRET'),
+    'refresh_token' => env('GOOGLE_ADS_REFRESH_TOKEN'),
+    'api_version' => env('GOOGLE_ADS_API_VERSION', 'v25'),
+],
 ];

@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\Gpt\QuestionReviewerApiController;
 use App\Http\Controllers\Api\Gpt\QuestionTaxonomyReviewApiController;
 use App\Http\Controllers\Api\Gpt\QuestionWriteApiController;
 use App\Http\Controllers\Api\Gpt\TaxonomyWriteApiController;
+use App\Http\Controllers\Api\Gpt\GoogleAdsMarketingApiController;
 use App\Http\Controllers\Billing\MercadoPagoWebhookController;
 use App\Http\Middleware\EnsureGptApiToken;
 use App\Http\Middleware\EnsureMarketingGptApiToken;
@@ -84,4 +85,7 @@ Route::prefix('gpt/marketing')->middleware([EnsureMarketingGptApiToken::class])-
     Route::get('/ga4/acquisition', [Ga4MarketingApiController::class, 'acquisition']);
     Route::get('/ga4/landing-pages', [Ga4MarketingApiController::class, 'landingPages']);
     Route::get('/ga4/events', [Ga4MarketingApiController::class, 'events']);
+    Route::get('/google-ads/health', [GoogleAdsMarketingApiController::class, 'health']);
+    Route::get('/google-ads/campaigns', [GoogleAdsMarketingApiController::class, 'campaigns']);
+    Route::get('/google-ads/search-terms', [GoogleAdsMarketingApiController::class, 'searchTerms']);    
 });

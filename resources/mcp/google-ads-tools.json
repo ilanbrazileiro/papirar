@@ -1,0 +1,73 @@
+[
+  {
+    "name": "googleAdsHealth",
+    "title": "Saúde Google Ads",
+    "description": "Verifica se a integração de leitura do Google Ads está configurada; não consulta campanhas.",
+    "method": "GET",
+    "path": "/marketing/google-ads/health",
+    "controller": "GoogleAdsMarketingApiController",
+    "action": "health",
+    "read_only": true,
+    "roles": [
+      "admin",
+      "content"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {},
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "getGoogleAdsCampaigns",
+    "title": "Campanhas Google Ads",
+    "description": "Consulta impressões, cliques, custo e conversões por campanha no período.",
+    "method": "GET",
+    "path": "/marketing/google-ads/campaigns",
+    "controller": "GoogleAdsMarketingApiController",
+    "action": "campaigns",
+    "read_only": true,
+    "roles": [
+      "admin",
+      "content"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  {
+    "name": "getGoogleAdsSearchTerms",
+    "title": "Termos de pesquisa Google Ads",
+    "description": "Consulta termos de pesquisa reportáveis pela API (limites de privacidade da plataforma).",
+    "method": "GET",
+    "path": "/marketing/google-ads/search-terms",
+    "controller": "GoogleAdsMarketingApiController",
+    "action": "searchTerms",
+    "read_only": true,
+    "roles": [
+      "admin",
+      "content"
+    ],
+    "schema": {
+      "type": "object",
+      "properties": {
+        "from": {
+          "type": "string"
+        },
+        "to": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+]
