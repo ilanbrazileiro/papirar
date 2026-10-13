@@ -41,6 +41,7 @@ Route::prefix('gpt')->middleware([EnsureGptApiToken::class])->group(function () 
 
     Route::patch('/questions/{question}/review-content', [QuestionReviewerApiController::class, 'updateContent']);
     Route::patch('/questions/{question}/review-finalize', [QuestionReviewerApiController::class, 'finalizeReview']);
+    Route::patch('/questions/{question}/publish', [QuestionReviewerApiController::class, 'publishQuestion']);
     Route::patch('/questions/{question}/archive', [QuestionReviewerApiController::class, 'archive']);
     Route::patch('/questions/{question}/review-publish', [QuestionReviewerApiController::class, 'reviewAndPublish']);
 

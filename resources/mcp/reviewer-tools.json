@@ -10,27 +10,87 @@
     "read_only": false,
     "destructive": false,
     "idempotent": true,
-    "roles": ["admin", "content"],
+    "roles": [
+      "admin",
+      "content"
+    ],
     "bindings": {
-      "question": {"argument": "question", "model": "App\\Models\\Question"}
+      "question": {
+        "argument": "question",
+        "model": "App\\Models\\Question"
+      }
     },
     "schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["question", "reason"],
+      "required": [
+        "question",
+        "reason"
+      ],
       "properties": {
-        "question": {"type": "integer", "minimum": 1},
-        "corporation_id": {"type": "integer", "minimum": 1},
-        "exam_id": {"type": "integer", "minimum": 1},
-        "exam_board_id": {"type": "integer", "minimum": 1},
-        "source_material_id": {"type": "integer", "minimum": 1},
-        "statement": {"type": "string", "minLength": 5},
-        "question_type": {"type": "string"},
-        "difficulty": {"type": "string", "enum": ["easy", "medium", "hard"]},
-        "source_type": {"type": "string", "enum": ["exam", "authored", "adapted"]},
-        "source_reference": {"type": "string"},
-        "commented_answer": {"type": "string"},
-        "correct_letter": {"type": "string", "enum": ["A", "B", "C", "D", "E"]},
+        "question": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 10
+        },
+        "corporation_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exam_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "exam_board_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "source_material_id": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 5
+        },
+        "question_type": {
+          "type": "string"
+        },
+        "difficulty": {
+          "type": "string",
+          "enum": [
+            "easy",
+            "medium",
+            "hard"
+          ]
+        },
+        "source_type": {
+          "type": "string",
+          "enum": [
+            "exam",
+            "authored",
+            "adapted"
+          ]
+        },
+        "source_reference": {
+          "type": "string"
+        },
+        "commented_answer": {
+          "type": "string"
+        },
+        "correct_letter": {
+          "type": "string",
+          "enum": [
+            "A",
+            "B",
+            "C",
+            "D",
+            "E"
+          ]
+        },
         "alternatives": {
           "type": "array",
           "minItems": 2,
@@ -38,14 +98,28 @@
           "items": {
             "type": "object",
             "additionalProperties": false,
-            "required": ["letter", "text"],
+            "required": [
+              "letter",
+              "text"
+            ],
             "properties": {
-              "letter": {"type": "string", "enum": ["A", "B", "C", "D", "E"]},
-              "text": {"type": "string", "minLength": 1}
+              "letter": {
+                "type": "string",
+                "enum": [
+                  "A",
+                  "B",
+                  "C",
+                  "D",
+                  "E"
+                ]
+              },
+              "text": {
+                "type": "string",
+                "minLength": 1
+              }
             }
           }
-        },
-        "reason": {"type": "string", "minLength": 10}
+        }
       }
     }
   },
@@ -60,17 +134,72 @@
     "read_only": false,
     "destructive": false,
     "idempotent": false,
-    "roles": ["admin", "content"],
+    "roles": [
+      "admin",
+      "content"
+    ],
     "bindings": {
-      "question": {"argument": "question", "model": "App\\Models\\Question"}
+      "question": {
+        "argument": "question",
+        "model": "App\\Models\\Question"
+      }
     },
     "schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["question", "reason"],
+      "required": [
+        "question",
+        "reason"
+      ],
       "properties": {
-        "question": {"type": "integer", "minimum": 1},
-        "reason": {"type": "string", "minLength": 10}
+        "question": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 10
+        }
+      }
+    }
+  },
+  {
+    "name": "publishQuestion",
+    "title": "Publica questão validada",
+    "description": "Publica somente questão validada, de draft diretamente para published (nunca reviewed). Requer revisão editorial, gabarito e classificação corretos; pendências ficam em draft.",
+    "method": "PATCH",
+    "path": "/questions/{question}/publish",
+    "controller": "QuestionReviewerApiController",
+    "action": "publishQuestion",
+    "read_only": false,
+    "destructive": false,
+    "idempotent": false,
+    "roles": [
+      "admin",
+      "content"
+    ],
+    "bindings": {
+      "question": {
+        "argument": "question",
+        "model": "App\\Models\\Question"
+      }
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "question",
+        "reason"
+      ],
+      "properties": {
+        "question": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 10
+        }
       }
     }
   },
@@ -85,20 +214,38 @@
     "read_only": false,
     "destructive": true,
     "idempotent": true,
-    "confirmation_required": true,
-    "roles": ["admin", "content"],
+    "roles": [
+      "admin",
+      "content"
+    ],
     "bindings": {
-      "question": {"argument": "question", "model": "App\\Models\\Question"}
+      "question": {
+        "argument": "question",
+        "model": "App\\Models\\Question"
+      }
     },
     "schema": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["question", "confirm", "reason"],
+      "required": [
+        "question",
+        "confirm",
+        "reason"
+      ],
       "properties": {
-        "question": {"type": "integer", "minimum": 1},
-        "confirm": {"type": "boolean"},
-        "reason": {"type": "string", "minLength": 10}
+        "question": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "confirm": {
+          "type": "boolean"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 10
+        }
       }
-    }
+    },
+    "confirmation_required": true
   }
 ]

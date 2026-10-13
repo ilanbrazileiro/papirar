@@ -104,6 +104,53 @@ class QuestionReviewerApiController extends Controller
         ]);
     }
 
+    public function publishQuestion(Request $request, Question $question): JsonResponse
+    {
+        $data = $request->validate([
+            'reason' => ['required', 'string', 'min:10', 'max:1000'],
+        ]);
+
+        if ($question->status !== Question::STATUS_DRAFT) {
+            return response()->json([
+                'message' => 'Somente questões em rascunho podem ser publicadas.',
+                'question_id' => $question->id,
+                'status' => $question->status,
+            ], 409);
+        }
+
+        $question->load('alternatives');
+        if (blank($question->statement) || mb_strlen(trim(strip_tags((string) $question->statement))) < 5) {
+            return response()->json(['message' => 'Enunciado inválido ou incompleto.'], 422);
+        }
+        if (blank($question->commented_answer) || mb_strlen(trim(strip_tags((string) $question->commented_answer))) < 80) {
+            return response()->json(['message' => 'Comentário insuficiente para publicação.'], 422);
+        }
+        if ($question->alternatives->count() < 2 ||
+            $question->alternatives->where('is_correct', true)->count() !== 1 ||
+            $question->alternatives->contains(fn ($alternative) => blank($alternative->text))) {
+            return response()->json(['message' => 'Alternativas ou gabarito inválidos.'], 422);
+        }
+        if (! $question->subject_id || ! $question->topic_id) {
+            return response()->json(['message' => 'Disciplina e tópico são obrigatórios.'], 422);
+        }
+        $topic = Topic::find($question->topic_id);
+        if (! $topic || (int) $topic->subject_id !== (int) $question->subject_id) {
+            return response()->json(['message' => 'Tópico não pertence à disciplina.'], 422);
+        }
+
+        $question->update(['status' => Question::STATUS_PUBLISHED]);
+        Log::info('Papirar MCP publicou questão', [
+            'question_id' => $question->id,
+            'status' => $question->status,
+            'reason' => $data['reason'],
+            'user_id' => $request->user()?->id,
+        ]);
+        return response()->json([
+            'message' => 'Questão publicada com sucesso.',
+            'data' => ['id' => $question->id, 'status' => $question->status],
+        ]);
+    }
+
     public function finalizeReview(Request $request, Question $question): JsonResponse
     {
         $data = $request->validate([
