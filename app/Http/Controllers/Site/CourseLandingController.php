@@ -88,9 +88,17 @@ class CourseLandingController extends Controller
             ->limit(6)
             ->get();
 
+        $commentedMaterials = LibraryDocument::query()
+            ->where('type', 'commented_pdf')
+            ->where('is_published', true)
+            ->where('course_id', $course->id)
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get();
+
         return view('site.course-landings.show', compact(
             'course', 'subjects', 'topics', 'totalQuestions', 'demoQuestion',
-            'canonicalUrl', 'seoTitle', 'seoDescription', 'officialExamDocuments'
+            'canonicalUrl', 'seoTitle', 'seoDescription', 'officialExamDocuments', 'commentedMaterials'
         ));
     }
 

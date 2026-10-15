@@ -82,6 +82,30 @@ $showOrganization=(bool)$course->landing_show_schedule || (bool)$course->landing
 </section>
 @endif
 
+{{-- Lote 2.1: PDFs comentados publicados para o curso --}}
+@if($commentedMaterials->isNotEmpty())
+<section class="landing-section landing-soft" aria-labelledby="commented-materials-title">
+    <div class="site-container">
+        <div class="landing-heading">
+            <span class="landing-kicker">Materiais de apoio</span>
+            <h2 id="commented-materials-title">PDFs comentados para {{ $course->title }}</h2>
+            <p>Conheça os materiais de estudo vinculados a este curso. Descrição e prévia disponíveis a todos; o PDF completo exige assinatura paga ativa ou autorização manual expressa.</p>
+        </div>
+        <div class="landing-subjects">
+            @foreach($commentedMaterials as $material)
+                <a href="{{ route('library.materials.show', ['document' => $material->id, 'slug' => \Illuminate\Support\Str::slug($material->title) ?: 'material-comentado']) }}">
+                    <strong><span aria-hidden="true">&#128214;</span> {{ $material->title }}</strong>
+                    <span>{{ \Illuminate\Support\Str::limit($material->description ?: 'Material de apoio comentado para o curso.', 95) }} &middot; Ver material</span>
+                </a>
+            @endforeach
+        </div>
+        <p style="margin-top:1.5rem">
+            <a class="btn btn-primary" href="{{ route('library.materials.index', ['course' => $course->id]) }}">Explorar PDFs comentados</a>
+        </p>
+    </div>
+</section>
+@endif
+
 @if($subjects->isNotEmpty())
 <section class="landing-section landing-soft"><div class="site-container"><div class="landing-heading"><span class="landing-kicker">Conteúdo real</span><h2>Disciplinas do curso</h2><p>O escopo é carregado a partir da configuração real do curso no Papirar.</p></div><div class="landing-subjects">@foreach($subjects as $subject)<a href="{{ route('site.questions.subject',['subjectSlug'=>$subject->slug]) }}"><strong>{{ $subject->name }}</strong><span>{{ number_format((int)$subject->landing_questions_count,0,',','.') }} questões disponíveis</span></a>@endforeach</div></div></section>
 @endif
