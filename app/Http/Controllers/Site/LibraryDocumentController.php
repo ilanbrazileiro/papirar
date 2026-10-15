@@ -2,7 +2,7 @@
 namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
-use App\Models\CourseAccess;
+use App\Services\Library\LibraryDownloadAccess;
 use App\Models\LibraryDocument;
 use App\Services\Library\LibraryStorage;
 use Illuminate\Http\Request;
@@ -10,12 +10,36 @@ use Symfony\Component\HttpFoundation\StreamedResponse;
 
 class LibraryDocumentController extends Controller
 {
-    public function index()
+    public function index(\Illuminate\Http\Request $request)
     {
-        return view('site.library.index', ['documents'=>LibraryDocument::query()
-            ->where('type','official_exam')->where('is_published',true)
-            ->whereHas('course',fn($q)=>$q->where('active',true)->where('is_public',true))
-            ->with('course')->orderByDesc('year')->paginate(15)]);
+        $base = LibraryDocument::query()->where('type', 'official_exam')->where('is_published', true)
+            ->whereHas('course', fn ($q) => $q->where('active', true)->where('is_public', true));
+        $courses = \App\Models\Course::query()->whereIn('id', LibraryDocument::query()->where('type','official_exam')->where('is_published', true)->select('course_id'))->where('active', true)->where('is_public', true)->orderBy('title')->get();
+        $courseId = $request->integer('course');
+        $documents = $base->with('course')->when($courseId, fn ($q) => $q->where('course_id', $courseId))
+            ->when($request->filled('q'), fn ($q) => $q->where('title', 'like', '%'.str_replace(['%', '_'], ['\\%', '\\_'], trim($request->query('q'))).'%'))
+            ->orderByDesc('year')->orderByDesc('id')->paginate(12)->withQueryString();
+        return view('site.library.index', compact('documents', 'courses', 'courseId'));
+    }
+
+    public function show(LibraryDocument $document, string $slug)
+    {
+        $this->assertVisible($document);
+        $canonicalSlug = $document->publicSlug();
+        if ($slug !== $canonicalSlug) {
+            return redirect()->route('library.exams.show', ['document' => $document->id, 'slug' => $canonicalSlug], 301);
+        }
+        $document->load('course');
+        $related = LibraryDocument::query()->where('type','official_exam')->where('is_published',true)
+            ->where('course_id',$document->course_id)->whereKeyNot($document->id)
+            ->latest('year')->limit(5)->get();
+        $canDownload = $this->canDownload($document, auth()->user());
+        return view('site.library.show', compact('document', 'related', 'canDownload'));
+    }
+
+    private function canDownload(LibraryDocument $document, $user): bool
+    {
+        return app(LibraryDownloadAccess::class)->allowed($document, $user);
     }
 
     public function preview(LibraryDocument $document, LibraryStorage $storage): StreamedResponse
@@ -39,11 +63,8 @@ class LibraryDocumentController extends Controller
     {
         $this->assertVisible($document);
         $user=$request->user();
-        abort_unless($user && CourseAccess::query()->where('user_id',$user->id)
-            ->where('course_id',$document->course_id)->where('access_type',CourseAccess::TYPE_PAID)
-            ->where('status',CourseAccess::STATUS_ACTIVE)
-            ->where(fn($q)=>$q->whereNull('ends_at')->orWhere('ends_at','>=',now()))->exists(),403,
-            'Download exclusivo para assinantes com acesso pago ativo ao curso.');
+        abort_unless($this->canDownload($document, $user), 403,
+            'Download exclusivo para assinantes pagos ativos ou acessos manuais expressamente autorizados.');
         $disk=$storage->disk();
         abort_unless($disk->exists($document->file_key),404);
         // Não expõe credenciais R2 nem gera URL pública permanente.

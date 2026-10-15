@@ -18,6 +18,15 @@ class LibraryDocumentController extends Controller
         ]);
     }
 
+    public function edit(LibraryDocument $document)
+    {
+        abort_unless($document->type === 'official_exam', 404);
+        return view('admin.library.edit', [
+            'document' => $document,
+            'courses' => Course::query()->orderBy('title')->get(['id', 'title']),
+        ]);
+    }
+
     public function store(Request $request, LibraryStorage $storage)
     {
         $data = $request->validate([
@@ -54,15 +63,33 @@ class LibraryDocumentController extends Controller
         return back()->with('success','Prova cadastrada no R2.');
     }
 
-    public function update(Request $request, LibraryDocument $document)
+    public function update(Request $request, LibraryDocument $document, LibraryStorage $storage)
     {
-        abort_unless($document->type==='official_exam',404);
-        $data=$request->validate([
-            'title'=>['required','string','max:240'],'description'=>['nullable','string','max:5000'],
-            'summary'=>['nullable','string','max:12000'],'is_published'=>['required','boolean'],
+        abort_unless($document->type === 'official_exam', 404);
+        $data = $request->validate([
+            'course_id' => ['required','integer','exists:courses,id'],
+            'title' => ['required','string','max:240'],
+            'year' => ['nullable','integer','between:1900,2100'],
+            'exam_board' => ['nullable','string','max:160'],
+            'description' => ['nullable','string','max:5000'],
+            'summary' => ['nullable','string','max:12000'],
+            'source_url' => ['nullable','url','max:1500'],
+            'is_published' => ['required','boolean'],
+            'preview' => ['nullable','image','mimes:jpg,jpeg,png,webp','max:5120'],
         ]);
-        $document->update($data);
-        return back()->with('success','Registro atualizado.');
+        $newPreviewKey = null;
+        if ($request->hasFile('preview')) {
+            $newPreviewKey = 'previews/'.Str::uuid().'.'.$request->file('preview')->extension();
+            $stream = fopen($request->file('preview')->getRealPath(), 'rb');
+            try { $saved = $storage->disk()->put($newPreviewKey, $stream); }
+            finally { if (is_resource($stream)) fclose($stream); }
+            if (! $saved) return back()->withErrors(['preview' => 'Não foi possível armazenar a prévia no R2.']);
+            $data['preview_key'] = $newPreviewKey;
+        }
+        unset($data['preview']);
+        try { $document->update($data); }
+        catch (\Throwable $e) { if ($newPreviewKey) $storage->disk()->delete($newPreviewKey); throw $e; }
+        return redirect()->route('admin.library.exams.index')->with('success', 'Prova atualizada.');
     }
 
     public function destroy(LibraryDocument $document, LibraryStorage $storage)
