@@ -8,6 +8,7 @@ use App\Http\Controllers\Api\Gpt\MarketingReadApiController;
 use App\Http\Controllers\Api\Gpt\QuestionBatchWriteApiController;
 use App\Http\Controllers\Api\Gpt\QuestionReviewApiController;
 use App\Http\Controllers\Api\Gpt\QuestionReviewerApiController;
+use App\Http\Controllers\Api\Gpt\QuestionStatusApiController;
 use App\Http\Controllers\Api\Gpt\QuestionTaxonomyReviewApiController;
 use App\Http\Controllers\Api\Gpt\QuestionWriteApiController;
 use App\Http\Controllers\Api\Gpt\TaxonomyWriteApiController;
@@ -15,11 +16,12 @@ use App\Http\Controllers\Api\Gpt\GoogleAdsMarketingApiController;
 use App\Http\Controllers\Billing\MercadoPagoWebhookController;
 use App\Http\Middleware\EnsureGptApiToken;
 use App\Http\Middleware\EnsureMarketingGptApiToken;
+use App\Http\Middleware\ResolveGptQuestion;
 use Illuminate\Support\Facades\Route;
 
 Route::post('/webhooks/mercado-pago', [MercadoPagoWebhookController::class, 'handle']);
 
-Route::prefix('gpt')->middleware([EnsureGptApiToken::class])->group(function () {
+Route::prefix('gpt')->middleware([EnsureGptApiToken::class, ResolveGptQuestion::class])->group(function () {
     Route::get('/health', [QuestionReviewApiController::class, 'health']);
     Route::get('/corporations', [QuestionReviewApiController::class, 'corporations']);
     Route::get('/exam-boards', [QuestionReviewApiController::class, 'examBoards']);
@@ -42,6 +44,7 @@ Route::prefix('gpt')->middleware([EnsureGptApiToken::class])->group(function () 
     Route::patch('/questions/{question}/review-content', [QuestionReviewerApiController::class, 'updateContent']);
     Route::patch('/questions/{question}/review-finalize', [QuestionReviewerApiController::class, 'finalizeReview']);
     Route::patch('/questions/{question}/publish', [QuestionReviewerApiController::class, 'publishQuestion']);
+    Route::patch('/questions/{question}/draft', [QuestionStatusApiController::class, 'returnToDraft']);
     Route::patch('/questions/{question}/archive', [QuestionReviewerApiController::class, 'archive']);
     Route::patch('/questions/{question}/review-publish', [QuestionReviewerApiController::class, 'reviewAndPublish']);
 
@@ -88,5 +91,5 @@ Route::prefix('gpt/marketing')->middleware([EnsureMarketingGptApiToken::class])-
     Route::get('/ga4/events', [Ga4MarketingApiController::class, 'events']);
     Route::get('/google-ads/health', [GoogleAdsMarketingApiController::class, 'health']);
     Route::get('/google-ads/campaigns', [GoogleAdsMarketingApiController::class, 'campaigns']);
-    Route::get('/google-ads/search-terms', [GoogleAdsMarketingApiController::class, 'searchTerms']);    
+    Route::get('/google-ads/search-terms', [GoogleAdsMarketingApiController::class, 'searchTerms']);
 });
