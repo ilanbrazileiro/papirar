@@ -51,6 +51,15 @@
 
                 <li class="nav-header">CONTEÚDO</li>
 
+                @if(Route::has('admin.library.exams.index'))
+                    <li class="nav-item">
+                        <a href="{{ route('admin.library.exams.index') }}" class="nav-link {{ request()->routeIs('admin.library.exams.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-file-pdf"></i>
+                            <p>Biblioteca de provas</p>
+                        </a>
+                    </li>
+                @endif
+
                 @if(Route::has('admin.questions.index'))
                     <li class="nav-item {{ $questionMenuOpen ? 'menu-open' : '' }}">
                         <a href="#" class="nav-link {{ $questionMenuOpen ? 'active' : '' }}">

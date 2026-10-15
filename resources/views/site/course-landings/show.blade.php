@@ -58,6 +58,30 @@ $showOrganization=(bool)$course->landing_show_schedule || (bool)$course->landing
 <section class="landing-section"><div class="site-container landing-feature-grid"><div class="landing-feature-copy"><span class="landing-kicker">Simulados</span><h2>Teste sua preparação antes do dia da prova.</h2><p>Monte simulados dentro do escopo do curso, responda sob tempo controlado e confira o resultado ao final.</p></div><div class="landing-simulation-card"><small>Simulado</small><strong>Questões do seu curso</strong><div class="landing-simulation-progress"><span></span></div><div class="landing-simulation-meta"><span>Progresso</span><span>Tempo</span><span>Resultado</span></div></div></div></section>
 @endif
 
+{{-- Lote 1.2: provas oficiais publicadas deste curso --}}
+@if($officialExamDocuments->isNotEmpty())
+<section class="landing-section landing-soft" aria-labelledby="official-exam-list-title">
+    <div class="site-container">
+        <div class="landing-heading">
+            <span class="landing-kicker">Provas oficiais</span>
+            <h2 id="official-exam-list-title">Provas anteriores de {{ $course->title }}</h2>
+            <p>Consulte as provas oficiais cadastradas para este curso. A descrição e a prévia são públicas. O download completo é exclusivo de assinantes pagos ativos ou acessos manuais expressamente autorizados.</p>
+        </div>
+        <div class="landing-subjects">
+            @foreach($officialExamDocuments as $officialExam)
+                <a href="{{ $officialExam->publicUrl() }}">
+                    <strong><span aria-hidden="true">&#128196;</span> {{ $officialExam->title }}</strong>
+                    <span>{{ $officialExam->year ?: 'Ano não informado' }}@if($officialExam->exam_board) &middot; {{ $officialExam->exam_board }}@endif &middot; Ver prova</span>
+                </a>
+            @endforeach
+        </div>
+        <p style="margin-top:1.5rem">
+            <a class="btn btn-primary" href="{{ route('library.exams.index', ['course' => $course->id]) }}">Explorar provas anteriores</a>
+        </p>
+    </div>
+</section>
+@endif
+
 @if($subjects->isNotEmpty())
 <section class="landing-section landing-soft"><div class="site-container"><div class="landing-heading"><span class="landing-kicker">Conteúdo real</span><h2>Disciplinas do curso</h2><p>O escopo é carregado a partir da configuração real do curso no Papirar.</p></div><div class="landing-subjects">@foreach($subjects as $subject)<a href="{{ route('site.questions.subject',['subjectSlug'=>$subject->slug]) }}"><strong>{{ $subject->name }}</strong><span>{{ number_format((int)$subject->landing_questions_count,0,',','.') }} questões disponíveis</span></a>@endforeach</div></div></section>
 @endif

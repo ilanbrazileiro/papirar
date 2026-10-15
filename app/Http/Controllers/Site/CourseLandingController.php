@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Site;
 
 use App\Http\Controllers\Controller;
 use App\Models\Course;
+use App\Models\LibraryDocument;
 use App\Models\Question;
 use App\Models\Subject;
 use App\Models\Topic;
@@ -78,9 +79,18 @@ class CourseLandingController extends Controller
             ''
         );
 
+        $officialExamDocuments = LibraryDocument::query()
+            ->where('type', 'official_exam')
+            ->where('is_published', true)
+            ->where('course_id', $course->id)
+            ->orderByDesc('year')
+            ->orderByDesc('id')
+            ->limit(6)
+            ->get();
+
         return view('site.course-landings.show', compact(
             'course', 'subjects', 'topics', 'totalQuestions', 'demoQuestion',
-            'canonicalUrl', 'seoTitle', 'seoDescription'
+            'canonicalUrl', 'seoTitle', 'seoDescription', 'officialExamDocuments'
         ));
     }
 
