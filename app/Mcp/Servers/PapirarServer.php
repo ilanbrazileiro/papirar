@@ -9,15 +9,16 @@ class PapirarServer extends Server
 {
     protected string $name = 'Papirar';
 
-    protected string $version = '2.0.0';
+    protected string $version = '2.0.1';
 
-    protected string $instructions = 'Servidor MCP unificado do Papirar. Consulte dados atuais antes de escrever. Questões extraídas devem nascer em rascunho. Operações destrutivas, arquivamento, desativação, publicação/ativação de cursos, alterações de preço, merges e alterações em massa exigem confirmação explícita do usuário antes da chamada. Nunca invente IDs: pesquise a taxonomia e os registros atuais.';
+    protected string $instructions = 'Servidor MCP unificado do Papirar. Consulte dados atuais antes de escrever. Questões extraídas devem nascer em rascunho. A revisão por IA pode publicar questões como published, nunca reviewed (reservado à revisão humana). Operações destrutivas, arquivamento, desativação, publicação/ativação de cursos, alterações de preço, merges e alterações em massa exigem confirmação explícita do usuário antes da chamada. Nunca invente IDs: pesquise a taxonomia e os registros atuais.';
 
     protected function boot(): void
     {
         $files = [
             'extractor-tools.json',
             'reviewer-tools.json',
+            'reviewer-status-tools.json',
             'taxonomy-tools.json',
             'catalog-tools.json',
             'course-tools.json',
@@ -37,6 +38,23 @@ class PapirarServer extends Server
             $items = json_decode(file_get_contents($path), true, 512, JSON_THROW_ON_ERROR);
             $definitions = array_merge($definitions, $items);
         }
+
+        // A revisão humana é a única autorizada a atribuir o status reviewed.
+        $definitions = array_values(array_filter(
+            $definitions,
+            fn (array $definition): bool => $definition['name'] !== 'finalizeQuestionReview'
+        ));
+
+        foreach ($definitions as &$definition) {
+            // getQuestion é chamada diretamente pelo MCP, sem route model binding HTTP.
+            if ($definition['name'] === 'getQuestion') {
+                $definition['bindings']['question'] = [
+                    'argument' => 'question',
+                    'model' => \App\Models\Question::class,
+                ];
+            }
+        }
+        unset($definition);
 
         $names = array_column($definitions, 'name');
         if (count($names) !== count(array_unique($names))) {

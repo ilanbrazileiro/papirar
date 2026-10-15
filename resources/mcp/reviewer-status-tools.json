@@ -1,0 +1,30 @@
+[
+  {
+    "name": "returnQuestionToDraft",
+    "title": "Devolve questão ao rascunho",
+    "description": "Devolve uma questão published ou reviewed ao estado draft. Exige justificativa e autorização do usuário para a alteração de status.",
+    "method": "PATCH",
+    "path": "/questions/{question}/draft",
+    "controller": "QuestionStatusApiController",
+    "action": "returnToDraft",
+    "read_only": false,
+    "destructive": false,
+    "idempotent": false,
+    "roles": ["admin", "content"],
+    "bindings": {
+      "question": {
+        "argument": "question",
+        "model": "App\\Models\\Question"
+      }
+    },
+    "schema": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["question", "reason"],
+      "properties": {
+        "question": {"type": "integer", "minimum": 1},
+        "reason": {"type": "string", "minLength": 10, "maxLength": 1000}
+      }
+    }
+  }
+]
