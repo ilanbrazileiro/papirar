@@ -30,3 +30,7 @@ Route::middleware(['auth', EnsureSingleSession::class, EnsureAdmin::class])->pre
     Route::patch('/{document}', [AdminCommentedMaterialController::class, 'update'])->name('update');
     Route::patch('/{document}/despublicar', [AdminCommentedMaterialController::class, 'unpublish'])->name('unpublish');
 });
+
+// Materiais vinculados ao curso, com autorização por documento.
+Route::get('/aluno/cursos/{course}/materiais', [\App\Http\Controllers\Student\CourseLibraryController::class, 'index'])
+    ->middleware(['auth', EnsureSingleSession::class])->name('student.courses.materials');
