@@ -146,6 +146,15 @@
                     </li>
                 @endif
 
+                @if(($user->role ?? null) === 'admin' && Route::has('admin.public-simulations.index'))
+                    <li class="nav-item">
+                        <a href="{{ route('admin.public-simulations.index') }}" class="nav-link {{ request()->routeIs('admin.public-simulations.*') ? 'active' : '' }}">
+                            <i class="nav-icon fas fa-clipboard-list"></i>
+                            <p>Simulados públicos</p>
+                        </a>
+                    </li>
+                @endif
+
                 <li class="nav-item">
                     <a href="{{ route('admin.question-video-lessons.index') }}" class="nav-link {{ request()->routeIs('admin.question-video-lessons.*') ? 'active' : '' }}">
                         <i class="nav-icon fas fa-video"></i>
