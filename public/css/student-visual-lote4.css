@@ -1,0 +1,52 @@
+/* LOTE 4 — melhoria visual incremental da area do aluno.
+   Respeita o Bootstrap 5 e as cores funcionais (sucesso, erro, alertas).
+   Nao muda regras, autorizacoes nem componentes de pagamento. */
+:root{--student-gold:#f4c542;--student-gold-soft:#fff7df;--student-gold-dark:#c68b13;--student-navy:#102544;--student-ink:#152948;--student-border:#dce6f2}
+body:has(.app-shell){background:radial-gradient(ellipse 55% 380px at 100% 160px,rgba(244,197,66,.13),transparent 75%),linear-gradient(145deg,#f9fafc 0%,#eff4fb 68%,#f5f7fb 100%);}
+.app-shell{color:var(--student-ink)}
+.app-shell .page-title{letter-spacing:-.04em;line-height:1.12}
+.app-shell .page-subtitle{max-width:70ch}
+.app-shell .section-title{display:flex;align-items:center;gap:.55rem;font-weight:850;letter-spacing:-.015em}
+.app-shell .section-title::before{content:"";width:5px;height:1.05em;flex:0 0 5px;border-radius:8px;background:var(--student-gold)}
+.app-shell .card-soft,.app-shell .question-card,.app-shell .stats-card{background:#fff;box-shadow:0 12px 38px rgba(15,35,68,.075);border-color:var(--student-border);transition:box-shadow .2s ease,border-color .2s ease}
+.app-shell .card-soft{overflow-wrap:anywhere}
+.app-shell .stats-card{border-top:3px solid rgba(244,197,66,.9)}
+.app-shell .stats-card::after{background:rgba(244,197,66,.16)}
+.app-shell .stats-card .value{font-size:clamp(1.65rem,2.7vw,2.2rem)}
+.app-shell .meta-badge{background:var(--student-gold-soft);border-color:#f1d88a;color:#604919;font-size:.82rem}
+.app-shell .btn{transition:transform .15s ease,box-shadow .15s ease,background .15s ease}
+@media(hover:hover){.app-shell .btn:hover{transform:translateY(-1px)}.app-shell .btn-primary:hover,.app-shell .btn-warning:hover{box-shadow:0 7px 17px rgba(15,35,68,.16)}}
+.app-shell .btn:focus-visible,.app-shell a:focus-visible,.app-shell input:focus-visible,.app-shell button:focus-visible{outline:3px solid rgba(244,197,66,.83);outline-offset:2px}
+.app-shell .btn-warning{background:var(--student-gold);color:var(--student-navy);border-color:#e8bc38}
+.app-shell .btn-outline-warning{color:#86600e;border-color:#e3b73c;background:#fffdf7}
+.app-shell .btn-outline-warning:hover{color:var(--student-navy);background:var(--student-gold);border-color:var(--student-gold)}
+.app-shell .btn-primary{box-shadow:0 4px 12px rgba(23,59,114,.11)}
+.app-shell .alt-card{transition:border-color .18s,background .18s,box-shadow .18s}
+.app-shell .alt-card:hover{border-color:#b3c6e1;background:#fcfdff}
+.app-shell .alt-card.correct{border-color:#10b981;background:#ecfdf3}
+.app-shell .alt-card.wrong{border-color:#ef4444;background:#fef2f2}
+.app-shell .form-control:focus,.app-shell .form-select:focus{border-color:#deb43b;box-shadow:0 0 0 .2rem rgba(244,197,66,.16)}
+.app-shell .form-control,.app-shell .form-select,.app-shell .input-group-text{background-color:#fff}
+.app-shell .table-responsive{border-radius:12px}
+.app-shell .table thead th{background:#f8fafc;color:#516480}
+.app-shell .table tbody tr:hover{background:#fffcf4}
+.app-shell .alert{border-left-width:4px}
+.app-shell .badge:not(.text-bg-success):not(.text-bg-danger):not(.bg-success):not(.bg-danger){letter-spacing:.01em}
+.app-shell .list-clean li{padding-inline:.12rem}
+.app-shell .dropdown-menu{border-color:var(--student-border);box-shadow:0 14px 36px rgba(15,35,68,.14)}
+/* Biblioteca: harmonizar abas e indicadores com o restante da area do aluno. */
+.app-shell .course-library-tabs{gap:.75rem}
+.app-shell .course-library-tabs button{border-color:#ccdaee;box-shadow:0 4px 12px rgba(15,35,68,.035)}
+.app-shell .course-library-tabs button[aria-selected=true]{background:var(--student-gold);border-color:#e3b334;color:var(--student-navy);box-shadow:0 5px 14px rgba(197,141,23,.16)}
+.app-shell .course-library-head{position:relative;overflow:hidden;border-bottom:4px solid var(--student-gold);box-shadow:0 12px 24px rgba(16,37,68,.12)}
+.app-shell .course-library-head::after{content:"";position:absolute;width:230px;height:230px;right:-110px;top:-130px;border:1px solid rgba(244,197,66,.32);border-radius:50%;pointer-events:none}
+.app-shell .course-library-item{border-color:var(--student-border);box-shadow:0 7px 22px rgba(15,35,68,.05)}
+.app-shell .course-library-item .btn-primary{background:var(--student-gold);color:var(--student-navy);border-color:var(--student-gold)}
+.app-shell .course-library-item .btn-primary:hover{background:#eaba34;border-color:#eaba34;color:var(--student-navy)}
+.app-shell .course-library-badge{background:var(--student-gold-soft);color:#715019}
+.app-shell .course-library-empty{background:#fffdf7;border-color:#ebdca9}
+.app-shell img,.app-shell iframe,.app-shell video{max-width:100%}
+.app-shell .ratio iframe{width:100%}
+@media(min-width:992px){.app-shell{padding-top:34px}.app-shell .card-soft:hover{box-shadow:0 16px 42px rgba(15,35,68,.085)}.app-shell .row.g-4{--bs-gutter-y:1.65rem}}
+@media(max-width:767.98px){.app-shell{padding-inline:12px}.app-shell .card-soft.p-4,.app-shell .question-card{padding:1.1rem!important;border-radius:17px}.app-shell .stats-card{padding:16px}.app-shell .page-title{font-size:clamp(1.45rem,5.5vw,1.9rem)}.app-shell .course-library-tabs button{font-size:.93rem}.app-shell .course-library-head{padding:1.3rem}.app-shell .table-responsive{overflow-x:auto}.app-shell .course-library-item{padding:1.05rem}}
+@media(prefers-reduced-motion:reduce){.app-shell *{transition:none!important;animation:none!important}}
