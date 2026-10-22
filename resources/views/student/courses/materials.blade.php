@@ -59,6 +59,7 @@
         <article class="course-library-item">
             <div class="d-flex align-items-center gap-2"><span class="course-library-icon" aria-hidden="true">{{ $isExam ? '▦' : '▤' }}</span><span class="course-library-badge">{{ $isExam ? 'Prova oficial' : 'Material didático' }}</span></div>
             <h2>{{ $document->title }}</h2>
+            @if(!$isExam && $document->subject)<div class="details">{{ $document->subject->name }} · {{ $document->topics->pluck('name')->join(', ') }}</div>@endif
             <div class="details">{{ $document->year ?: 'Ano não informado' }}{{ $document->exam_board ? ' · '.$document->exam_board : '' }}</div>
             @if($document->description)<p class="mb-1 text-secondary small">{{ \Illuminate\Support\Str::limit($document->description, 150) }}</p>@endif
             <div class="course-library-actions">
