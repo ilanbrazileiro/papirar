@@ -72,7 +72,7 @@ class LibraryDocumentController extends Controller
         abort_unless(is_resource($stream),404);
         $filename=str_replace(['"','\r','\n'], '', $document->file_name);
         return response()->streamDownload(function () use ($stream) { fpassthru($stream); fclose($stream); },$filename,[
-            'Content-Type'=>'application/pdf','Cache-Control'=>'private, no-store','X-Content-Type-Options'=>'nosniff'
+            'Content-Type'=>strtolower(pathinfo($document->file_key, PATHINFO_EXTENSION)) === 'zip' ? 'application/zip' : 'application/pdf','Cache-Control'=>'private, no-store','X-Content-Type-Options'=>'nosniff'
         ]);
     }
 

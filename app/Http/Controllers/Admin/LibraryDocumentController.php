@@ -33,12 +33,13 @@ class LibraryDocumentController extends Controller
             'course_id'=>['required','exists:courses,id'], 'title'=>['required','string','max:240'],
             'year'=>['nullable','integer','between:1900,2100'], 'exam_board'=>['nullable','string','max:160'],
             'description'=>['nullable','string','max:5000'], 'summary'=>['nullable','string','max:12000'],
-            'source_url'=>['nullable','url','max:1500'], 'pdf'=>['required','file','mimes:pdf','max:51200'],
+            'source_url'=>['nullable','url','max:1500'], 'pdf'=>['required','file','mimes:pdf,zip','max:51200'],
             'preview'=>['nullable','image','mimes:jpg,jpeg,png,webp','max:5120'],
             'is_published'=>['nullable','boolean'],
         ]);
         $disk = $storage->disk();
-        $key = 'official-exams/'.Str::uuid().'.pdf';
+        $extension = strtolower($request->file('pdf')->getClientOriginalExtension());
+        $key = 'official-exams/'.Str::uuid().'.'.($extension === 'zip' ? 'zip' : 'pdf');
         $previewKey = null;
         $disk->put($key, fopen($request->file('pdf')->getRealPath(), 'rb'));
         try {
@@ -60,7 +61,7 @@ class LibraryDocumentController extends Controller
             $disk->delete(array_filter([$key,$previewKey]));
             throw $e;
         }
-        return back()->with('success','Prova cadastrada no R2.');
+        return back()->with('success','Arquivo da prova cadastrado no R2.');
     }
 
     public function update(Request $request, LibraryDocument $document, LibraryStorage $storage)
