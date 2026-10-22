@@ -51,6 +51,10 @@
 
                 <li class="nav-header">CONTEÚDO</li>
 
+                @if(($user->role ?? null)==='admin' && Route::has('admin.topic-videos.index'))
+                    <li class="nav-item"><a href="{{ route('admin.topic-videos.index') }}" class="nav-link {{ request()->routeIs('admin.topic-videos.*') ? 'active' : '' }}"><i class="nav-icon fas fa-chalkboard-teacher"></i><p>Videoaulas por tópico</p></a></li>
+                @endif
+
                 @if(Route::has('admin.library.materials.index'))
                     <li class="nav-item">
                         <a href="{{ route('admin.library.materials.index') }}" class="nav-link {{ request()->routeIs('admin.library.materials.*') ? 'active' : '' }}">
