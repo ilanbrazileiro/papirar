@@ -14,16 +14,20 @@ class PublicSimulationController extends Controller {
  public function index(Request $request){$simulations=PublicSimulation::query()->where('is_published',true)->whereHas('course',fn($q)=>$q->where('active',true)->where('is_public',true))->with('course')->withCount('questions')->latest()->paginate(15);return view('site.public-simulations.index',compact('simulations'));}
  public function landing(Request $request,string $slug,PublicSimulationQuota $quota){
   $sim=$this->visible($slug);$visitor=$quota->visitor($request);$quota->sync($request,$visitor);
-  $existing=$this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)->first();
+  $existing=$this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)->latest('id')->first();
   $count=$quota->consumed($request,$visitor);$subscribed=$quota->subscribed($request,(int)$sim->course_id);
   return view('site.public-simulations.landing',compact('sim','existing','count','subscribed'));
  }
  private function attempts(Request $request,string $visitor){return PublicSimulationAttempt::query()->where(function($q)use($request,$visitor){$q->where('visitor_hash',$visitor);if($request->user())$q->orWhere('user_id',$request->user()->id);});}
  public function start(Request $request,string $slug,PublicSimulationQuota $quota){
   $sim=$this->visible($slug);$visitor=$quota->visitor($request);$quota->sync($request,$visitor);
-  $existing=$this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)->first();
-  if($existing)return redirect()->route($existing->completed_at?'public-simulations.result':'public-simulations.take',[$sim->slug]);
-  if(!$quota->subscribed($request,(int)$sim->course_id)&&$quota->consumed($request,$visitor)>=$quota->limit($request))
+  $existing=$this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)->latest('id')->first();
+  // Tentativa em andamento sempre deve ser retomada, nunca sobrescrita.
+  if($existing && !$existing->completed_at)return redirect()->route('public-simulations.take',$sim->slug);
+  // Repetição exige ação explícita, mantendo o resultado anterior disponível.
+  if($existing && !$request->boolean('replay'))return redirect()->route('public-simulations.result',$sim->slug);
+  // Repetir um simulado já liberado não consome novo crédito gratuito.
+  if(!$existing && !$quota->subscribed($request,(int)$sim->course_id)&&$quota->consumed($request,$visitor)>=$quota->limit($request))
     return redirect()->route('public-simulations.landing',$sim->slug)->with('error',$request->user()?'Seu limite gratuito acabou. Assine o curso para realizar mais simulados.':'Cadastre-se para liberar seu segundo simulado.');
   $count=$sim->questions()->count();abort_if($count<1,422,'Simulado sem questões.');
   $token=Str::random(64);
@@ -35,7 +39,7 @@ class PublicSimulationController extends Controller {
  }
  private function attempt(Request $request,PublicSimulation $sim,PublicSimulationQuota $quota):PublicSimulationAttempt {
   $visitor=$quota->visitor($request);$quota->sync($request,$visitor);
-  return $this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)->firstOrFail();
+  return $this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)->latest('id')->firstOrFail();
  }
  public function take(Request $request,string $slug,PublicSimulationQuota $quota){
   $sim=$this->visible($slug);$attempt=$this->attempt($request,$sim,$quota);
@@ -65,6 +69,14 @@ class PublicSimulationController extends Controller {
  }
  public function result(Request $request,string $slug,PublicSimulationQuota $quota){
   $sim=$this->visible($slug);$attempt=$this->attempt($request,$sim,$quota);
+  $visitor=$quota->visitor($request);
+  $history=$this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)
+    ->whereNotNull('completed_at')->orderByDesc('id')->get(['id','completed_at','correct_answers','question_count']);
+  if($request->filled('attempt')){
+    $selected=$history->firstWhere('id',$request->integer('attempt'));
+    abort_unless($selected,404);
+    $attempt=$this->attempts($request,$visitor)->where('public_simulation_id',$sim->id)->findOrFail($selected->id);
+  }
   if(!$attempt->completed_at)return redirect()->route('public-simulations.take',$slug);
   $questions=$sim->questions()->with('alternatives')->get();return view('site.public-simulations.result',compact('sim','attempt','questions'));
  }

@@ -33,7 +33,17 @@
                 <div><span class="ps-check">✓</span> Comentários para aprender com cada questão</div>
             </div>
             @if($existing)
-                <a class="ps-button ps-button-primary ps-button-wide" href="{{ route($existing->completed_at?'public-simulations.result':'public-simulations.take',$sim->slug) }}">{{ $existing->completed_at?'Rever meu resultado':'Continuar simulado' }} <span aria-hidden="true">→</span></a>
+                @if($existing->completed_at)
+                    <a class="ps-button ps-button-outline ps-button-wide" href="{{ route('public-simulations.result',$sim->slug) }}">Rever meu resultado →</a>
+                    <form method="POST" action="{{ route('public-simulations.start',$sim->slug) }}">
+                        @csrf
+                        <input type="hidden" name="replay" value="1">
+                        <button type="submit" class="ps-button ps-button-primary ps-button-wide">Refazer este simulado →</button>
+                    </form>
+                    <p class="ps-small">Nova tentativa com as mesmas questões. Seus resultados anteriores são preservados; não consome novo simulado gratuito.</p>
+                @else
+                    <a class="ps-button ps-button-primary ps-button-wide" href="{{ route('public-simulations.take',$sim->slug) }}">Continuar simulado →</a>
+                @endif
             @elseif(!$subscribed && $count >= (auth()->check()?2:1))
                 <div class="ps-alert"><strong>Seu limite de simulados gratuitos foi atingido.</strong><p>Continue estudando com uma conta gratuita ou conheça o curso para acesso ilimitado.</p></div>
                 @if(auth()->guest())<a class="ps-button ps-button-primary ps-button-wide" href="{{ route('register') }}">Criar conta gratuita <span aria-hidden="true">→</span></a>

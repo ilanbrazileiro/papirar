@@ -22,9 +22,28 @@ $missRate=100-$rate;
     <div class="ps-result-convert">
         <div class="ps-result-intro"><span class="ps-eyebrow">PRÓXIMO PASSO</span><h2>Seu resultado é só o começo</h2><p>Transforme seus erros em aprendizado. Continue praticando com questões direcionadas e acompanhe sua evolução no Papirar.</p>
         @if(auth()->guest())<a class="ps-button ps-button-primary" href="{{ route('register') }}">Criar conta gratuita →</a>@endif
-        <a class="ps-button ps-button-outline" href="{{ route('public-simulations.index') }}">Explorar simulados</a></div>
+        <a class="ps-button ps-button-outline" href="{{ route('public-simulations.index') }}">Explorar simulados</a>
+        <form method="POST" action="{{ route('public-simulations.start',$sim->slug) }}" class="mt-3">
+            @csrf
+            <input type="hidden" name="replay" value="1">
+            <button type="submit" class="ps-button ps-button-primary">Refazer este simulado →</button>
+        </form>
+        <p class="ps-small">Sua nova tentativa será registrada separadamente, sem apagar os resultados anteriores.</p></div>
         @include('site.public-simulations.course-card')
     </div>
+    @if(isset($history) && $history->count() > 1)
+        <section class="ps-card mb-4" aria-label="Histórico de tentativas">
+            <h2 class="h5">Suas tentativas anteriores</h2>
+            <p class="ps-small">Selecione uma tentativa para consultar o resultado e o gabarito correspondente.</p>
+            <div class="d-flex flex-wrap gap-2">
+                @foreach($history as $previous)
+                    <a class="ps-button ps-button-outline" href="{{ route('public-simulations.result', ['slug'=>$sim->slug,'attempt'=>$previous->id]) }}">
+                        {{ $previous->completed_at->format('d/m/Y H:i') }} · {{ $previous->correct_answers }}/{{ $previous->question_count }} acertos
+                    </a>
+                @endforeach
+            </div>
+        </section>
+    @endif
     <section class="ps-answer-key" id="gabarito"><div class="ps-answer-key-intro"><span class="ps-eyebrow">APRENDA COM CADA RESPOSTA</span><h2>Gabarito comentado completo</h2><p>Confira sua escolha, a alternativa correta e a explicação de cada questão.</p></div>
         @foreach($questions as $question)
             @php
