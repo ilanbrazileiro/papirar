@@ -5,7 +5,7 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\SupportTicket;
 use App\Models\User;
-use App\Services\Marketing\AdminTrafficDashboard;
+
 use Illuminate\View\View;
 class DashboardController extends Controller {
  public function index():View {
@@ -18,7 +18,7 @@ class DashboardController extends Controller {
    'customersCount'=>class_exists(User::class)?User::query()->count():0,
    'ticketsCount'=>$openTicketsCount+$inProgressTicketsCount,
    'openTicketsCount'=>$openTicketsCount,'inProgressTicketsCount'=>$inProgressTicketsCount,
-   'recentTickets'=>$recentTickets,'traffic'=>app(AdminTrafficDashboard::class)->data(),
+   'recentTickets'=>$recentTickets,
   ]);
  }
 }
