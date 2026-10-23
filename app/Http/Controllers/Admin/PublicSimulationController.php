@@ -12,10 +12,10 @@ use Illuminate\Validation\ValidationException;
 class PublicSimulationController extends Controller {
  private function authorizeAdmin(Request $request):void {abort_unless($request->user()?->role==='admin',403);}
  public function index(Request $request){$this->authorizeAdmin($request);return view('admin.public-simulations.index',[
-  'courses'=>Course::query()->orderBy('title')->get(['id','title']),
   'simulations'=>PublicSimulation::with('course')->withCount(['questions','attempts','attempts as completed_attempts_count'=>fn($q)=>$q->whereNotNull('completed_at')])->latest()->paginate(25),
-  'editing'=>$request->filled('edit')?PublicSimulation::with('questions')->findOrFail($request->integer('edit')):null,
  ]);}
+ public function create(Request $request){$this->authorizeAdmin($request);return view('admin.public-simulations.form',['courses'=>Course::query()->orderBy('title')->get(['id','title']),'editing'=>null]);}
+ public function edit(Request $request,PublicSimulation $simulation){$this->authorizeAdmin($request);return view('admin.public-simulations.form',['courses'=>Course::query()->orderBy('title')->get(['id','title']),'editing'=>$simulation->load('questions')]);}
  public function scope(Request $request, CourseQuestionLottery $lottery)
  {
   $this->authorizeAdmin($request);

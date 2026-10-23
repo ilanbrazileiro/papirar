@@ -8,10 +8,10 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 class TopicVideoLessonController extends Controller {
- public function index(){
-  abort_unless(auth()->user()?->role==='admin',403);
-  return view('admin.topic-videos.index',['lessons'=>TopicVideoLesson::with(['subject','topic'])->orderByDesc('id')->paginate(30),'subjects'=>Subject::orderBy('name')->get(['id','name']),'topics'=>Topic::orderBy('name')->get(['id','subject_id','name'])]);
- }
+ private function data():array {return ['subjects'=>Subject::orderBy('name')->get(['id','name']),'topics'=>Topic::orderBy('name')->get(['id','subject_id','name'])];}
+ public function index(){abort_unless(auth()->user()?->role==='admin',403);return view('admin.topic-videos.index',['lessons'=>TopicVideoLesson::with(['subject','topic'])->latest('id')->paginate(30)]);}
+ public function create(){abort_unless(auth()->user()?->role==='admin',403);return view('admin.topic-videos.form',array_merge($this->data(),['lesson'=>null]));}
+ public function edit(TopicVideoLesson $video){abort_unless(auth()->user()?->role==='admin',403);return view('admin.topic-videos.form',array_merge($this->data(),['lesson'=>$video]));}
  public function save(Request $request){
   abort_unless(auth()->user()?->role==='admin',403);
   $data=$request->validate(['id'=>'nullable|integer|exists:topic_video_lessons,id','subject_id'=>'required|integer|exists:subjects,id','topic_id'=>'required|integer|exists:topics,id','title'=>'required|string|max:255','description'=>'nullable|string|max:5000','teacher'=>'nullable|string|max:180','channel_name'=>'nullable|string|max:180','origin'=>'required|in:youtube,papirar','video_url'=>'required|url|max:500','status'=>'required|in:draft,published,unavailable','sort_order'=>'required|integer|min:0|max:99999','is_featured'=>'nullable|boolean','last_reviewed_at'=>'nullable|date']);

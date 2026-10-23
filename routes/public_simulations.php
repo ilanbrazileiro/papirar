@@ -12,6 +12,8 @@ Route::post('/simulados-gratis/{slug}/finalizar',[PublicController::class,'finis
 Route::get('/simulados-gratis/{slug}/resultado',[PublicController::class,'result'])->name('public-simulations.result');
 Route::middleware(['auth',EnsureSingleSession::class,EnsureAdmin::class])->prefix('admin/simulados-publicos')->name('admin.public-simulations.')->group(function(){
  Route::get('/',[AdminController::class,'index'])->name('index');
+ Route::get('/novo',[AdminController::class,'create'])->name('create');
+ Route::get('/{simulation}/editar',[AdminController::class,'edit'])->name('edit');
  Route::get('/escopo',[AdminController::class,'scope'])->name('scope');
  Route::post('/',[AdminController::class,'save'])->name('save');
 });
