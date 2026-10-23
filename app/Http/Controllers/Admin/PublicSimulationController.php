@@ -56,4 +56,29 @@ class PublicSimulationController extends Controller {
   });
   return redirect()->route('admin.public-simulations.index')->with('success','Simulado salvo.');
  }
+ // Preserva o simulado e todas as tentativas, apenas controla sua visibilidade pública.
+ public function togglePublication(Request $request, PublicSimulation $simulation)
+ {
+  $this->authorizeAdmin($request);
+  $simulation->update(['is_published'=>!$simulation->is_published]);
+  return redirect()->route('admin.public-simulations.index')->with('success',
+   $simulation->is_published ? 'Simulado publicado.' : 'Simulado retirado do ar. Tentativas preservadas.');
+ }
+
+ // Exclusão definitiva solicitada pelo administrador. Mantém as questões do banco acadêmico.
+ public function destroy(Request $request, PublicSimulation $simulation)
+ {
+  $this->authorizeAdmin($request);
+  $data=$request->validate(['confirmation'=>['required','in:EXCLUIR']]);
+  DB::transaction(function () use ($simulation) {
+   $locked=PublicSimulation::query()->lockForUpdate()->findOrFail($simulation->id);
+   // Cada resposta e resultado de simulado público pertence à sua tentativa.
+   DB::table('public_simulation_attempts')->where('public_simulation_id',$locked->id)->delete();
+   // Desvincula questões sem apagar registros de questions ou alternatives.
+   DB::table('public_simulation_questions')->where('public_simulation_id',$locked->id)->delete();
+   $locked->delete();
+  });
+  return redirect()->route('admin.public-simulations.index')->with('success',
+   'Simulado e todas as suas tentativas e resultados foram excluídos definitivamente.');
+ }
 }
