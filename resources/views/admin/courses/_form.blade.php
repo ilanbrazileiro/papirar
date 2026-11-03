@@ -83,6 +83,16 @@
                 </div>
 
                 <div class="col-md-6">
+                    <label for="education_level" class="form-label">Nível de escolaridade do curso</label>
+                    <select name="education_level" id="education_level" class="form-control">
+                        <option value="" @selected(old('education_level', $course->education_level ?? '') === '')>Não classificado</option>
+                        <option value="medium" @selected(old('education_level', $course->education_level ?? '') === 'medium')>Médio</option>
+                        <option value="higher" @selected(old('education_level', $course->education_level ?? '') === 'higher')>Superior</option>
+                    </select>
+                    <div class="text-muted small mt-1">Definido no próprio curso. Não é herdado do concurso vinculado.</div>
+                </div>
+
+                <div class="col-md-6">
                     <label for="exam_id" class="form-label">Concurso vinculado</label>
                     <select name="exam_id" id="exam_id" class="form-control">
                         <option value="">Sem concurso específico</option>

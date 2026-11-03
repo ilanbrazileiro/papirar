@@ -4,6 +4,7 @@ namespace App\Services\PublicSimulations;
 
 use App\Models\Course;
 use App\Models\Question;
+use App\Support\EducationLevel;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -78,6 +79,8 @@ class CourseQuestionLottery
         // Se os tópicos não foram definidos para esta disciplina, não ampliar o sorteio.
         $query = Question::query()->visibleToStudent()->where('questions.subject_id', $subjectId)
             ->whereIn('questions.topic_id', $topicIds ?: [0]);
+
+        EducationLevel::restrictQuestions($query, $course->education_level);
 
         if ($course->corporation_id) {
             $query->where(fn ($q) => $q->whereNull('questions.corporation_id')

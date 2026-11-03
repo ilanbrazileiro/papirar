@@ -13,16 +13,20 @@ use Illuminate\View\View;
 
 class PublicQuestionCatalogController extends Controller
 {
+    /**
+     * Catálogo público sem identidade escolar: exibe somente questões de nível Médio.
+     * Não constitui, isoladamente, controle de acesso às URLs individuais.
+     */
     public function index(): View
     {
         $subjects = Subject::query()
             ->where('active', true)
-            ->whereHas('questions', fn ($query) => $query->visibleToStudent())
+            ->whereHas('questions', fn ($query) => $query->visibleToStudent()->where('education_level', 'medium'))
             ->with([
                 'latestPublicQuestion.subject:id,name,slug',
                 'topics' => fn ($query) => $query
                     ->where('active', true)
-                    ->whereHas('questions', fn ($questions) => $questions->visibleToStudent())
+                    ->whereHas('questions', fn ($questions) => $questions->visibleToStudent()->where('education_level', 'medium'))
                     ->with('latestPublicQuestion.subject:id,name,slug')
                     ->orderBy('name'),
             ])
@@ -50,6 +54,7 @@ class PublicQuestionCatalogController extends Controller
 
         $questions = Question::query()
             ->visibleToStudent()
+            ->where('education_level', 'medium')
             ->where('subject_id', $subject->id)
             ->with(['subject:id,name,slug', 'topic:id,name,slug', 'examBoard:id,name', 'exam:id,title,year'])
             ->latest('id')
@@ -62,9 +67,9 @@ class PublicQuestionCatalogController extends Controller
         $topics = Topic::query()
             ->where('subject_id', $subject->id)
             ->where('active', true)
-            ->whereHas('questions', fn ($query) => $query->visibleToStudent())
+            ->whereHas('questions', fn ($query) => $query->visibleToStudent()->where('education_level', 'medium'))
             ->withCount([
-                'questions as public_questions_count' => fn ($query) => $query->visibleToStudent(),
+                'questions as public_questions_count' => fn ($query) => $query->visibleToStudent()->where('education_level', 'medium'),
             ])
             ->orderByDesc('public_questions_count')
             ->orderBy('name')
@@ -113,6 +118,7 @@ class PublicQuestionCatalogController extends Controller
 
         $questions = Question::query()
             ->visibleToStudent()
+            ->where('education_level', 'medium')
             ->where('subject_id', $subject->id)
             ->where('topic_id', $topic->id)
             ->with(['subject:id,name,slug', 'topic:id,name,slug', 'examBoard:id,name', 'exam:id,title,year'])

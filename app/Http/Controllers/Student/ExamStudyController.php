@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\StudySession;
 use App\Models\StudySessionQuestion;
+use App\Support\EducationLevel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -138,6 +139,14 @@ class ExamStudyController extends Controller
             ->where('active', true)
             ->findOrFail($data['exam_id']);
 
+        // O estudo baseado em concurso utiliza a escolaridade própria do concurso.
+        // Concurso sem nível definido não deve liberar questões por suposição.
+        if (! EducationLevel::isValid($exam->education_level)) {
+            return back()
+                ->withErrors(['exam_id' => 'Este concurso ainda não possui escolaridade classificada. Solicite a classificação antes de estudar.'])
+                ->withInput();
+        }
+
         $examSubjects = DB::table('exam_subjects')
             ->where('exam_id', $exam->id)
             ->where('is_active', true)
@@ -213,6 +222,8 @@ class ExamStudyController extends Controller
                 });
             });
 
+        EducationLevel::restrictQuestions($questionsQuery, $exam->education_level);
+
         if (!empty($selectedTopicIds)) {
             $questionsQuery->whereIn('questions.topic_id', $selectedTopicIds);
         }
@@ -232,7 +243,7 @@ class ExamStudyController extends Controller
 
         if ($questions->isEmpty()) {
             return back()
-                ->with('error', 'Nenhuma questão publicada foi encontrada para o concurso, disciplinas e tópicos selecionados.')
+                ->with('error', 'Nenhuma questão publicada e compatível com a escolaridade foi encontrada para os filtros selecionados.')
                 ->withInput();
         }
 

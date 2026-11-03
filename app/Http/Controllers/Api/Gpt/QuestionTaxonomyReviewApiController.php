@@ -6,12 +6,14 @@ use App\Http\Controllers\Controller;
 use App\Models\Question;
 use App\Models\Subject;
 use App\Models\Topic;
+use App\Support\EducationLevel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
 
 class QuestionTaxonomyReviewApiController extends Controller
@@ -59,6 +61,7 @@ class QuestionTaxonomyReviewApiController extends Controller
         $data = $request->validate([
             'subject_id' => ['required','integer','exists:subjects,id'],
             'topic_id' => ['required','integer','exists:topics,id'],
+            'education_level' => ['sometimes', 'required', Rule::in(array_keys(EducationLevel::options()))],
             'reason' => ['required','string','min:10','max:1000'],
         ]);
 
@@ -70,23 +73,41 @@ class QuestionTaxonomyReviewApiController extends Controller
             ]);
         }
 
-        $before = ['subject_id'=>$question->subject_id,'topic_id'=>$question->topic_id];
+        $before = [
+            'subject_id' => $question->subject_id,
+            'topic_id' => $question->topic_id,
+            'education_level' => $question->education_level,
+        ];
 
-        $question->update([
+        $updates = [
             'subject_id' => (int)$data['subject_id'],
             'topic_id' => (int)$data['topic_id'],
-        ]);
+        ];
+        if (array_key_exists('education_level', $data)) {
+            $updates['education_level'] = $data['education_level'];
+        }
+        $question->update($updates);
 
         Log::info('GPT Revisor reclassificou questão', [
             'question_id'=>$question->id,
             'before'=>$before,
-            'after'=>['subject_id'=>$question->subject_id,'topic_id'=>$question->topic_id],
+            'after'=>[
+                'subject_id'=>$question->subject_id,
+                'topic_id'=>$question->topic_id,
+                'education_level'=>$question->education_level,
+            ],
             'reason'=>$data['reason'],
         ]);
 
         return response()->json([
             'message'=>'Questão reclassificada com sucesso.',
-            'data'=>['id'=>$question->id,'status'=>$question->status,'subject_id'=>$question->subject_id,'topic_id'=>$question->topic_id],
+            'data'=>[
+                'id'=>$question->id,
+                'status'=>$question->status,
+                'subject_id'=>$question->subject_id,
+                'topic_id'=>$question->topic_id,
+                'education_level'=>$question->education_level,
+            ],
         ]);
     }
 

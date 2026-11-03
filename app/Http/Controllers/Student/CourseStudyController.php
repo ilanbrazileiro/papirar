@@ -12,6 +12,8 @@ use App\Models\StudySessionQuestion;
 use App\Models\UserAnswer;
 use App\Services\Study\PendingErrorReviewService;
 use App\Services\Study\AdaptiveStudyService;
+use App\Services\Education\CourseQuestionAccess;
+use App\Support\EducationLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -62,6 +64,7 @@ class CourseStudyController extends Controller
 
         $questions = Question::query()
             ->visibleToStudent()
+            ->tap(fn ($query) => EducationLevel::restrictQuestions($query, $course->education_level))
             ->when(!empty($scope['subject_ids']), fn ($q) => $q->whereIn('subject_id', $scope['subject_ids']))
             ->when(!empty($scope['topic_ids']), fn ($q) => $q->whereIn('topic_id', $scope['topic_ids']))
             ->when(!empty($scope['source_material_ids']), fn ($q) => $q->whereIn('source_material_id', $scope['source_material_ids']))
@@ -203,6 +206,10 @@ class CourseStudyController extends Controller
         abort_unless($session->course_id, 403);
         $hasAccess = CourseAccess::query()->where('user_id', Auth::id())->where('course_id', $session->course_id)->where('status', CourseAccess::STATUS_ACTIVE)->where(fn ($q) => $q->whereNull('ends_at')->orWhere('ends_at', '>=', now()))->exists();
         abort_unless($hasAccess, 403);
+
+        // Sessões antigas também precisam respeitar a escolaridade atual do curso.
+        $course = Course::query()->findOrFail($session->course_id);
+        app(CourseQuestionAccess::class)->assertStudySessionEligible((int) $session->id, $course);
     }
 
     private function authorizeCourseAccess(Course $course): void

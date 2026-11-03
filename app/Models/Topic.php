@@ -38,6 +38,7 @@ class Topic extends Model
     {
         return $this->hasOne(Question::class)
             ->visibleToStudent()
+            ->where('education_level', 'medium')
             ->latestOfMany();
     }
 }

@@ -46,6 +46,7 @@ class Question extends Model
         'status',
         'created_by',
         'question_import_batch_id',
+        'education_level',
     ];
 
     protected $casts = [
@@ -62,6 +63,11 @@ class Question extends Model
     public function scopeVisibleToStudent(Builder $query): Builder
     {
         return $query->whereIn('status', self::STUDENT_VISIBLE_STATUSES);
+    }
+
+    public function scopeForEducationLevel(Builder $query, ?string $level): Builder
+    {
+        return \App\Support\EducationLevel::restrictQuestions($query, $level);
     }
 
     public function getStatusLabelAttribute(): string

@@ -8,6 +8,8 @@ use App\Models\CourseAccess;
 use App\Models\Question;
 use App\Models\SimulatedExam;
 use App\Models\SimulatedExamQuestion;
+use App\Services\Education\CourseQuestionAccess;
+use App\Support\EducationLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -58,6 +60,7 @@ class CourseSimulatedController extends Controller
 
         $questionsQuery = Question::query()
             ->visibleToStudent()
+            ->tap(fn ($query) => EducationLevel::restrictQuestions($query, $course->education_level))
             ->whereIn('questions.subject_id', $selectedSubjectIds)
             ->when(!empty($scope['topic_ids']), fn ($q) => $q->whereIn('questions.topic_id', $scope['topic_ids']))
             ->when(!empty($scope['source_material_ids']), fn ($q) => $q->whereIn('questions.source_material_id', $scope['source_material_ids']))
@@ -260,6 +263,9 @@ class CourseSimulatedController extends Controller
         abort_unless((int) $simulatedExam->user_id === (int) Auth::id(), 403);
         abort_unless((int) $simulatedExam->course_id === (int) $course->id, 403);
         $this->authorizeCourseAccess($course);
+
+        // Impede a exposição de questões superiores em tentativas criadas antes da classificação.
+        app(CourseQuestionAccess::class)->assertSimulatedExamEligible((int) $simulatedExam->id, $course);
     }
 
     private function resolveCourseScope(Course $course): array

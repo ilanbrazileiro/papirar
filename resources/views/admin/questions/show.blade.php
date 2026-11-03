@@ -15,9 +15,7 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Dados da questão</h3>
-    </div>
+    <div class="card-header"><h3 class="card-title mb-0">Dados da questão</h3></div>
     <div class="card-body">
         <div class="row">
             <div class="col-md-4 mb-2"><strong>Corporação:</strong> {{ $question->corporation->name ?? '-' }}</div>
@@ -26,11 +24,19 @@
             <div class="col-md-4 mb-2"><strong>Concurso:</strong> {{ $question->exam->title ?? '-' }}</div>
             <div class="col-md-4 mb-2"><strong>Banca:</strong> {{ $question->examBoard->name ?? '-' }}</div>
             <div class="col-md-4 mb-2"><strong>Dificuldade:</strong> {{ ucfirst($question->difficulty) }}</div>
+            <div class="col-md-4 mb-2"><strong>Escolaridade:</strong>
+                @if($question->education_level === 'medium')
+                    <span class="badge bg-primary">Médio</span>
+                @elseif($question->education_level === 'higher')
+                    <span class="badge bg-info text-dark">Superior</span>
+                @else
+                    <span class="badge bg-warning text-dark">Não classificada</span>
+                @endif
+            </div>
             <div class="col-md-4 mb-2"><strong>Origem:</strong> {{ $question->source_type }}</div>
             <div class="col-md-4 mb-2"><strong>Status:</strong> {{ $question->status }}</div>
             <div class="col-md-8 mb-2"><strong>Referência:</strong> {{ $question->source_reference ?: '-' }}</div>
         </div>
-
         <div class="mt-2">
             <strong>Fonte / Bibliografia:</strong>
             @if($question->sourceMaterial)
@@ -49,18 +55,12 @@
 </div>
 
 <div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Enunciado</h3>
-    </div>
-    <div class="card-body">
-        {!! $question->statement !!}
-    </div>
+    <div class="card-header"><h3 class="card-title mb-0">Enunciado</h3></div>
+    <div class="card-body">{!! $question->statement !!}</div>
 </div>
 
 <div class="card mb-3">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Alternativas</h3>
-    </div>
+    <div class="card-header"><h3 class="card-title mb-0">Alternativas</h3></div>
     <div class="card-body">
         @foreach($question->alternatives->sortBy('letter') as $alternative)
             <div class="border rounded p-3 mb-2 {{ $alternative->is_correct ? 'border-success' : '' }}">
@@ -75,11 +75,7 @@
 </div>
 
 <div class="card">
-    <div class="card-header">
-        <h3 class="card-title mb-0">Comentário / gabarito comentado</h3>
-    </div>
-    <div class="card-body">
-        {!! $question->commented_answer ?: 'Sem comentário cadastrado.' !!}
-    </div>
+    <div class="card-header"><h3 class="card-title mb-0">Comentário / gabarito comentado</h3></div>
+    <div class="card-body">{!! $question->commented_answer ?: 'Sem comentário cadastrado.' !!}</div>
 </div>
 @endsection

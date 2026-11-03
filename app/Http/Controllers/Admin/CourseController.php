@@ -13,6 +13,7 @@ use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Subject;
 use App\Models\Topic;
+use App\Support\EducationLevel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -27,6 +28,7 @@ class CourseController extends Controller
         $search = trim((string) $request->get('search', ''));
         $courseType = $request->get('course_type');
         $status = $request->get('status');
+        $educationLevel = $request->validate(['education_level' => ['nullable', Rule::in(['medium', 'higher', 'unclassified'])]])['education_level'] ?? '';
 
         $courses = Course::query()
             ->with(['corporation', 'exam'])
@@ -37,6 +39,8 @@ class CourseController extends Controller
                         ->orWhere('short_description', 'like', "%{$search}%");
                 });
             })
+            ->when($educationLevel === 'unclassified', fn ($q) => $q->whereNull('education_level'))
+            ->when(in_array($educationLevel, ['medium', 'higher'], true), fn ($q) => $q->where('education_level', $educationLevel))
             ->when($courseType, fn ($q) => $q->where('course_type', $courseType))
             ->when($status === 'active', fn ($q) => $q->where('active', true))
             ->when($status === 'inactive', fn ($q) => $q->where('active', false))
@@ -47,7 +51,7 @@ class CourseController extends Controller
 
         $typeOptions = Course::typeOptions();
 
-        return view('admin.courses.index', compact('courses', 'search', 'courseType', 'status', 'typeOptions'));
+        return view('admin.courses.index', compact('courses', 'search', 'courseType', 'status', 'typeOptions', 'educationLevel'));
     }
 
     public function create()
@@ -265,6 +269,7 @@ class CourseController extends Controller
         $validated = $request->validate([
             'corporation_id' => ['nullable', 'integer', 'exists:corporations,id'],
             'exam_id' => ['nullable', 'integer', 'exists:exams,id'],
+            'education_level' => ['nullable', Rule::in(['medium', 'higher'])],
             'title' => ['required', 'string', 'max:180'],
             'slug' => [
                 'nullable',
@@ -358,6 +363,7 @@ class CourseController extends Controller
         return [
             'corporation_id' => $validated['corporation_id'] ?? null,
             'exam_id' => $validated['exam_id'] ?? null,
+            'education_level' => $validated['education_level'] ?? null,
             'title' => $validated['title'],
             'slug' => $slug,
             'short_description' => $validated['short_description'] ?? null,
@@ -571,7 +577,7 @@ class CourseController extends Controller
 
         $scope = $this->resolveCourseScope($course);
 
-        $isValid = Question::query()
+        $isValid = EducationLevel::restrictQuestions(Question::query(), $course->education_level)
             ->visibleToStudent()
             ->whereKey($course->landing_question_id)
             ->when(
@@ -590,7 +596,7 @@ class CourseController extends Controller
 
         if (! $isValid) {
             throw ValidationException::withMessages([
-                'landing_question_id' => 'A questão demonstrativa precisa estar visível ao aluno e pertencer ao escopo deste curso.',
+                'landing_question_id' => 'A questão demonstrativa precisa estar publicada, ter escolaridade compatível e pertencer ao escopo deste curso.',
             ]);
         }
     }

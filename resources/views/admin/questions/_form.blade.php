@@ -189,6 +189,18 @@
                         <div class="invalid-feedback d-block">{{ $message }}</div>
                     @enderror
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="education_level" class="form-label">Escolaridade</label>
+                    <select name="education_level" id="education_level" class="form-control @error('education_level') is-invalid @enderror">
+                        <option value="" @selected(old('education_level', $question->education_level ?? '') === '')>Não classificada</option>
+                        <option value="medium" @selected(old('education_level', $question->education_level ?? '') === 'medium')>Médio</option>
+                        <option value="higher" @selected(old('education_level', $question->education_level ?? '') === 'higher')>Superior</option>
+                    </select>
+                    <div class="form-text">Questões não classificadas não devem ser liberadas automaticamente para cursos de nível Médio.</div>
+                    @error('education_level')
+                        <div class="invalid-feedback d-block">{{ $message }}</div>
+                    @enderror
+                </div>
             </div>
 
             @include('admin.questions.snippets._source_material_select')

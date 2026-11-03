@@ -169,6 +169,15 @@
                     </select>
                 </div>
                 <div class="col-md-2">
+                    <label class="form-label" for="education-level-filter">Escolaridade</label>
+                    <select name="education_level" id="education-level-filter" class="form-control">
+                        <option value="">Todas</option>
+                        <option value="medium" @selected(($educationLevel ?? '') === 'medium')>Médio</option>
+                        <option value="higher" @selected(($educationLevel ?? '') === 'higher')>Superior</option>
+                        <option value="unclassified" @selected(($educationLevel ?? '') === 'unclassified')>Não classificada</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
                     <label class="form-label" for="per-page-filter">Por página</label>
                     <select name="per_page" id="per-page-filter" class="form-control">
                         @foreach([15, 50, 100, 1000] as $pageSize)
@@ -225,6 +234,7 @@
                             <th>Tópico</th>
                             <th>Referencia</th>
                             <th>Banca</th>
+                            <th>Escolaridade</th>
                             <th>Status</th>
                             <th class="text-end">Ações</th>
                         </tr>
@@ -248,6 +258,15 @@
                                 <td>{{ $question->source_reference ?? '-' }}</td>
                                 <td>{{ $question->examBoard->name ?? '-' }}</td>
                                 <td>
+                                    @if($question->education_level === 'medium')
+                                        <span class="badge bg-primary">Médio</span>
+                                    @elseif($question->education_level === 'higher')
+                                        <span class="badge bg-info text-dark">Superior</span>
+                                    @else
+                                        <span class="badge bg-warning text-dark">Não classificada</span>
+                                    @endif
+                                </td>
+                                <td>
                                     <span class="badge {{ $statusBadgeClass($question->status) }}">
                                         {{ $question->status_label }}
                                     </span>
@@ -261,11 +280,9 @@
                                         <div><small class="text-muted">Oculta para aluno</small></div>
                                     @endif
                                 </td>
-                                
                                 <td class="text-end">
                                     <form action="{{ route('admin.questions.destroy', $question) }}" method="POST" class="d-inline" onsubmit="return confirm('Deseja excluir esta questão?');">
                                         @csrf
-                                    
                                     <div class="btn-group-vertical">
                                     <a href="{{ route('admin.questions.show', $question) }}" class="btn btn-secondary" title="Ver questão">
                                         <i class="fas fa-eye"></i>

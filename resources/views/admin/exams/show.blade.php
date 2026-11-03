@@ -21,6 +21,17 @@
                 <dt class="col-md-3">Status</dt>
                 <dd class="col-md-9">{{ $exam->status === 'planned' ? 'Previsto' : 'Publicado' }}</dd>
 
+                <dt class="col-md-3">Escolaridade</dt>
+                <dd class="col-md-9">
+                    @if($exam->education_level === 'medium')
+                        <span class="badge bg-primary">Médio</span>
+                    @elseif($exam->education_level === 'higher')
+                        <span class="badge bg-info text-dark">Superior</span>
+                    @else
+                        <span class="badge bg-warning text-dark">Não classificado</span>
+                    @endif
+                </dd>
+
                 <dt class="col-md-3">Ativo</dt>
                 <dd class="col-md-9">{{ $exam->active ? 'Sim' : 'Não' }}</dd>
 

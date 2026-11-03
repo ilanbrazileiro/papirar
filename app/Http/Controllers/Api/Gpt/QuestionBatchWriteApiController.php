@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Topic;
+use App\Support\EducationLevel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -62,6 +63,7 @@ class QuestionBatchWriteApiController extends Controller
                     'subject_id' => $question->subject_id,
                     'topic_id' => $question->topic_id,
                     'source_type' => $question->source_type,
+                    'education_level' => $question->education_level,
                     'message' => 'Questão criada como draft.',
                 ];
             } catch (ValidationException $e) {
@@ -129,6 +131,7 @@ class QuestionBatchWriteApiController extends Controller
             'statement' => ['required', 'string', 'min:5'],
             'question_type' => ['required', 'string', 'max:50'],
             'difficulty' => ['required', Rule::in(['easy', 'medium', 'hard'])],
+            'education_level' => ['nullable', Rule::in(array_keys(EducationLevel::options()))],
             'source_type' => ['required', Rule::in(['exam', 'authored', 'adapted'])],
             'source_reference' => ['nullable', 'string'],
             'commented_answer' => ['nullable', 'string'],
@@ -221,6 +224,7 @@ class QuestionBatchWriteApiController extends Controller
                 'statement' => $data['statement'],
                 'question_type' => $data['question_type'],
                 'difficulty' => $data['difficulty'],
+                'education_level' => $data['education_level'] ?? null,
                 'source_type' => $data['source_type'],
                 'source_reference' => $data['source_reference'] ?? null,
                 'commented_answer' => $data['commented_answer'] ?? null,

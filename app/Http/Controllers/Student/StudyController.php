@@ -12,8 +12,10 @@ use App\Models\StudySessionQuestion;
 use App\Models\Subject;
 use App\Models\Topic;
 use App\Models\UserAnswer;
+use App\Support\EducationLevel;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
 
 class StudyController extends Controller
 {
@@ -49,12 +51,14 @@ class StudyController extends Controller
             'subject_id' => ['nullable', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
             'source_material_id' => ['nullable', 'integer', 'exists:source_materials,id'],
+            'education_level' => ['required', Rule::in([EducationLevel::MEDIUM, EducationLevel::HIGHER])],
             'difficulty' => ['nullable', 'in:easy,medium,hard'],
             'source_type' => ['nullable', 'in:exam,authored,adapted'],
             'quantity' => ['required', 'integer', 'min:1', 'max:100'],
             'mode' => ['required', 'in:train,exam,review'],
         ]);
 
+        // SavedFilter has no education_level column: do not write unverified schema fields.
         SavedFilter::query()->updateOrCreate(
             ['user_id' => auth()->id()],
             [
@@ -71,6 +75,7 @@ class StudyController extends Controller
 
         $questions = Question::query()
             ->where('status', 'published')
+            ->tap(fn ($query) => EducationLevel::restrictQuestions($query, $data['education_level']))
             ->when(!empty($data['corporation_id']), fn ($q) => $q->where('corporation_id', $data['corporation_id']))
             ->when(!empty($data['subject_id']), fn ($q) => $q->where('subject_id', $data['subject_id']))
             ->when(!empty($data['topic_id']), fn ($q) => $q->where('topic_id', $data['topic_id']))
@@ -88,7 +93,7 @@ class StudyController extends Controller
             ->get();
 
         if ($questions->isEmpty()) {
-            return back()->with('error', 'Nenhuma questão encontrada com os filtros informados.')->withInput();
+            return back()->with('error', 'Nenhuma questão encontrada com os filtros informados e a escolaridade selecionada.')->withInput();
         }
 
         $session = StudySession::query()->create([
@@ -128,15 +133,9 @@ class StudyController extends Controller
 
         $question = Question::query()
             ->with([
-                'corporation',
-                'exam',
-                'subject',
-                'topic',
-                'sourceMaterial',
-                'alternatives',
+                'corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives',
                 'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
-                'comments.user',
-                'difficultyVotes',
+                'comments.user', 'difficultyVotes',
             ])
             ->findOrFail($currentItem->question_id);
 
@@ -166,15 +165,9 @@ class StudyController extends Controller
 
         $question = Question::query()
             ->with([
-                'corporation',
-                'exam',
-                'subject',
-                'topic',
-                'sourceMaterial',
-                'alternatives',
+                'corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives',
                 'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
-                'comments.user',
-                'difficultyVotes',
+                'comments.user', 'difficultyVotes',
             ])
             ->findOrFail($data['question_id']);
 
@@ -212,15 +205,9 @@ class StudyController extends Controller
             ->firstOrFail();
 
         $question->load([
-            'corporation',
-            'exam',
-            'subject',
-            'topic',
-            'sourceMaterial',
-            'alternatives',
+            'corporation', 'exam', 'subject', 'topic', 'sourceMaterial', 'alternatives',
             'comments' => fn ($q) => $q->where('status', 'approved')->latest(),
-            'comments.user',
-            'difficultyVotes',
+            'comments.user', 'difficultyVotes',
         ]);
 
         $userAnswer = UserAnswer::query()

@@ -64,6 +64,16 @@
                     </div>
                 </div>
 
+                <div class="col-md-6">
+                    <label for="education_level" class="form-label">Escolaridade do concurso</label>
+                    <select name="education_level" id="education_level" class="form-control" required>
+                        <option value="">Selecione...</option>
+                        <option value="medium" @selected(old('education_level', $exam->education_level) === 'medium')>Médio</option>
+                        <option value="higher" @selected(old('education_level', $exam->education_level) === 'higher')>Superior</option>
+                    </select>
+                    <div class="form-text">A escolaridade deste concurso não altera automaticamente a escolaridade dos cursos.</div>
+                </div>
+
                 <div class="col-12">
                     <label for="description" class="form-label">Descrição / observações</label>
                     <textarea name="description" id="description" class="form-control" rows="3">{{ old('description', $exam->description ?? '') }}</textarea>

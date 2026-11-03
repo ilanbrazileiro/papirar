@@ -5,7 +5,7 @@
 @section('content')
     <div class="mb-4">
         <h1 class="page-title">Filtro livre de questões</h1>
-        <p class="page-subtitle">Monte manualmente uma sessão por corporação, disciplina, assunto, fonte, dificuldade e origem.</p>
+        <p class="page-subtitle">Monte manualmente uma sessão por escolaridade, corporação, disciplina, assunto, fonte, dificuldade e origem.</p>
         <a href="{{ route('student.study.index') }}" class="btn btn-sm btn-outline-secondary mt-2">Voltar para formas de estudo</a>
     </div>
 
@@ -13,11 +13,29 @@
         <div class="alert alert-warning">{{ session('error') }}</div>
     @endif
 
+    @if($errors->any())
+        <div class="alert alert-danger">
+            @foreach($errors->all() as $error)
+                <div>{{ $error }}</div>
+            @endforeach
+        </div>
+    @endif
+
     <div class="card-soft p-4 p-md-5">
         <form method="POST" action="{{ route('student.study.start') }}">
             @csrf
 
             <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="education_level">Escolaridade das questões</label>
+                    <select name="education_level" id="education_level" class="form-control form-control-lg @error('education_level') is-invalid @enderror" required>
+                        <option value="medium" @selected(old('education_level', 'medium') === 'medium')>Nível Médio</option>
+                        <option value="higher" @selected(old('education_level') === 'higher')>Nível Superior (inclui Médio)</option>
+                    </select>
+                    <div class="small text-muted mt-1">Questões sem escolaridade cadastrada não entram no sorteio.</div>
+                    @error('education_level')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
+
                 <div class="col-md-6">
                     <label class="form-label fw-semibold">Corporação</label>
                     <select name="corporation_id" class="form-control form-control-lg">

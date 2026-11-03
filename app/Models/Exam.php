@@ -23,6 +23,7 @@ class Exam extends Model
         'status',
         'description',
         'active',
+        'education_level',
     ];
 
     protected $casts = [

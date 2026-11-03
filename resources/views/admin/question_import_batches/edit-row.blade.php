@@ -49,6 +49,16 @@
                     </select>
                     <small class="form-text text-muted">Confiança da IA: {{ isset($meta['classification_confidence']) ? number_format($meta['classification_confidence'] * 100, 0).'%': '-' }}</small>
                 </div>
+                <div class="col-md-6 mb-3">
+                    <label for="education_level" class="form-label">Escolaridade da questão</label>
+                    <select name="education_level" id="education_level" class="form-control @error('education_level') is-invalid @enderror" required>
+                        <option value="">Selecione após conferir a prova</option>
+                        <option value="medium" @selected(old('education_level', $raw['education_level'] ?? '') === 'medium')>Médio</option>
+                        <option value="higher" @selected(old('education_level', $raw['education_level'] ?? '') === 'higher')>Superior</option>
+                    </select>
+                    <small class="form-text text-muted">Classifique a questão conforme o nível do concurso original. A dificuldade é um campo diferente.</small>
+                    @error('education_level')<div class="invalid-feedback">{{ $message }}</div>@enderror
+                </div>
                 @if(!empty($meta['suggested_subject_name']) || !empty($meta['suggested_topic_name']))
                     <div class="col-12">
                         <div class="alert alert-info mb-0">

@@ -17,17 +17,26 @@
     <div class="card mb-3">
         <div class="card-body">
             <form method="GET" action="{{ route('admin.courses.index') }}" class="row g-2 align-items-end">
-                <div class="col-md-5">
+                <div class="col-md-4">
                     <label for="search" class="form-label">Buscar</label>
                     <input type="text" name="search" id="search" class="form-control" value="{{ $search }}" placeholder="Nome, slug ou descrição curta">
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="course_type" class="form-label">Tipo</label>
                     <select name="course_type" id="course_type" class="form-control">
                         <option value="">Todos</option>
                         @foreach($typeOptions as $value => $label)
                             <option value="{{ $value }}" @selected($courseType === $value)>{{ $label }}</option>
                         @endforeach
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label for="education_level" class="form-label">Escolaridade</label>
+                    <select name="education_level" id="education_level" class="form-control">
+                        <option value="">Todas</option>
+                        <option value="medium" @selected(($educationLevel ?? '') === 'medium')>Médio</option>
+                        <option value="higher" @selected(($educationLevel ?? '') === 'higher')>Superior</option>
+                        <option value="unclassified" @selected(($educationLevel ?? '') === 'unclassified')>Não classificado</option>
                     </select>
                 </div>
                 <div class="col-md-2">
@@ -53,6 +62,7 @@
                     <tr>
                         <th>ID</th>
                         <th>Curso</th>
+                        <th>Escolaridade</th>
                         <th>Tipo</th>
                         <th>Preço</th>
                         <th>Teste grátis</th>
@@ -68,6 +78,15 @@
                             <td>
                                 <strong>{{ $course->title }}</strong>
                                 <div class="text-muted small">{{ $course->slug }}</div>
+                            </td>
+                            <td>
+                                @if($course->education_level === 'medium')
+                                    <span class="badge bg-info">Médio</span>
+                                @elseif($course->education_level === 'higher')
+                                    <span class="badge bg-primary">Superior</span>
+                                @else
+                                    <span class="badge bg-warning text-dark">Não classificado</span>
+                                @endif
                             </td>
                             <td>{{ $course->typeLabel() }}</td>
                             <td>
@@ -114,7 +133,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="8" class="text-center text-muted py-4">Nenhum curso cadastrado.</td>
+                            <td colspan="9" class="text-center text-muted py-4">Nenhum curso cadastrado.</td>
                         </tr>
                     @endforelse
                 </tbody>

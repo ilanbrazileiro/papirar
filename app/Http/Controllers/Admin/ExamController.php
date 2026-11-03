@@ -19,6 +19,7 @@ class ExamController extends Controller
         $search = trim((string) $request->get('search', ''));
         $corporationId = $request->integer('corporation_id');
         $year = $request->integer('year');
+        $educationLevel = $request->validate(['education_level' => ['nullable', 'in:medium,higher,unclassified']])['education_level'] ?? '';
 
         $exams = Exam::query()
             ->with('corporation')
@@ -31,6 +32,8 @@ class ExamController extends Controller
             })
             ->when($corporationId, fn ($q) => $q->where('corporation_id', $corporationId))
             ->when($year, fn ($q) => $q->where('year', $year))
+            ->when($educationLevel === 'unclassified', fn ($q) => $q->whereNull('education_level'))
+            ->when(in_array($educationLevel, ['medium', 'higher'], true), fn ($q) => $q->where('education_level', $educationLevel))
             ->orderByDesc('year')
             ->orderBy('title')
             ->paginate(15)
@@ -39,7 +42,7 @@ class ExamController extends Controller
         $corporations = Corporation::query()->orderBy('name')->get();
         $years = Exam::query()->select('year')->distinct()->orderByDesc('year')->pluck('year');
 
-        return view('admin.exams.index', compact('exams', 'corporations', 'years', 'search', 'corporationId', 'year'));
+        return view('admin.exams.index', compact('exams', 'corporations', 'years', 'search', 'corporationId', 'year', 'educationLevel'));
     }
 
     public function create()
@@ -166,6 +169,7 @@ class ExamController extends Controller
             'title' => ['required', 'string', 'max:180'],
             'year' => ['required', 'integer', 'between:1900,2100'],
             'exam_type' => ['required', 'string', 'max:50'],
+            'education_level' => ['nullable', 'in:medium,higher'],
             'status' => ['nullable', 'in:' . Exam::STATUS_PLANNED . ',' . Exam::STATUS_PUBLISHED],
             'description' => ['nullable', 'string'],
             'active' => ['nullable', 'boolean'],
@@ -191,6 +195,7 @@ class ExamController extends Controller
             'title' => $validated['title'],
             'year' => (int) $validated['year'],
             'exam_type' => $validated['exam_type'],
+            'education_level' => $validated['education_level'] ?? null,
             'status' => $validated['status'] ?? Exam::STATUS_PUBLISHED,
             'description' => $validated['description'] ?? null,
             'active' => (bool) ($validated['active'] ?? false),

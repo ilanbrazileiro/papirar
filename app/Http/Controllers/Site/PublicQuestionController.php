@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\UserSession;
 use App\Notifications\VerifyEmailNotification;
 use App\Services\PublicQuestions\PublicQuestionHistoryService;
+use App\Support\EducationLevel;
 use App\Support\PublicQuestionUrl;
 use App\Support\MarketingAttribution;
 use Illuminate\Http\JsonResponse;
@@ -93,6 +94,7 @@ class PublicQuestionController extends Controller
 
         $nextQuestion = Question::query()
             ->visibleToStudent()
+            ->where('education_level', EducationLevel::MEDIUM)
             ->whereKeyNot($questionModel->id)
             ->when(
                 $publicAnsweredQuestionIds !== [],
@@ -336,6 +338,7 @@ class PublicQuestionController extends Controller
     {
         return Question::query()
             ->visibleToStudent()
+            ->where('education_level', EducationLevel::MEDIUM)
             ->with([
                 'alternatives',
                 'subject:id,name,slug',

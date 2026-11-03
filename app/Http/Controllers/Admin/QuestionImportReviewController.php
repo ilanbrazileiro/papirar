@@ -83,6 +83,7 @@ class QuestionImportReviewController extends Controller
         $data = $request->validate([
             'subject_id' => ['required', 'integer', 'exists:subjects,id'],
             'topic_id' => ['nullable', 'integer', 'exists:topics,id'],
+            'education_level' => ['required', 'in:medium,higher'],
             'statement' => ['required', 'string'],
             'correct_letter' => ['required', 'in:A,B,C,D,E'],
             'alternatives' => ['required', 'array', 'size:5'],
@@ -141,8 +142,7 @@ class QuestionImportReviewController extends Controller
     public function cancel(
         QuestionImportBatch $batch,
         QuestionImportFileCleanupService $fileCleanup
-    ): RedirectResponse
-    {
+    ): RedirectResponse {
         if (in_array($batch->status, ['imported', 'partial_imported', 'partial'], true)) {
             return back()->with('error', 'Este lote já possui questões importadas e não pode ser cancelado totalmente.');
         }

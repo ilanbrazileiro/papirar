@@ -8,6 +8,7 @@ use App\Models\Exam;
 use App\Models\Question;
 use App\Models\SourceMaterial;
 use App\Models\Topic;
+use App\Support\EducationLevel;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -30,8 +31,8 @@ class QuestionWriteApiController extends Controller
             'statement' => ['required', 'string', 'min:5'],
             'question_type' => ['required', 'string', 'max:50'],
             'difficulty' => ['required', Rule::in(['easy', 'medium', 'hard'])],
-            'source_type' => ['required', Rule::in(['exam', 'authored', 'adapted']),
-],
+            'education_level' => ['nullable', Rule::in(array_keys(EducationLevel::options()))],
+            'source_type' => ['required', Rule::in(['exam', 'authored', 'adapted'])],
             'source_reference' => ['nullable', 'string'],
             'commented_answer' => ['nullable', 'string'],
             'correct_letter' => ['required', Rule::in(['A', 'B', 'C', 'D', 'E'])],
@@ -73,6 +74,7 @@ class QuestionWriteApiController extends Controller
                 'statement' => $validated['statement'],
                 'question_type' => $validated['question_type'],
                 'difficulty' => $validated['difficulty'],
+                'education_level' => $validated['education_level'] ?? null,
                 'source_type' => $validated['source_type'] ?? null,
                 'source_reference' => $validated['source_reference'] ?? null,
                 'commented_answer' => $validated['commented_answer'] ?? null,
@@ -99,6 +101,7 @@ class QuestionWriteApiController extends Controller
             'exam_board_id' => $question->exam_board_id,
             'subject_id' => $question->subject_id,
             'topic_id' => $question->topic_id,
+            'education_level' => $question->education_level,
             'ip' => $request->ip(),
             'user_agent' => Str::limit((string) $request->userAgent(), 300),
         ]);
@@ -116,6 +119,7 @@ class QuestionWriteApiController extends Controller
                 'subject_id' => $question->subject_id,
                 'topic_id' => $question->topic_id,
                 'difficulty' => $question->difficulty,
+                'education_level' => $question->education_level,
                 'statement' => $question->statement,
                 'commented_answer' => $question->commented_answer,
                 'correct_letter' => $question->alternatives->firstWhere('is_correct', true)?->letter,

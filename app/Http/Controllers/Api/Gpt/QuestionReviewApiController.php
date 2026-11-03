@@ -15,6 +15,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rule;
 
 class QuestionReviewApiController extends Controller
 {
@@ -94,6 +95,13 @@ class QuestionReviewApiController extends Controller
             $query->where('status', $request->string('status'));
         }
 
+        if ($request->filled('education_level')) {
+            $data = $request->validate(['education_level' => ['required', Rule::in(['medium', 'higher', 'unclassified'])]]);
+            $data['education_level'] === 'unclassified'
+                ? $query->whereNull('education_level')
+                : $query->where('education_level', $data['education_level']);
+        }
+
         if ($request->filled('q')) {
             $term = '%' . $request->string('q')->toString() . '%';
             $query->where(function (Builder $builder) use ($term) {
@@ -113,6 +121,7 @@ class QuestionReviewApiController extends Controller
                 'year' => $exam->year ?? null,
                 'status' => $exam->status ?? null,
                 'active' => $exam->active ?? null,
+                'education_level' => $exam->education_level,
             ]),
         ]);
     }
@@ -302,6 +311,7 @@ class QuestionReviewApiController extends Controller
             ->map(fn (Question $question) => [
                 'id' => $question->id,
                 'status' => $question->status,
+                'education_level' => $question->education_level,
                 'exam_board' => $this->relationPayload($question->examBoard),
                 'subject' => $this->relationPayload($question->subject),
                 'topic' => $this->relationPayload($question->topic),
@@ -330,6 +340,14 @@ class QuestionReviewApiController extends Controller
             if ($request->filled($field)) {
                 $query->where($field, $request->string($field));
             }
+        }
+
+        // O filtro e administrativo: 'unclassified' identifica NULL, sem presumir nivel medio.
+        if ($request->filled('education_level')) {
+            $data = $request->validate(['education_level' => ['required', Rule::in(['medium', 'higher', 'unclassified'])]]);
+            $data['education_level'] === 'unclassified'
+                ? $query->whereNull('education_level')
+                : $query->where('education_level', $data['education_level']);
         }
 
         if ($request->filled('q')) {
@@ -369,6 +387,7 @@ class QuestionReviewApiController extends Controller
             ] : null,
             'question_type' => $question->question_type,
             'difficulty' => $question->difficulty,
+            'education_level' => $question->education_level,
             'source_type' => $question->source_type,
             'source_reference' => $question->source_reference,
             'status' => $question->status,

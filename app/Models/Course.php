@@ -27,6 +27,7 @@ class Course extends Model
     protected $fillable = [
         'corporation_id',
         'exam_id',
+        'education_level',
         'title',
         'slug',
         'short_description',

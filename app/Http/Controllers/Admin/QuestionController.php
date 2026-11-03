@@ -32,6 +32,7 @@ class QuestionController extends Controller
         $perPage = (int) ($paginationFilters['per_page'] ?? 15);
         $status = trim((string) $request->get('status', ''));
         $difficulty = trim((string) $request->get('difficulty', ''));
+        $educationLevel = $request->validate(['education_level' => ['nullable', Rule::in(['medium', 'higher', 'unclassified'])]])['education_level'] ?? '';
         $corporationId = $request->integer('corporation_id');
         $examBoardId = $request->integer('exam_board_id');
         $subjectId = $request->integer('subject_id');
@@ -53,6 +54,8 @@ class QuestionController extends Controller
                         });
                 });
             })
+            ->when($educationLevel === 'unclassified', fn ($q) => $q->whereNull('questions.education_level'))
+            ->when(in_array($educationLevel, ['medium', 'higher'], true), fn ($q) => $q->where('questions.education_level', $educationLevel))
             ->when($difficulty !== '', fn ($q) => $q->where('difficulty', $difficulty))
             ->when($corporationId, fn ($q) => $q->where('corporation_id', $corporationId))
             ->when($examBoardId, fn ($q) => $q->where('exam_board_id', $examBoardId))
@@ -134,6 +137,7 @@ class QuestionController extends Controller
             'perPage' => $perPage,
             'status' => $status,
             'difficulty' => $difficulty,
+            'educationLevel' => $educationLevel,
             'corporationId' => $corporationId,
             'subjectId' => $subjectId,
             'sourceMaterialId' => $sourceMaterialId,
@@ -201,6 +205,7 @@ class QuestionController extends Controller
                 'statement' => $data['statement'],
                 'question_type' => $data['question_type'],
                 'difficulty' => $data['difficulty'],
+                'education_level' => $data['education_level'] ?? null,
                 'source_type' => $data['source_type'],
                 'source_reference' => $data['source_reference'] ?? null,
                 'source_material_id' => $data['source_material_id'] ?? null,
@@ -277,6 +282,7 @@ class QuestionController extends Controller
                 'statement' => $data['statement'],
                 'question_type' => $data['question_type'],
                 'difficulty' => $data['difficulty'],
+                'education_level' => $data['education_level'] ?? null,
                 'source_type' => $data['source_type'],
                 'source_reference' => $data['source_reference'] ?? null,
                 'source_material_id' => $data['source_material_id'] ?? null,
@@ -436,6 +442,7 @@ class QuestionController extends Controller
             'statement' => ['required', 'string'],
             'question_type' => ['required', Rule::in(['multiple_choice'])],
             'difficulty' => ['required', Rule::in(['easy', 'medium', 'hard'])],
+            'education_level' => ['nullable', Rule::in(['medium', 'higher'])],
             'source_type' => ['required', Rule::in(['exam', 'authored', 'adapted'])],
             'source_reference' => ['nullable', 'string', 'max:255'],
             'commented_answer' => ['nullable', 'string'],
