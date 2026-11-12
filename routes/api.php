@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\Gpt\CatalogCourseApiController;
 use App\Http\Controllers\Api\Gpt\CoursePreparationApiController;
+use App\Http\Controllers\Api\Gpt\EducationLevelApiController;
+use App\Http\Controllers\Api\Gpt\EducationCatalogApiController;
 use App\Http\Controllers\Api\Gpt\Ga4MarketingApiController;
 use App\Http\Controllers\Api\Gpt\MarketingEngagementApiController;
 use App\Http\Controllers\Api\Gpt\MarketingReadApiController;
@@ -48,6 +50,11 @@ Route::prefix('gpt')->middleware([EnsureGptApiToken::class, ResolveGptQuestion::
     Route::patch('/questions/{question}/archive', [QuestionReviewerApiController::class, 'archive']);
     Route::patch('/questions/{question}/review-publish', [QuestionReviewerApiController::class, 'reviewAndPublish']);
 
+    // Escolaridade: operações independentes para questões, concursos e cursos.
+    Route::patch('/questions/{question}/education-level', [EducationLevelApiController::class, 'updateQuestion']);
+    Route::patch('/catalog/exams/{exam}/education-level', [EducationLevelApiController::class, 'updateExam']);
+    Route::patch('/courses/{course}/education-level', [EducationLevelApiController::class, 'updateCourse']);
+
     Route::get('/taxonomy/review', [QuestionTaxonomyReviewApiController::class, 'reviewTaxonomy']);
     Route::patch('/questions/{question}/classification', [QuestionTaxonomyReviewApiController::class, 'updateQuestionClassification']);
     Route::patch('/topics/{topic}/move', [QuestionTaxonomyReviewApiController::class, 'moveTopic']);
@@ -60,15 +67,15 @@ Route::prefix('gpt')->middleware([EnsureGptApiToken::class, ResolveGptQuestion::
     Route::patch('/catalog/exam-boards/{examBoard}', [CatalogCourseApiController::class, 'updateExamBoard']);
     Route::post('/catalog/source-materials', [CatalogCourseApiController::class, 'storeSourceMaterial']);
     Route::patch('/catalog/source-materials/{sourceMaterial}', [CatalogCourseApiController::class, 'updateSourceMaterial']);
-    Route::post('/catalog/exams', [CatalogCourseApiController::class, 'storeExam']);
-    Route::patch('/catalog/exams/{exam}', [CatalogCourseApiController::class, 'updateExam']);
+    Route::post('/catalog/exams', [EducationCatalogApiController::class, 'storeExam']);
+    Route::patch('/catalog/exams/{exam}', [EducationCatalogApiController::class, 'updateExam']);
     Route::put('/catalog/exams/{exam}/scope', [CatalogCourseApiController::class, 'replaceExamScopeApi']);
 
-    Route::get('/courses', [CatalogCourseApiController::class, 'courses']);
-    Route::post('/courses', [CoursePreparationApiController::class, 'store']);
+    Route::get('/courses', [EducationCatalogApiController::class, 'courses']);
+    Route::post('/courses', [EducationCatalogApiController::class, 'storeCourse']);
     Route::get('/courses/{course}', [CatalogCourseApiController::class, 'course']);
     Route::get('/courses/{course}/coverage', [CatalogCourseApiController::class, 'courseCoverage']);
-    Route::patch('/courses/{course}/metadata', [CoursePreparationApiController::class, 'updateMetadata']);
+    Route::patch('/courses/{course}/metadata', [EducationCatalogApiController::class, 'updateCourseMetadata']);
     Route::put('/courses/{course}/scope', [CoursePreparationApiController::class, 'replaceScope']);
     Route::put('/courses/{course}/bundle', [CoursePreparationApiController::class, 'replaceBundle']);
     Route::patch('/courses/{course}/pricing', [CoursePreparationApiController::class, 'updatePricing']);
