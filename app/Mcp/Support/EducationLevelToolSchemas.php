@@ -39,6 +39,48 @@ final class EducationLevelToolSchemas
         }
         unset($definition);
 
+        // A API GPT já possui esta ação. O MCP precisa anunciar a ferramenta
+        // individualmente para permitir corrigir só a escolaridade, sem editar
+        // enunciado, alternativas, gabarito ou status.
+        if (! in_array('updateQuestionEducationLevel', array_column($definitions, 'name'), true)) {
+            $definitions[] = [
+                'name' => 'updateQuestionEducationLevel',
+                'title' => 'Altera escolaridade da questão',
+                'description' => 'Altera exclusivamente a escolaridade de uma questão não arquivada. Consulte a questão e confirme o nível da prova antes de chamar. Exige justificativa verificável. Não altera gabarito, conteúdo ou status.',
+                'method' => 'PATCH',
+                'path' => '/questions/{question}/education-level',
+                'controller' => 'EducationLevelApiController',
+                'action' => 'updateQuestion',
+                'read_only' => false,
+                'destructive' => false,
+                'idempotent' => true,
+                'roles' => ['admin', 'content'],
+                'bindings' => [
+                    'question' => [
+                        'argument' => 'question',
+                        'model' => \App\Models\Question::class,
+                    ],
+                ],
+                'schema' => [
+                    'type' => 'object',
+                    'additionalProperties' => false,
+                    'required' => ['question', 'education_level', 'reason'],
+                    'properties' => [
+                        'question' => ['type' => 'integer', 'minimum' => 1],
+                        'education_level' => [
+                            'type' => 'string',
+                            'enum' => ['medium', 'higher'],
+                        ],
+                        'reason' => [
+                            'type' => 'string',
+                            'minLength' => 10,
+                            'maxLength' => 1000,
+                        ],
+                    ],
+                ],
+            ];
+        }
+
         return $definitions;
     }
 }

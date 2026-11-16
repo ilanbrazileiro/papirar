@@ -38,6 +38,27 @@ class McpEducationLevelSchemaTest extends TestCase
         $this->assertArrayHasKey('question', $review['bindings']);
     }
 
+    public function test_individual_education_tool_uses_existing_endpoint_and_model_binding(): void
+    {
+        $tools = EducationLevelToolSchemas::apply(array_merge(
+            $this->definitions('extractor-tools.json'),
+            $this->definitions('reviewer-tools.json')
+        ));
+
+        $tool = $this->findTool($tools, 'updateQuestionEducationLevel');
+        $this->assertSame('PATCH', $tool['method']);
+        $this->assertSame('/questions/{question}/education-level', $tool['path']);
+        $this->assertSame('EducationLevelApiController', $tool['controller']);
+        $this->assertSame('updateQuestion', $tool['action']);
+        $this->assertSame(\App\Models\Question::class, $tool['bindings']['question']['model']);
+        $this->assertSame(['question', 'education_level', 'reason'], $tool['schema']['required']);
+        $this->assertSame(['medium', 'higher'], $tool['schema']['properties']['education_level']['enum']);
+        $this->assertSame(10, $tool['schema']['properties']['reason']['minLength']);
+        $this->assertSame(['admin', 'content'], $tool['roles']);
+        $this->assertFalse($tool['read_only']);
+        $this->assertFalse($tool['destructive']);
+    }
+
     public function test_invalid_level_is_not_in_advertised_schema_and_application_is_idempotent(): void
     {
         $first = EducationLevelToolSchemas::apply($this->definitions('extractor-tools.json'));
@@ -45,6 +66,7 @@ class McpEducationLevelSchemaTest extends TestCase
         $this->assertSame($first, $second);
         $create = $this->findTool($first, 'createDraftQuestion');
         $this->assertNotContains('unclassified', $create['schema']['properties']['education_level']['enum']);
+        $this->assertCount(1, array_filter($second, fn (array $tool) => $tool['name'] === 'updateQuestionEducationLevel'));
     }
 
     private function definitions(string $file): array
