@@ -21,7 +21,9 @@ class PapirarReviewerMcpTest extends TestCase
 
         if (self::$testKeys === []) {
             $key = openssl_pkey_new(['private_key_bits' => 2048, 'private_key_type' => OPENSSL_KEYTYPE_RSA]);
-            openssl_pkey_export($key, $private);
+            if ($key === false || ! openssl_pkey_export($key, $private)) {
+                $this->fail('OpenSSL não conseguiu gerar a chave RSA de teste; verifique OPENSSL_CONF.');
+            }
             self::$testKeys = [$private, openssl_pkey_get_details($key)['key']];
         }
         config(['passport.private_key' => self::$testKeys[0], 'passport.public_key' => self::$testKeys[1]]);
@@ -81,7 +83,6 @@ class PapirarReviewerMcpTest extends TestCase
             $table->unsignedBigInteger('question_id');
             $table->timestamps();
         });
-
         DB::table('subjects')->insert(['id' => 1, 'name' => 'Português', 'slug' => 'portugues']);
         DB::table('topics')->insert(['id' => 1, 'subject_id' => 1, 'name' => 'Crase', 'slug' => 'crase']);
     }
@@ -91,15 +92,14 @@ class PapirarReviewerMcpTest extends TestCase
         $this->signIn();
         $tools = $this->listAllTools();
         $names = array_column($tools, 'name');
-
-        foreach (['updateQuestionContent', 'finalizeQuestionReview', 'archiveQuestion', 'reviewTaxonomy', 'updateQuestionClassification', 'moveTopic', 'mergeTopic', 'mergeSubject'] as $name) {
+        foreach (['updateQuestionContent', 'publishQuestion', 'returnQuestionToDraft', 'archiveQuestion', 'reviewTaxonomy', 'updateQuestionClassification', 'moveTopic', 'mergeTopic', 'mergeSubject'] as $name) {
             $this->assertContains($name, $names);
         }
-
+        // O status reviewed é reservado ao fluxo humano; a IA pode publicar como published.
+        $this->assertNotContains('finalizeQuestionReview', $names);
         $archive = collect($tools)->firstWhere('name', 'archiveQuestion');
         $this->assertTrue($archive['annotations']['destructiveHint']);
         $this->assertTrue($archive['_meta']['confirmationRequired']);
-
         $merge = collect($tools)->firstWhere('name', 'mergeTopic');
         $this->assertTrue($merge['annotations']['destructiveHint']);
         $this->assertTrue($merge['_meta']['confirmationRequired']);
@@ -108,21 +108,18 @@ class PapirarReviewerMcpTest extends TestCase
     public function test_content_role_cannot_use_admin_only_structural_merge(): void
     {
         Passport::actingAs(new User(['role' => 'content', 'is_active' => true]), ['mcp:use'], 'api');
-        $response = $this->callTool('mergeTopic', [
+        $this->callTool('mergeTopic', [
             'sourceTopic' => 1,
             'target_topic_id' => 2,
             'confirm' => true,
             'reason' => 'Teste de autorização administrativa.',
-        ]);
-
-        $response->assertJsonPath('result.isError', true);
+        ])->assertJsonPath('result.isError', true);
     }
 
     public function test_reviewer_updates_alternatives_and_correct_answer_without_changing_status(): void
     {
         $this->signIn();
         $question = $this->createQuestion();
-
         $data = $this->toolData($this->callTool('updateQuestionContent', [
             'question' => $question->id,
             'statement' => 'Qual alternativa apresenta corretamente o emprego da crase?',
@@ -135,7 +132,6 @@ class PapirarReviewerMcpTest extends TestCase
             ],
             'reason' => 'Correção editorial do enunciado, alternativas e gabarito.',
         ]));
-
         $this->assertSame(200, $data['http_status']);
         $this->assertSame('draft', $data['response']['data']['status']);
         $this->assertSame('B', $data['response']['data']['correct_letter']);
@@ -143,43 +139,41 @@ class PapirarReviewerMcpTest extends TestCase
         $this->assertDatabaseHas('questions', ['id' => $question->id, 'difficulty' => 'medium', 'status' => 'draft']);
     }
 
-    public function test_finalize_requires_editorial_requirements_and_marks_valid_question_reviewed(): void
+    public function test_ai_cannot_finalize_human_review_and_can_publish_valid_draft(): void
     {
         $this->signIn();
-        $invalid = $this->createQuestion(commentedAnswer: null);
-        $failed = $this->callTool('finalizeQuestionReview', [
-            'question' => $invalid->id,
-            'reason' => 'Tentativa controlada sem comentário suficiente.',
-        ])->assertJsonPath('result.isError', true);
-        $this->assertSame(422, $this->toolData($failed)['http_status']);
-        $this->assertDatabaseHas('questions', ['id' => $invalid->id, 'status' => 'draft']);
-
         $valid = $this->createQuestion(
-            statement: 'Segunda questão válida para revisão final.',
-            commentedAnswer: str_repeat('Explicação didática suficiente para a validação editorial final. ', 2),
+            statement: 'Segunda questão válida para publicação após análise editorial.',
+            commentedAnswer: str_repeat('Explicação didática suficiente para a publicação da questão. ', 2)
         );
-        $data = $this->toolData($this->callTool('finalizeQuestionReview', [
-            'question' => $valid->id,
-            'reason' => 'Conteúdo, gabarito, comentário e classificação conferidos.',
-        ]));
+        $this->assertNotContains('finalizeQuestionReview', array_column($this->listAllTools(), 'name'));
+        $response = $this->rpc('tools/call', [
+            'name' => 'finalizeQuestionReview',
+            'arguments' => (object) ['question' => $valid->id, 'reason' => 'Tentativa de revisão reservada a humanos.'],
+        ]);
+        // A ferramenta desconhecida deve ser recusada pelo protocolo MCP.
+        $this->assertSame(400, $response->status());
+        $this->assertDatabaseHas('questions', ['id' => $valid->id, 'status' => Question::STATUS_DRAFT]);
 
+        $data = $this->toolData($this->callTool('publishQuestion', [
+            'question' => $valid->id,
+            'reason' => 'Publicação autorizada após checagem da questão de teste.',
+        ]));
         $this->assertSame(200, $data['http_status']);
-        $this->assertSame(Question::STATUS_REVIEWED, $data['response']['data']['status']);
-        $this->assertDatabaseHas('questions', ['id' => $valid->id, 'status' => Question::STATUS_REVIEWED]);
+        $this->assertSame(Question::STATUS_PUBLISHED, $data['response']['data']['status']);
+        $this->assertDatabaseHas('questions', ['id' => $valid->id, 'status' => Question::STATUS_PUBLISHED]);
     }
 
     public function test_archive_requires_confirmation_and_archived_question_cannot_be_edited(): void
     {
         $this->signIn();
         $question = $this->createQuestion();
-
         $this->callTool('archiveQuestion', [
             'question' => $question->id,
             'confirm' => false,
             'reason' => 'Teste de proteção contra arquivamento sem confirmação.',
         ])->assertJsonPath('result.isError', true);
-        $this->assertDatabaseHas('questions', ['id' => $question->id, 'status' => 'draft']);
-
+        $this->assertDatabaseHas('questions', ['question_type' => 'multiple_choice', 'id' => $question->id, 'status' => 'draft']);
         $data = $this->toolData($this->callTool('archiveQuestion', [
             'question' => $question->id,
             'confirm' => true,
@@ -187,7 +181,6 @@ class PapirarReviewerMcpTest extends TestCase
         ]));
         $this->assertSame(200, $data['http_status']);
         $this->assertDatabaseHas('questions', ['id' => $question->id, 'status' => Question::STATUS_ARCHIVED]);
-
         $edit = $this->callTool('updateQuestionContent', [
             'question' => $question->id,
             'statement' => 'Tentativa de alteração posterior ao arquivamento.',
@@ -201,21 +194,17 @@ class PapirarReviewerMcpTest extends TestCase
         $this->signIn();
         $first = $this->createQuestion('Enunciado já existente para teste de duplicidade.');
         $second = $this->createQuestion('Outro enunciado antes da tentativa de revisão.');
-
         $response = $this->callTool('updateQuestionContent', [
             'question' => $second->id,
             'statement' => $first->statement,
             'reason' => 'Teste de bloqueio de enunciado duplicado durante revisão.',
         ])->assertJsonPath('result.isError', true);
-
         $this->assertSame(409, $this->toolData($response)['http_status']);
         $this->assertDatabaseHas('questions', ['id' => $second->id, 'statement' => 'Outro enunciado antes da tentativa de revisão.']);
     }
 
-    private function createQuestion(
-        string $statement = 'Questão original para revisão editorial.',
-        ?string $commentedAnswer = null,
-    ): Question {
+    private function createQuestion(string $statement = 'Questão original para revisão editorial.', ?string $commentedAnswer = null): Question
+    {
         $question = Question::create([
             'subject_id' => 1,
             'topic_id' => 1,
@@ -230,7 +219,6 @@ class PapirarReviewerMcpTest extends TestCase
             ['letter' => 'A', 'text' => 'Alternativa correta inicial.', 'is_correct' => true],
             ['letter' => 'B', 'text' => 'Alternativa incorreta inicial.', 'is_correct' => false],
         ]);
-
         return $question;
     }
 
@@ -244,21 +232,15 @@ class PapirarReviewerMcpTest extends TestCase
         $tools = [];
         $cursor = null;
         $seenCursors = [];
-
         do {
             $params = $cursor ? ['cursor' => $cursor] : [];
             $response = $this->rpc('tools/list', $params)->assertOk();
             $tools = array_merge($tools, $response->json('result.tools') ?? []);
             $nextCursor = $response->json('result.nextCursor');
-
-            if (! $nextCursor || in_array($nextCursor, $seenCursors, true)) {
-                break;
-            }
-
+            if (! $nextCursor || in_array($nextCursor, $seenCursors, true)) break;
             $seenCursors[] = $nextCursor;
             $cursor = $nextCursor;
         } while (count($seenCursors) < 20);
-
         return $tools;
     }
 
@@ -269,10 +251,7 @@ class PapirarReviewerMcpTest extends TestCase
             'MCP-Protocol-Version' => '2025-06-18',
             'Origin' => 'https://chatgpt.com',
         ];
-        if ($method === 'tools/call') {
-            $headers['Mcp-Name'] = $params['name'];
-        }
-
+        if ($method === 'tools/call') $headers['Mcp-Name'] = $params['name'];
         return $this->postJson('/mcp/papirar', [
             'jsonrpc' => '2.0',
             'id' => 1,

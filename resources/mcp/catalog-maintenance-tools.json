@@ -1,0 +1,49 @@
+[
+  {
+    "name": "updateSubject", "title": "Edita disciplina",
+    "description": "Edita nome, descrição, escopo ou atividade de uma disciplina existente. Mantém o slug e vínculos. Para desativar, exige confirm=true. Requer justificativa e consulta prévia.",
+    "method": "PATCH", "path": "/subjects/{subject}/metadata", "controller": "TaxonomyMaintenanceApiController", "action": "updateSubject",
+    "read_only": false, "destructive": false, "idempotent": true, "roles": ["admin", "content"],
+    "bindings": {"subject": {"argument": "subject", "model": "App\\Models\\Subject"}},
+    "schema": {"type":"object","additionalProperties":false,"required":["subject","reason"],"properties":{
+      "subject":{"type":"integer","minimum":1},"name":{"type":"string","minLength":1,"maxLength":150},
+      "description":{"type":"string"},"scope":{"type":"string","enum":["general","corporation_specific"]},
+      "active":{"type":"boolean"},"confirm":{"type":"boolean"},
+      "reason":{"type":"string","minLength":10,"maxLength":1000}
+    }}
+  },
+  {
+    "name": "updateTopic", "title": "Edita tópico",
+    "description": "Edita nome, descrição ou atividade de um tópico existente, mantendo o slug e disciplina. Para mover tópico use moveTopic. Para desativar, exige confirm=true. Requer justificativa.",
+    "method": "PATCH", "path": "/topics/{topic}/metadata", "controller": "TaxonomyMaintenanceApiController", "action": "updateTopic",
+    "read_only": false, "destructive": false, "idempotent": true, "roles": ["admin", "content"],
+    "bindings": {"topic": {"argument": "topic", "model": "App\\Models\\Topic"}},
+    "schema": {"type":"object","additionalProperties":false,"required":["topic","reason"],"properties":{
+      "topic":{"type":"integer","minimum":1},"name":{"type":"string","minLength":1,"maxLength":150},
+      "description":{"type":"string"},"active":{"type":"boolean"},"confirm":{"type":"boolean"},
+      "reason":{"type":"string","minLength":10,"maxLength":1000}
+    }}
+  },
+  {
+    "name": "updateCourseEducationLevel", "title": "Altera escolaridade do curso",
+    "description": "Altera exclusivamente a escolaridade de um curso existente. Não herda do concurso e não altera questões. Consulte o curso antes.",
+    "method": "PATCH", "path": "/courses/{course}/education-level", "controller": "EducationLevelApiController", "action": "updateCourse",
+    "read_only": false,"destructive": false,"idempotent": true,"roles":["admin","content"],
+    "bindings":{"course":{"argument":"course","model":"App\\Models\\Course"}},
+    "schema":{"type":"object","additionalProperties":false,"required":["course","education_level","reason"],"properties":{
+      "course":{"type":"integer","minimum":1},"education_level":{"type":"string","enum":["medium","higher"]},
+      "reason":{"type":"string","minLength":10,"maxLength":1000}
+    }}
+  },
+  {
+    "name": "updateExamEducationLevel", "title": "Altera escolaridade do concurso",
+    "description": "Altera exclusivamente a escolaridade de concurso existente. Independente dos cursos e questões. Consulte o concurso antes.",
+    "method": "PATCH", "path": "/catalog/exams/{exam}/education-level", "controller": "EducationLevelApiController", "action": "updateExam",
+    "read_only": false,"destructive": false,"idempotent": true,"roles":["admin","content"],
+    "bindings":{"exam":{"argument":"exam","model":"App\\Models\\Exam"}},
+    "schema":{"type":"object","additionalProperties":false,"required":["exam","education_level","reason"],"properties":{
+      "exam":{"type":"integer","minimum":1},"education_level":{"type":"string","enum":["medium","higher"]},
+      "reason":{"type":"string","minLength":10,"maxLength":1000}
+    }}
+  }
+]
